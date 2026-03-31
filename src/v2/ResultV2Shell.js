@@ -3278,10 +3278,11 @@ function PremiumTab({ memberTier, onOpenPaywall, result, profile, calSummary, fo
       <Card style={s.darkCard}>
         <Text style={s.darkEyebrow}>{S.premiumCenter}</Text>
         <Text style={s.darkTitle}>{memberTier === 'annual' ? '\u5f53\u524d\u5df2\u5f00\u901a\u5e74\u5ea6\u4f1a\u5458' : memberTier === 'monthly' ? '\u5f53\u524d\u5df2\u5f00\u901a\u6708\u5ea6\u4f1a\u5458' : '\u89e3\u9501\u66f4\u4e13\u4e1a\u3001\u66f4\u5b9e\u7528\u7684\u547d\u7406\u5185\u5bb9'}</Text>
-        <Text style={s.darkBody}>{isMember ? '\u4f60\u73b0\u5728\u770b\u5230\u7684\u4e0d\u53ea\u662f\u57fa\u7840\u7ed3\u8bba\uff0c\u800c\u662f\u66f4\u5b8c\u6574\u7684\u56db\u67f1\u6863\u6848\u3001\u9636\u6bb5\u8d8b\u52bf\u3001AI \u6df1\u8bfb\u548c\u53ef\u6267\u884c\u5efa\u8bae\u3002' : '\u76ee\u524d\u4f1a\u5458\u9875\u5148\u7528\u4e8e\u5c55\u793a\u6743\u76ca\u5e76\u8fdb\u884c\u4f1a\u5458\u4fe1\u606f\u767b\u8bb0\uff0c\u652f\u4ed8\u529f\u80fd\u4f1a\u5728\u6b63\u5f0f\u4e0a\u7ebf\u65f6\u518d\u63a5\u5165\u3002'}</Text>
-        <View style={s.memberHeroPills}>
-          <View style={s.memberHeroPill}><Text style={s.memberHeroPillText}>{isMember ? '\u5df2\u89e3\u9501\u5b8c\u6574\u89e3\u8bfb' : '\u53ef\u5148\u8fdb\u884c\u4f1a\u5458\u767b\u8bb0'}</Text></View>
-          <View style={s.memberHeroPill}><Text style={s.memberHeroPillText}>{isMember ? '\u652f\u6301\u6301\u7eed\u56de\u770b' : '\u652f\u4ed8\u529f\u80fd\u6682\u672a\u5f00\u653e'}</Text></View>
+        <Text style={s.darkBody}>{isMember ? '\u4f60\u73b0\u5728\u770b\u5230\u7684\u4e0d\u53ea\u662f\u57fa\u7840\u7ed3\u8bba\uff0c\u800c\u662f\u66f4\u5b8c\u6574\u7684\u4f1a\u5458\u5185\u5bb9\u4e0e\u957f\u671f\u56de\u770b\u5165\u53e3\u3002' : '\u76ee\u524d\u5148\u652f\u6301\u4f1a\u5458\u767b\u8bb0\u4e0e\u6743\u76ca\u9884\u89c8\uff0c\u5f00\u901a\u540e\u53ef\u4ee5\u89e3\u9501\u66f4\u5b8c\u6574\u7684\u4f1a\u5458\u5185\u5bb9\u3002'}</Text>
+        <View style={s.memberHeroFooter}>
+          <TouchableOpacity onPress={onOpenPaywall} style={s.memberRegisterButton} activeOpacity={0.9}>
+            <Text style={s.memberRegisterButtonText}>{isMember ? '\u4f1a\u5458\u767b\u8bb0' : '\u4f1a\u5458\u767b\u8bb0'}</Text>
+          </TouchableOpacity>
         </View>
       </Card>
       <Card>
@@ -3296,10 +3297,6 @@ function PremiumTab({ memberTier, onOpenPaywall, result, profile, calSummary, fo
             <View key={item} style={s.benefitRow}><View style={s.benefitDot} /><Text style={s.benefitText}>{item}</Text></View>
           ))}
         </View>
-      </Card>
-      <Card>
-        <SectionHeader eyebrow={S.currentStatus} title={isMember ? '\u5f53\u524d\u72b6\u6001' : '\u5f53\u524d\u8bf4\u660e'} />
-        <Text style={s.paragraph}>{isMember ? '\u4f60\u5df2\u5177\u5907\u4f1a\u5458\u6743\u76ca\uff0c\u53ef\u7ee7\u7eed\u56de\u770b\u6df1\u5ea6\u89e3\u8bfb\u548c\u9636\u6bb5\u5185\u5bb9\u3002' : '\u73b0\u5728\u5148\u652f\u6301\u4f1a\u5458\u4fe1\u606f\u767b\u8bb0\u4e0e\u9875\u9762\u9884\u89c8\uff0c\u771f\u5b9e\u4ed8\u8d39\u4f1a\u5728\u540e\u7eed\u6b63\u5f0f\u4e0a\u7ebf\u65f6\u63a5\u5165\u3002'}</Text>
       </Card>
       <Card>
         <SectionHeader eyebrow={'会员内容'} title={hasRegistration ? '会员结果入口' : '完成会员登记后可查看'} body={'当前已接入 24 条会员专题入口，并已按主题分类整理，方便长期回看。'} />
@@ -3323,7 +3320,6 @@ function PremiumTab({ memberTier, onOpenPaywall, result, profile, calSummary, fo
           </View>
         ))}
       </Card>
-      <TouchableOpacity onPress={onOpenPaywall} style={s.primaryButton}><Text style={s.primaryButtonText}>{isMember ? '\u67e5\u770b\u4f1a\u5458\u767b\u8bb0\u4fe1\u606f' : '\u8fdb\u5165\u4f1a\u5458\u767b\u8bb0'}</Text></TouchableOpacity>
       <Sheet visible={!!selectedMemberTopic} onClose={() => setSelectedMemberTopic(null)} title={selectedMemberTopic?.title || '会员内容'} subtitle={hasRegistration ? '已为你开放会员结果入口' : '完成会员登记后可长期回看'}>
         <Text style={s.detailLead}>{toText(selectedMemberTopic?.summary)}</Text>
         {(selectedMemberTopic?.details || []).map((detail) => (
@@ -4473,9 +4469,19 @@ const s = StyleSheet.create({
   benefitRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   benefitDot: { width: 8, height: 8, borderRadius: 99, backgroundColor: C.gold },
   benefitText: { fontSize: 14, lineHeight: 20, color: C.ink, flex: 1 },
-  memberHeroPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
-  memberHeroPill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(255,255,255,0.12)' },
-  memberHeroPillText: { fontSize: 11, fontWeight: '700', color: '#FFF' },
+  memberHeroFooter: { marginTop: 18, alignItems: 'flex-end' },
+  memberRegisterButton: {
+    minWidth: 112,
+    height: 40,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  memberRegisterButtonText: { fontSize: 13, fontWeight: '800', color: '#FFF' },
   premiumInsightCard: { borderRadius: 16, borderWidth: 1, borderColor: C.line, padding: 14, marginTop: 10, backgroundColor: '#FFF' },
   premiumInsightEyebrow: { fontSize: 11, fontWeight: '700', color: C.gold, marginBottom: 6 },
   premiumInsightTitle: { fontSize: 15, fontWeight: '800', color: C.ink, marginBottom: 6 },
