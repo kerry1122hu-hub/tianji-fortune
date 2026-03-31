@@ -26,6 +26,7 @@ import { detectPwaPlatform, getPwaDisplayMode, isSafariBrowser, isStandalonePwa,
 
 const { width: PAGE_WIDTH } = Dimensions.get('window');
 const CALENDAR_ENTRIES_STORAGE_KEY = 'mingme.v2.calendarEntries';
+const AI_INSTALL_REMINDER_SEEN_KEY = 'mingme.v2.aiInstallReminderSeen';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -1828,10 +1829,11 @@ function AICompanionModal({
   onVoiceInput,
 }) {
   const scrollRef = useRef(null);
-  const [inputHeight, setInputHeight] = useState(72);
+  const [inputHeight, setInputHeight] = useState(56);
   const [installState, setInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
   const [installReminderVisible, setInstallReminderVisible] = useState(false);
   const [installSheetVisible, setInstallSheetVisible] = useState(false);
+  const [installReminderSeen, setInstallReminderSeen] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -1840,6 +1842,12 @@ function AICompanionModal({
     }, 120);
     return () => clearTimeout(timer);
   }, [visible, chatHistory.length, chatLoading]);
+
+  useEffect(() => {
+    if (!`${chatInput || ''}`.trim()) {
+      setInputHeight(56);
+    }
+  }, [chatInput]);
 
   useEffect(() => {
     if (Platform.OS !== 'web') return undefined;
@@ -1857,19 +1865,36 @@ function AICompanionModal({
   }, []);
 
   useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    try {
+      setInstallReminderSeen(window.localStorage.getItem(AI_INSTALL_REMINDER_SEEN_KEY) === '1');
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     if (!visible || Platform.OS !== 'web') return;
     const hasAssistantReply = chatHistory.some((item) => item.role === 'assistant');
     const installableMobile = !installState.standalone && (installState.platform === 'ios' || installState.platform === 'android');
-    if (hasAssistantReply && installableMobile) {
+    if (hasAssistantReply && installableMobile && !installReminderSeen) {
       setInstallReminderVisible(true);
     }
-  }, [chatHistory, installState.platform, installState.standalone, visible]);
+  }, [chatHistory, installReminderSeen, installState.platform, installState.standalone, visible]);
+
+  const markInstallReminderSeen = () => {
+    setInstallReminderSeen(true);
+    setInstallReminderVisible(false);
+    try {
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.localStorage.setItem(AI_INSTALL_REMINDER_SEEN_KEY, '1');
+      }
+    } catch {}
+  };
 
   const handleInstallPress = async () => {
     if (installState.platform === 'android' && installState.canPrompt) {
       const installed = await promptPwaInstall();
       if (installed) {
-        setInstallReminderVisible(false);
+        markInstallReminderSeen();
         setInstallSheetVisible(false);
         return;
       }
@@ -2001,12 +2026,12 @@ function AICompanionModal({
               <Text style={s.aiInstallReminderTitle}>把 MingMe 放到桌面</Text>
               <Text style={s.aiInstallReminderBody}>
                 {installState.platform === 'ios'
-                  ? '刚聊完这一轮，现在装到桌面，下次会更容易直接接上。'
-                  : '现在就装到桌面，回来看上次那件事会更顺手。'}
+                  ? '请把当前链接用手机浏览器打开，再按步骤添加到桌面，下次会更容易直接接上。'
+                  : '请把当前链接用手机浏览器打开，浏览器更容易直接弹出安装到桌面的提示。'}
               </Text>
             </View>
             <View style={s.aiInstallReminderActions}>
-              <TouchableOpacity style={s.aiInstallReminderGhost} onPress={() => setInstallReminderVisible(false)} activeOpacity={0.9}>
+              <TouchableOpacity style={s.aiInstallReminderGhost} onPress={markInstallReminderSeen} activeOpacity={0.9}>
                 <Text style={s.aiInstallReminderGhostText}>稍后</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.aiInstallReminderButton} onPress={handleInstallPress} activeOpacity={0.9}>
@@ -2043,7 +2068,7 @@ function AICompanionModal({
                 }, 150);
               }}
               onContentSizeChange={(event) => {
-                const nextHeight = Math.max(72, Math.min(188, Math.ceil((event?.nativeEvent?.contentSize?.height || 72) + 8)));
+                const nextHeight = Math.max(56, Math.min(152, Math.ceil((event?.nativeEvent?.contentSize?.height || 48) + 6)));
                 setInputHeight(nextHeight);
                 setTimeout(() => {
                   scrollRef.current?.scrollToEnd?.({ animated: true });
@@ -2055,7 +2080,7 @@ function AICompanionModal({
               scrollEnabled
               maxLength={500}
               editable={aiAllowed && !chatLoading}
-              style={[s.aiInput, { height: inputHeight, minHeight: 72, maxHeight: 188 }]}
+               style={[s.aiInput, { height: inputHeight, minHeight: 56, maxHeight: 152 }]}
             />
             <TouchableOpacity
               onPress={onSend}
@@ -2111,11 +2136,11 @@ function AICompanionModal({
           <View style={s.installStepList}>
             <View style={s.installStepCard}>
               <Text style={s.installStepIndex}>1</Text>
-              <Text style={s.installStepText}>{installState.safari ? '点 Safari 底部“分享”。' : '先用 Safari 打开当前页面。'}</Text>
+              <Text style={s.installStepText}>{installState.safari ? '先保持当前页面在手机浏览器里打开。' : '先复制当前链接，并用手机浏览器打开。'}</Text>
             </View>
             <View style={s.installStepCard}>
               <Text style={s.installStepIndex}>2</Text>
-              <Text style={s.installStepText}>{installState.safari ? '在分享面板里找到“添加到主屏幕”。' : '然后点“分享”→“添加到主屏幕”。'}</Text>
+              <Text style={s.installStepText}>{installState.safari ? '点击底部“分享”，在面板里找到“添加到主屏幕”。' : '在浏览器里点“分享”或菜单，找到“添加到主屏幕”。'}</Text>
             </View>
             <View style={s.installStepCard}>
               <Text style={s.installStepIndex}>3</Text>
@@ -2131,7 +2156,7 @@ function AICompanionModal({
                 const installed = await promptPwaInstall();
                 if (installed) {
                   setInstallSheetVisible(false);
-                  setInstallReminderVisible(false);
+                  markInstallReminderSeen();
                 }
               }}
               activeOpacity={0.9}
@@ -2143,7 +2168,7 @@ function AICompanionModal({
             style={s.installSheetGhostButton}
             onPress={() => {
               setInstallSheetVisible(false);
-              setInstallReminderVisible(false);
+              markInstallReminderSeen();
             }}
             activeOpacity={0.9}
           >
@@ -3046,6 +3071,14 @@ function ProfileTab({ profile, result, aiText, aiLoading, onGenerateAI, onPressT
     [structureObservations]
   );
   const structureOverview = useMemo(() => buildStructureOverview(groupedStructureObservations), [groupedStructureObservations]);
+  const [expandedStructureGroups, setExpandedStructureGroups] = useState({});
+  const toggleStructureGroup = useCallback((groupKey) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpandedStructureGroups((prev) => ({
+      ...prev,
+      [groupKey]: !prev[groupKey],
+    }));
+  }, []);
   const info = [
     ['\u59d3\u540d', profile?.nickname || '--'],
     ['\u6027\u522b', profile?.gender === 'female' ? '\u5973' : '\u7537'],
@@ -3088,28 +3121,40 @@ function ProfileTab({ profile, result, aiText, aiLoading, onGenerateAI, onPressT
             </View>
           ) : null}
         </View>
-        {groupedStructureObservations.length ? groupedStructureObservations.map((group) => (
-          <View key={group.key} style={s.structureGroupBlock}>
-            <View style={s.structureGroupHeader}>
-              <Text style={s.structureGroupTitle}>{group.title}</Text>
-              <Text style={s.structureGroupCount}>{`${group.items.length} 条`}</Text>
-            </View>
-            <Text style={s.structureGroupConclusion}>{group.conclusion}</Text>
-            <Text style={s.structureGroupModern}>{group.modern}</Text>
-            <Text style={s.structureGroupBody}>{group.body}</Text>
-            {group.items.map((item, index) => (
-              <View key={`${group.key}-${item?.name || 'combo'}-${index}`} style={s.comboCard}>
-                <View style={s.comboTop}>
-                  <Text style={s.comboName}>{toText(item?.name || item?.type)}</Text>
-                  <Text style={s.comboType}>{toText(item?.type)}</Text>
+        {groupedStructureObservations.length ? groupedStructureObservations.map((group) => {
+          const isExpanded = !!expandedStructureGroups[group.key];
+          return (
+            <View key={group.key} style={s.structureGroupBlock}>
+              <TouchableOpacity activeOpacity={0.88} style={s.structureGroupToggle} onPress={() => toggleStructureGroup(group.key)}>
+                <View style={s.structureGroupHeader}>
+                  <View style={s.structureGroupTitleWrap}>
+                    <Text style={s.structureGroupTitle}>{group.title}</Text>
+                    <Text style={s.structureGroupCount}>{`${group.items.length} 条`}</Text>
+                  </View>
+                  <Text style={s.structureGroupChevron}>{isExpanded ? '收起' : '展开'}</Text>
                 </View>
-                {!!toText(item?.pillars) && toText(item?.pillars) !== '--' ? <Text style={s.comboPillars}>{toText(item?.pillars)}</Text> : null}
-                <Text style={s.comboDesc}>{toText(item?.description || item?.reason)}</Text>
-                <Text style={s.comboAdvice}>{getStructureActionAdvice(item)}</Text>
-              </View>
-            ))}
-          </View>
-        )) : <Text style={s.paragraph}>{'\u5f53\u524d\u8fd9\u7ec4\u547d\u76d8\u8fd8\u6ca1\u6709\u663e\u793a\u51fa\u7a81\u51fa\u7684\u5e72\u652f\u7ed3\u6784\u5173\u7cfb\u3002'}</Text>}
+                <Text style={s.structureGroupConclusion}>{group.conclusion}</Text>
+              </TouchableOpacity>
+              {isExpanded ? (
+                <>
+                  <Text style={s.structureGroupModern}>{group.modern}</Text>
+                  <Text style={s.structureGroupBody}>{group.body}</Text>
+                  {group.items.map((item, index) => (
+                    <View key={`${group.key}-${item?.name || 'combo'}-${index}`} style={s.comboCard}>
+                      <View style={s.comboTop}>
+                        <Text style={s.comboName}>{toText(item?.name || item?.type)}</Text>
+                        <Text style={s.comboType}>{toText(item?.type)}</Text>
+                      </View>
+                      {!!toText(item?.pillars) && toText(item?.pillars) !== '--' ? <Text style={s.comboPillars}>{toText(item?.pillars)}</Text> : null}
+                      <Text style={s.comboDesc}>{toText(item?.description || item?.reason)}</Text>
+                      <Text style={s.comboAdvice}>{getStructureActionAdvice(item)}</Text>
+                    </View>
+                  ))}
+                </>
+              ) : null}
+            </View>
+          );
+        }) : <Text style={s.paragraph}>{'\u5f53\u524d\u8fd9\u7ec4\u547d\u76d8\u8fd8\u6ca1\u6709\u663e\u793a\u51fa\u7a81\u51fa\u7684\u5e72\u652f\u7ed3\u6784\u5173\u7cfb\u3002'}</Text>}
       </Card>
       <Card>
         <SectionHeader eyebrow={'\u4e94\u884c\u5206\u5e03'} title={S.fiveElements} />
@@ -4822,11 +4867,11 @@ const s = StyleSheet.create({
   aiQuotaBody: { fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.62)' },
   aiQuotaButton: { minWidth: 78, height: 36, borderRadius: 999, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: C.logoDeep },
   aiQuotaButtonText: { fontSize: 13, fontWeight: '800', color: '#F7FFFC' },
-  aiComposerPanel: { minHeight: '31%', marginHorizontal: 10, marginBottom: 10, borderRadius: 26, borderWidth: 1, borderColor: 'rgba(60,60,67,0.08)', backgroundColor: 'rgba(242,242,247,0.95)', paddingTop: 14, paddingHorizontal: 12, paddingBottom: 10, justifyContent: 'space-between', shadowColor: '#102733', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  aiComposerPanel: { minHeight: 156, marginHorizontal: 10, marginBottom: 10, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(60,60,67,0.08)', backgroundColor: 'rgba(242,242,247,0.95)', paddingTop: 12, paddingHorizontal: 12, paddingBottom: 10, justifyContent: 'space-between', shadowColor: '#102733', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   aiComposerTopline: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, marginBottom: 10 },
   aiComposerToplineDot: { width: 8, height: 8, borderRadius: 999, backgroundColor: 'rgba(198,146,42,0.84)', shadowColor: '#C6922A', shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 1 } },
   aiComposerToplineText: { fontSize: 12, lineHeight: 17, color: 'rgba(20,51,58,0.58)', fontWeight: '700' },
-  aiInputDock: { flex: 1, borderRadius: 24, backgroundColor: 'rgba(248,251,250,0.96)', paddingHorizontal: 8, paddingTop: 8, paddingBottom: 8, flexDirection: 'row', alignItems: 'stretch', gap: 8, borderWidth: 1, borderColor: 'rgba(169,222,208,0.14)' },
+  aiInputDock: { flex: 1, borderRadius: 22, backgroundColor: 'rgba(248,251,250,0.96)', paddingHorizontal: 8, paddingTop: 8, paddingBottom: 8, flexDirection: 'row', alignItems: 'stretch', gap: 8, borderWidth: 1, borderColor: 'rgba(169,222,208,0.14)' },
   aiVoiceButton: { width: 46, height: 46, borderRadius: 999, backgroundColor: 'rgba(237,246,242,0.98)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.28)', alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 4 },
   aiVoiceButtonDisabled: { opacity: 0.66 },
   aiVoiceButtonActive: { backgroundColor: '#DDF4ED', borderColor: 'rgba(30,142,109,0.32)' },
@@ -4845,9 +4890,12 @@ const s = StyleSheet.create({
   structureOverviewChip: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#FFF', borderWidth: 1, borderColor: C.line },
   structureOverviewChipText: { fontSize: 11, fontWeight: '700', color: C.gold },
   structureGroupBlock: { marginTop: 10 },
+  structureGroupToggle: { borderRadius: 16, borderWidth: 1, borderColor: C.line, backgroundColor: '#FFF', padding: 12 },
   structureGroupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  structureGroupTitleWrap: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, flex: 1 },
   structureGroupTitle: { fontSize: 16, fontWeight: '800', color: C.ink },
   structureGroupCount: { fontSize: 11, fontWeight: '700', color: C.gold, backgroundColor: '#FBF4E3', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  structureGroupChevron: { fontSize: 12, fontWeight: '700', color: C.gold },
   structureGroupConclusion: { fontSize: 14, lineHeight: 21, color: C.ink, fontWeight: '700', marginTop: 8 },
   structureGroupModern: { fontSize: 13, lineHeight: 20, color: C.soft, marginTop: 4 },
   structureGroupBody: { fontSize: 13, lineHeight: 20, color: C.soft, marginTop: 6 },
