@@ -2636,7 +2636,7 @@ function HomeTab(props) {
   const [activeToolPage, setActiveToolPage] = useState(null);
   const [pwaInstallState, setPwaInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
   const [pwaInstallDismissed, setPwaInstallDismissed] = useState(false);
-  const [pwaGuideExpanded, setPwaGuideExpanded] = useState(true);
+  const [pwaGuideExpanded, setPwaGuideExpanded] = useState(false);
   const weekly = getResolvedWeeklyActions(weeklyActions);
   const hasRegisteredProfile = Boolean(
     result &&
@@ -2706,6 +2706,17 @@ function HomeTab(props) {
     trackPwaEvent('install_prompt_view', { platform: pwaInstallState.platform, surface: 'home_ai_entry' });
   }, [showInstallGuide, pwaInstallState.platform]);
 
+  useEffect(() => {
+    if (!showInstallGuide) return;
+    if (pwaInstallState.platform === 'ios') {
+      setPwaGuideExpanded(true);
+      return;
+    }
+    if (pwaInstallState.platform === 'android' && !pwaInstallState.canPrompt) {
+      setPwaGuideExpanded(true);
+    }
+  }, [showInstallGuide, pwaInstallState.canPrompt, pwaInstallState.platform]);
+
   const handleAiEntryPress = () => {
     trackPwaEvent('cta_start_click', { page: 'home', position: 'hero_ai_entry' });
     if (hasRegisteredProfile) {
@@ -2716,18 +2727,15 @@ function HomeTab(props) {
   };
 
   const handleInstallPress = async () => {
-    trackPwaEvent('install_prompt_click', { platform: pwaInstallState.platform, surface: 'home_ai_entry' });
     if (pwaInstallState.platform === 'android' && pwaInstallState.canPrompt) {
-      await promptPwaInstall();
+      trackPwaEvent('install_prompt_click', { platform: pwaInstallState.platform, surface: 'home_ai_entry', action: 'native_prompt' });
+      const installed = await promptPwaInstall();
+      if (!installed) setPwaGuideExpanded(true);
       return;
     }
 
-    if (pwaInstallState.platform === 'android') {
-      setPwaGuideExpanded((prev) => !prev);
-      return;
-    }
-
-    setPwaGuideExpanded((prev) => !prev);
+    trackPwaEvent('install_prompt_click', { platform: pwaInstallState.platform, surface: 'home_ai_entry', action: 'show_steps' });
+    setPwaGuideExpanded(true);
   };
 
   if (activeToolPage) {
@@ -2796,8 +2804,8 @@ function HomeTab(props) {
           <TouchableOpacity style={s.pwaInstallButton} onPress={handleInstallPress} activeOpacity={0.9}>
             <Text style={s.pwaInstallButtonText}>
               {pwaInstallState.platform === 'android' && pwaInstallState.canPrompt
-                ? '立即安装'
-                : (pwaGuideExpanded ? '收起安装说明' : '查看安装说明')}
+                ? '立即安装到桌面'
+                : (pwaInstallState.platform === 'ios' ? '按这三步安装' : '查看安装步骤')}
             </Text>
           </TouchableOpacity>
           {pwaGuideExpanded ? (
@@ -2807,8 +2815,8 @@ function HomeTab(props) {
               </Text>
               {pwaInstallState.platform === 'android' ? (
                 <>
-                  <Text style={s.pwaInstallGuideStep}>{'1. 点浏览器右上角菜单。'}</Text>
-                  <Text style={s.pwaInstallGuideStep}>{'2. 选择“安装应用”“添加到主屏幕”或“安装 MingMe”。'}</Text>
+                  <Text style={s.pwaInstallGuideStep}>{pwaInstallState.canPrompt ? '1. 如果弹出安装框，直接确认安装。' : '1. 点浏览器右上角菜单。'}</Text>
+                  <Text style={s.pwaInstallGuideStep}>{pwaInstallState.canPrompt ? '2. 如果没有弹出安装框，再到浏览器菜单里找“安装应用”或“添加到主屏幕”。' : '2. 选择“安装应用”“添加到主屏幕”或“安装 MingMe”。'}</Text>
                   <Text style={s.pwaInstallGuideStep}>{'3. 回到桌面，从 MingMe 图标打开，就能像 App 一样继续聊天。'}</Text>
                 </>
               ) : (
@@ -2816,10 +2824,10 @@ function HomeTab(props) {
                   <Text style={s.pwaInstallGuideStep}>
                     {pwaInstallState.safari
                       ? '1. 点 Safari 底部“分享”。'
-                      : '1. 请先用 Safari 打开当前页面。'}
+                      : '1. 请先复制当前网址，并用 Safari 打开。'}
                   </Text>
                   <Text style={s.pwaInstallGuideStep}>{'2. 选择“添加到主屏幕”。'}</Text>
-                  <Text style={s.pwaInstallGuideStep}>{'3. 回到桌面，从 MingMe 图标进入。'}</Text>
+                  <Text style={s.pwaInstallGuideStep}>{'3. 回到桌面，从 MingMe 图标进入，以后就能像 App 一样独立打开。'}</Text>
                 </>
               )}
             </View>

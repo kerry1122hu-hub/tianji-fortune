@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { trackPwaEvent } from '../utils/pwaWeb';
 
 const C = {
   bg: '#F2F2F7',
@@ -21,10 +22,7 @@ const C = {
   faint: 'rgba(60,60,67,0.46)',
   line: 'rgba(60,60,67,0.12)',
   gold: '#C6922A',
-  goldBg: 'rgba(198,146,42,0.10)',
   dark: '#0A0A0C',
-  mint: '#EAF5F1',
-  logoDeep: '#14333A',
   success: '#34C759',
   rose: '#E85D3F',
   blue: '#3D6DCC',
@@ -34,63 +32,63 @@ const PLAN_OPTIONS = [
   {
     key: 'annual',
     title: '年度会员',
-    subtitle: '适合真正想把关系、事业、财富和阶段节奏持续看清的人',
+    subtitle: '适合想把关系、事业、情绪与金钱问题持续看清的人。',
     price: '¥168 / 年',
     badge: '更划算',
-    cta: '锁定年度会员',
+    cta: '立即锁定年度席位',
   },
   {
     key: 'monthly',
     title: '月度会员',
-    subtitle: '先用一个月体验 AI 先生、阶段提醒与连续回顾',
+    subtitle: '适合先体验一个月，确认自己愿不愿意长期聊下去。',
     price: '¥28 / 月',
-    badge: '轻量试用',
-    cta: '先开一个月',
+    badge: '低门槛',
+    cta: '立即开始月度体验',
   },
 ];
 
 const VALUE_CARDS = [
   {
     tone: C.gold,
-    title: '连续对话，不再每次重来',
-    body: '它会记住你最近在卡什么、上次聊到哪、给过你什么判断和动作。',
+    title: '记得你上次聊到哪',
+    body: '不是每次重开一篇，而是继续接住你正在卡住的那件事。',
   },
   {
     tone: C.blue,
-    title: '不是空报告，而是下一步建议',
-    body: '每次不是只告诉你好坏，而是更聚焦“现在先做什么、先别碰什么”。',
+    title: '每次都给下一步',
+    body: '不是只说好坏，而是更聚焦现在先做什么、先别做什么。',
   },
   {
     tone: C.success,
-    title: '阶段变化会持续提醒',
-    body: '月度提醒、阶段复盘和关键节点提示，会让它更像长期顾问，而不是一次性解读。',
+    title: '阶段提醒会持续跟着走',
+    body: '当你的关系、事业和情绪进入新阶段，它会提醒你怎么拿节奏。',
   },
   {
     tone: C.rose,
-    title: '关系、事业、情绪、金钱可专项深聊',
-    body: '遇到反复纠结的问题，不用从头再讲，系统会顺着之前的脉络继续。',
+    title: '复杂问题可以反复深聊',
+    body: '同一个问题可以顺着聊下去，不用每次重新解释前情。',
   },
 ];
 
 const POPULAR_SCENARIOS = [
-  '这段关系该继续，还是该先停下来',
-  '这步大运到底是在扶我，还是在压我',
-  '我最近为什么一直累、烦、停不下来',
-  '我现在该扩，还是该收',
+  '这段关系该继续，还是该先停下来？',
+  '这步大运是在扶我，还是在压我？',
+  '我最近为什么一直累、烦、停不下来？',
+  '现在该扩，还是该收？',
 ];
 
 const FAQS = [
   {
     q: '会员和免费版差在哪？',
-    a: '免费版适合先聊一聊、先看清问题。会员版更强调连续记忆、阶段提醒、专项深聊和长期回顾。',
+    a: '免费版适合先试一次。会员版更强调连续记忆、阶段提醒、专题深聊和长期回看。',
   },
   {
-    q: '适合新用户吗？',
-    a: '适合。它会把复杂判断翻译成更容易执行的现实建议，不会一上来就压你一堆术语。',
+    q: '现在就会直接扣费吗？',
+    a: '这一步先提交开通意向和联系方式。你后续可以直接接支付，也可以先人工确认后再收款。',
   },
   {
-    q: '现在是正式支付吗？',
-    a: '当前先整理成最小可卖版页面。你提交开通信息后，后续可直接进入支付或由我们优先通知开通。',
+    q: '为什么先做这个流程？',
+    a: '因为现在最重要的是先验证真实付费意愿，看看用户更愿意买哪档、为什么愿意买。',
   },
 ];
 
@@ -105,7 +103,7 @@ function buildInitialRegistration(profile, registrationDraft) {
 }
 
 function benefitButtonCopy(planKey) {
-  return planKey === 'annual' ? '锁定年度会员' : '先开一个月';
+  return planKey === 'annual' ? '立即锁定年度席位' : '立即开始月度体验';
 }
 
 export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, registrationDraft }) {
@@ -132,15 +130,23 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
   };
 
   const handleSubmit = () => {
-    onSaveRegistration?.({
+    const payload = {
       registration,
       selectedPlan,
       source: Platform.OS === 'web' ? 'web_paywall' : 'app_paywall',
+    };
+
+    onSaveRegistration?.(payload);
+    trackPwaEvent('paywall_lead_submit', {
+      plan: selectedPlan,
+      hasEmail: Boolean(String(registration.email || '').trim()),
+      hasPhone: Boolean(String(registration.phone || '').trim()),
+      source: payload.source,
     });
 
     Alert.alert(
-      '已保存开通信息',
-      '你的开通意向已经保存。接下来可继续完善支付链路，或先用这份资料做转化跟进。'
+      '已提交开通意向',
+      '你的方案偏好和联系方式已经记录。下一步可以直接接支付，也可以先做人工确认与转化跟进。'
     );
     onClose?.();
   };
@@ -148,7 +154,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={s.root}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 188 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 196 }}>
           <View style={[s.hero, { paddingTop: insets.top + 16 }]}>
             <TouchableOpacity onPress={onClose} style={s.closeBtn} activeOpacity={0.85}>
               <Text style={s.closeLabel}>{'×'}</Text>
@@ -157,7 +163,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
             <Text style={s.heroEyebrow}>{'会员中心'}</Text>
             <Text style={s.heroTitle}>{'把一次聊天，变成持续看清自己的人生工具'}</Text>
             <Text style={s.heroSubtitle}>
-              明己不想只做一份报告，而是想成为你在关系、事业、情绪和财富上的长期陪伴。会员版，解决的正是“下一次回来，它还记得你”。
+              明己不是只给你一份报告，而是想陪你把关系、事业、情绪和金钱这些最难想清楚的事，持续看得更明白。
             </Text>
 
             <View style={s.heroTagRow}>
@@ -179,11 +185,17 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
               </View>
               <Text style={s.priceTitle}>{activePlan.price}</Text>
               <Text style={s.priceBody}>{activePlan.subtitle}</Text>
+              <View style={s.heroFlowCard}>
+                <Text style={s.heroFlowTitle}>{'开通流程很简单'}</Text>
+                <Text style={s.heroFlowBody}>
+                  {'先留下开通意向和联系方式，再进入支付或人工确认。先把愿意付费的人收住，再继续优化支付体验。'}
+                </Text>
+              </View>
               <TouchableOpacity onPress={handleSubmit} style={s.heroButton} activeOpacity={0.9}>
                 <Text style={s.heroButtonText}>{activePlan.cta}</Text>
               </TouchableOpacity>
               <Text style={s.heroFootnote}>
-                这版先用来验证转化与付费意愿。用户填写开通信息后，你可以继续接正式支付或人工跟进。
+                {'这一步先验证真实付费意愿，再看年度和月度哪档更容易转化。跑出第一批愿意付费的人，比先把支付页面做满更重要。'}
               </Text>
             </View>
           </View>
@@ -203,7 +215,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
           </View>
 
           <View style={s.section}>
-            <Text style={s.sectionTitle}>{'用户最容易买单的场景'}</Text>
+            <Text style={s.sectionTitle}>{'最容易成交的场景'}</Text>
             {POPULAR_SCENARIOS.map((item, index) => (
               <View key={item} style={s.previewRow}>
                 <Text style={s.previewIndex}>{`0${index + 1}`}</Text>
@@ -224,11 +236,9 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
                 <View style={s.planMain}>
                   <View style={s.planHeader}>
                     <Text style={s.planTitle}>{plan.title}</Text>
-                    {plan.badge ? (
-                      <View style={s.badge}>
-                        <Text style={s.badgeText}>{plan.badge}</Text>
-                      </View>
-                    ) : null}
+                    <View style={s.badge}>
+                      <Text style={s.badgeText}>{plan.badge}</Text>
+                    </View>
                   </View>
                   <Text style={s.planSubtitle}>{plan.subtitle}</Text>
                 </View>
@@ -248,9 +258,9 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
           </View>
 
           <View style={s.section}>
-            <Text style={s.sectionTitle}>{'开通信息'}</Text>
+            <Text style={s.sectionTitle}>{'提交开通意向'}</Text>
             <Text style={s.formHint}>
-              这一步先留下最基本的开通线索。你后续可以直接接支付，也可以先用这份资料验证意向用户质量。
+              {'这一步不是普通保存，而是正式提交开通意向。你后续可以直接接支付，也可以先根据这些线索做人工转化。'}
             </Text>
 
             <View style={s.formField}>
@@ -258,7 +268,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
               <TextInput
                 value={registration.nickname}
                 onChangeText={(value) => updateRegistration('nickname', value)}
-                placeholder={'例如：小玥'}
+                placeholder={'例如：小婉'}
                 placeholderTextColor={C.faint}
                 style={s.input}
               />
@@ -276,11 +286,11 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
             </View>
 
             <View style={s.formField}>
-              <Text style={s.formLabel}>{'现在最想解决什么'}</Text>
+              <Text style={s.formLabel}>{'你现在最想处理什么'}</Text>
               <TextInput
                 value={registration.focus}
                 onChangeText={(value) => updateRegistration('focus', value)}
-                placeholder={'例如：关系、事业、情绪、财富'}
+                placeholder={'例如：关系、事业、情绪、金钱'}
                 placeholderTextColor={C.faint}
                 style={s.input}
               />
@@ -315,9 +325,9 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
 
         <View style={[s.bottomBar, { paddingBottom: insets.bottom + 10 }]}>
           <View style={s.bottomCopy}>
-            <Text style={s.bottomTitle}>{'先收第一批付费意向用户'}</Text>
+            <Text style={s.bottomTitle}>{'先拿到第一批真实付费意向'}</Text>
             <Text style={s.bottomBody}>
-              先跑转化，再决定是接 Stripe、微信支付，还是继续打磨产品。
+              {'先把愿意付费的人收进来，再决定是接 Stripe、微信支付，还是继续打磨支付链路。'}
             </Text>
           </View>
           <TouchableOpacity onPress={handleSubmit} style={s.bottomButton} activeOpacity={0.9}>
@@ -432,6 +442,26 @@ const s = StyleSheet.create({
     lineHeight: 20,
     color: 'rgba(255,255,255,0.72)',
   },
+  heroFlowCard: {
+    marginTop: 12,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  heroFlowTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#F4F8F6',
+  },
+  heroFlowBody: {
+    marginTop: 6,
+    fontSize: 12,
+    lineHeight: 18,
+    color: 'rgba(255,255,255,0.7)',
+  },
   heroButton: {
     marginTop: 14,
     height: 48,
@@ -525,43 +555,44 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   planCardSelected: {
-    borderColor: C.gold,
-    backgroundColor: '#FBFAF5',
+    borderColor: 'rgba(198,146,42,0.65)',
+    backgroundColor: 'rgba(198,146,42,0.08)',
   },
   planMain: {
     flex: 1,
-    marginRight: 12,
+    paddingRight: 10,
   },
   planHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    flexWrap: 'wrap',
-    marginBottom: 4,
   },
   planTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    lineHeight: 22,
+    fontWeight: '800',
     color: C.ink,
   },
   badge: {
     borderRadius: 999,
-    backgroundColor: C.goldBg,
+    backgroundColor: C.gold,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   badgeText: {
     fontSize: 10,
-    fontWeight: '700',
-    color: C.gold,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   planSubtitle: {
-    fontSize: 12,
-    lineHeight: 18,
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 19,
     color: C.soft,
   },
   planPrice: {
-    fontSize: 15,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: '800',
     color: C.ink,
   },
@@ -578,11 +609,11 @@ const s = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '800',
     color: C.ink,
-    marginBottom: 6,
   },
   faqA: {
+    marginTop: 8,
     fontSize: 13,
-    lineHeight: 20,
+    lineHeight: 19,
     color: C.soft,
   },
   formHint: {
@@ -597,17 +628,20 @@ const s = StyleSheet.create({
   formLabel: {
     marginBottom: 6,
     fontSize: 12,
+    lineHeight: 18,
     fontWeight: '700',
     color: C.ink,
   },
   input: {
-    minHeight: 46,
-    borderRadius: 14,
+    minHeight: 48,
+    borderRadius: 16,
     backgroundColor: '#FFFFFF',
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     borderColor: C.line,
     paddingHorizontal: 14,
+    paddingVertical: 12,
     fontSize: 14,
+    lineHeight: 20,
     color: C.ink,
   },
   bottomBar: {
@@ -615,14 +649,17 @@ const s = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    paddingTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingHorizontal: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 14,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderTopWidth: 1,
     borderTopColor: C.line,
-    backgroundColor: 'rgba(242,242,247,0.97)',
   },
   bottomCopy: {
-    marginBottom: 10,
+    flex: 1,
   },
   bottomTitle: {
     fontSize: 14,
@@ -637,17 +674,18 @@ const s = StyleSheet.create({
     color: C.soft,
   },
   bottomButton: {
-    height: 50,
+    minWidth: 158,
+    height: 48,
+    paddingHorizontal: 18,
     borderRadius: 999,
     backgroundColor: C.ink,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bottomButtonText: {
-    fontSize: 15,
+    fontSize: 13,
+    lineHeight: 18,
     fontWeight: '800',
     color: '#FFFFFF',
   },
 });
-
-export default PaywallScreen;
