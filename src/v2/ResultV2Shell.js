@@ -1826,14 +1826,12 @@ function AICompanionModal({
   voiceLoading,
   voiceRecording,
   onVoiceInput,
-  showInstallReminder,
-  installPlatform,
-  installCanPrompt,
-  onInstallPress,
-  onDismissInstallReminder,
 }) {
   const scrollRef = useRef(null);
   const [inputHeight, setInputHeight] = useState(72);
+  const [installState, setInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
+  const [installReminderVisible, setInstallReminderVisible] = useState(false);
+  const [installSheetVisible, setInstallSheetVisible] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -1842,6 +1840,42 @@ function AICompanionModal({
     }, 120);
     return () => clearTimeout(timer);
   }, [visible, chatHistory.length, chatLoading]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return undefined;
+    const cleanup = listenToPwaInstallability({
+      onUpdate: (nextState) => setInstallState(nextState),
+    });
+    setInstallState({
+      standalone: isStandalonePwa(),
+      platform: detectPwaPlatform(),
+      safari: isSafariBrowser(),
+      displayMode: getPwaDisplayMode(),
+      canPrompt: false,
+    });
+    return cleanup;
+  }, []);
+
+  useEffect(() => {
+    if (!visible || Platform.OS !== 'web') return;
+    const hasAssistantReply = chatHistory.some((item) => item.role === 'assistant');
+    const installableMobile = !installState.standalone && (installState.platform === 'ios' || installState.platform === 'android');
+    if (hasAssistantReply && installableMobile) {
+      setInstallReminderVisible(true);
+    }
+  }, [chatHistory, installState.platform, installState.standalone, visible]);
+
+  const handleInstallPress = async () => {
+    if (installState.platform === 'android' && installState.canPrompt) {
+      const installed = await promptPwaInstall();
+      if (installed) {
+        setInstallReminderVisible(false);
+        setInstallSheetVisible(false);
+        return;
+      }
+    }
+    setInstallSheetVisible(true);
+  };
 
   const quickPrompts = [
     '我最近情绪很低落，怎么办？',
@@ -1961,23 +1995,23 @@ function AICompanionModal({
             </TouchableOpacity>
           </View>
         ) : null}
-        {showInstallReminder ? (
+        {installReminderVisible ? (
           <View style={s.aiInstallReminderCard}>
             <View style={s.aiInstallReminderCopy}>
               <Text style={s.aiInstallReminderTitle}>把 MingMe 放到桌面</Text>
               <Text style={s.aiInstallReminderBody}>
-                {installPlatform === 'ios'
+                {installState.platform === 'ios'
                   ? '刚聊完这一轮，现在装到桌面，下次会更容易直接接上。'
                   : '现在就装到桌面，回来看上次那件事会更顺手。'}
               </Text>
             </View>
             <View style={s.aiInstallReminderActions}>
-              <TouchableOpacity style={s.aiInstallReminderGhost} onPress={onDismissInstallReminder} activeOpacity={0.9}>
+              <TouchableOpacity style={s.aiInstallReminderGhost} onPress={() => setInstallReminderVisible(false)} activeOpacity={0.9}>
                 <Text style={s.aiInstallReminderGhostText}>稍后</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.aiInstallReminderButton} onPress={onInstallPress} activeOpacity={0.9}>
+              <TouchableOpacity style={s.aiInstallReminderButton} onPress={handleInstallPress} activeOpacity={0.9}>
                 <Text style={s.aiInstallReminderButtonText}>
-                  {installPlatform === 'android' && installCanPrompt ? '立即安装' : '添加到桌面'}
+                  {installState.platform === 'android' && installState.canPrompt ? '立即安装' : '添加到桌面'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -2037,6 +2071,86 @@ function AICompanionModal({
           <Text style={s.aiInputHint}>{voiceRecording ? '正在录音，再点一次即可转成文字。' : '可直接输入，也可点左侧语音按钮把语音转成文字。'}</Text>
         </View>
       </KeyboardAvoidingView>
+      <Sheet
+        visible={installSheetVisible}
+        onClose={() => setInstallSheetVisible(false)}
+        title={installState.platform === 'android' ? '安装 MingMe' : '添加到主屏幕'}
+        subtitle={installState.platform === 'android' ? '装到桌面后，回来继续会更顺。' : '按这三步完成桌面安装'}
+        closeLabel="返回"
+      >
+        <View style={s.installSheetHero}>
+          <Text style={s.installSheetHeroTitle}>
+            {installState.platform === 'android' ? '把 MingMe 装到桌面' : '把 MingMe 放到桌面'}
+          </Text>
+          <Text style={s.installSheetHeroBody}>
+            {installState.platform === 'android'
+              ? '装好以后，下次不用再找浏览器入口，直接点桌面图标就能接着聊。'
+              : '添加到主屏幕后，会像 App 一样独立打开，也更容易接上刚才那件事。'}
+          </Text>
+        </View>
+        {installState.platform === 'android' ? (
+          <View style={s.installStepList}>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>1</Text>
+              <Text style={s.installStepText}>
+                {installState.canPrompt ? '点下面的“立即安装”，如果浏览器弹出安装框，直接确认。' : '点浏览器右上角菜单。'}
+              </Text>
+            </View>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>2</Text>
+              <Text style={s.installStepText}>
+                {installState.canPrompt ? '如果没有弹安装框，再到浏览器菜单里找“安装应用”或“添加到主屏幕”。' : '选择“安装应用”“添加到主屏幕”或“安装 MingMe”。'}
+              </Text>
+            </View>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>3</Text>
+              <Text style={s.installStepText}>回到桌面，从 MingMe 图标打开，就能像 App 一样继续聊天。</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={s.installStepList}>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>1</Text>
+              <Text style={s.installStepText}>{installState.safari ? '点 Safari 底部“分享”。' : '先用 Safari 打开当前页面。'}</Text>
+            </View>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>2</Text>
+              <Text style={s.installStepText}>{installState.safari ? '在分享面板里找到“添加到主屏幕”。' : '然后点“分享”→“添加到主屏幕”。'}</Text>
+            </View>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>3</Text>
+              <Text style={s.installStepText}>回到桌面，从 MingMe 图标进入，以后就能像 App 一样独立打开。</Text>
+            </View>
+          </View>
+        )}
+        <View style={s.installSheetActions}>
+          {installState.platform === 'android' && installState.canPrompt ? (
+            <TouchableOpacity
+              style={s.installSheetPrimaryButton}
+              onPress={async () => {
+                const installed = await promptPwaInstall();
+                if (installed) {
+                  setInstallSheetVisible(false);
+                  setInstallReminderVisible(false);
+                }
+              }}
+              activeOpacity={0.9}
+            >
+              <Text style={s.installSheetPrimaryButtonText}>立即安装</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity
+            style={s.installSheetGhostButton}
+            onPress={() => {
+              setInstallSheetVisible(false);
+              setInstallReminderVisible(false);
+            }}
+            activeOpacity={0.9}
+          >
+            <Text style={s.installSheetGhostButtonText}>我知道了</Text>
+          </TouchableOpacity>
+        </View>
+      </Sheet>
     </Modal>
   );
 }
@@ -2664,7 +2778,6 @@ function HomeTab(props) {
   const [pwaInstallState, setPwaInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
   const [pwaInstallDismissed, setPwaInstallDismissed] = useState(false);
   const [pwaInstallSheetVisible, setPwaInstallSheetVisible] = useState(false);
-  const [pwaInstallFollowupVisible, setPwaInstallFollowupVisible] = useState(false);
   const weekly = getResolvedWeeklyActions(weeklyActions);
   const hasRegisteredProfile = Boolean(
     result &&
@@ -2733,12 +2846,6 @@ function HomeTab(props) {
     if (!showInstallGuide) return;
     trackPwaEvent('install_prompt_view', { platform: pwaInstallState.platform, surface: 'home_ai_entry' });
   }, [showInstallGuide, pwaInstallState.platform]);
-
-  useEffect(() => {
-    if (!showInstallGuide || pwaInstallState.standalone) {
-      setPwaInstallFollowupVisible(false);
-    }
-  }, [showInstallGuide, pwaInstallState.standalone]);
 
   const handleAiEntryPress = () => {
     trackPwaEvent('cta_start_click', { page: 'home', position: 'hero_ai_entry' });
@@ -2833,6 +2940,83 @@ function HomeTab(props) {
           </TouchableOpacity>
         </View>
       ) : null}
+      <Sheet
+        visible={pwaInstallSheetVisible}
+        onClose={() => setPwaInstallSheetVisible(false)}
+        title={pwaInstallState.platform === 'android' ? '安装 MingMe' : '添加到主屏幕'}
+        subtitle={pwaInstallState.platform === 'android' ? '装到桌面后，回来继续会更顺。' : '按这三步完成桌面安装'}
+        closeLabel="返回"
+      >
+        <View style={s.installSheetHero}>
+          <Text style={s.installSheetHeroTitle}>
+            {pwaInstallState.platform === 'android' ? '把 MingMe 装到桌面' : '把 MingMe 放到桌面'}
+          </Text>
+          <Text style={s.installSheetHeroBody}>
+            {pwaInstallState.platform === 'android'
+              ? '装好以后，下次不用再找浏览器入口，直接点桌面图标就能接着聊。'
+              : '添加到主屏幕后，会像 App 一样独立打开，也更容易接上刚才那件事。'}
+          </Text>
+        </View>
+        {pwaInstallState.platform === 'android' ? (
+          <View style={s.installStepList}>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>1</Text>
+              <Text style={s.installStepText}>
+                {pwaInstallState.canPrompt ? '点下面的“立即安装”，如果浏览器弹出安装框，直接确认。' : '点浏览器右上角菜单。'}
+              </Text>
+            </View>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>2</Text>
+              <Text style={s.installStepText}>
+                {pwaInstallState.canPrompt ? '如果没有弹安装框，再到浏览器菜单里找“安装应用”或“添加到主屏幕”。' : '选择“安装应用”“添加到主屏幕”或“安装 MingMe”。'}
+              </Text>
+            </View>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>3</Text>
+              <Text style={s.installStepText}>回到桌面，从 MingMe 图标打开，就能像 App 一样继续聊天。</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={s.installStepList}>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>1</Text>
+              <Text style={s.installStepText}>{pwaInstallState.safari ? '点 Safari 底部“分享”。' : '先用 Safari 打开当前页面。'}</Text>
+            </View>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>2</Text>
+              <Text style={s.installStepText}>{pwaInstallState.safari ? '在分享面板里找到“添加到主屏幕”。' : '然后点“分享”→“添加到主屏幕”。'}</Text>
+            </View>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>3</Text>
+              <Text style={s.installStepText}>回到桌面，从 MingMe 图标进入，以后就能像 App 一样独立打开。</Text>
+            </View>
+          </View>
+        )}
+        <View style={s.installSheetActions}>
+          {pwaInstallState.platform === 'android' && pwaInstallState.canPrompt ? (
+            <TouchableOpacity
+              style={s.installSheetPrimaryButton}
+              onPress={async () => {
+                const installed = await promptPwaInstall();
+                if (installed) {
+                  setPwaInstallSheetVisible(false);
+                  setPwaInstallDismissed(true);
+                }
+              }}
+              activeOpacity={0.9}
+            >
+              <Text style={s.installSheetPrimaryButtonText}>立即安装</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity
+            style={s.installSheetGhostButton}
+            onPress={() => setPwaInstallSheetVisible(false)}
+            activeOpacity={0.9}
+          >
+            <Text style={s.installSheetGhostButtonText}>我知道了</Text>
+          </TouchableOpacity>
+        </View>
+      </Sheet>
       <SmartToolsHub
         isPremium={isPremium}
         aiRemaining={aiRemaining}
@@ -4116,87 +4300,6 @@ export function ResultV2Shell(props) {
           </TouchableOpacity>
         ))}
       </Sheet>
-      <Sheet
-        visible={pwaInstallSheetVisible}
-        onClose={() => setPwaInstallSheetVisible(false)}
-        title={pwaInstallState.platform === 'android' ? '安装 MingMe' : '添加到主屏幕'}
-        subtitle={pwaInstallState.platform === 'android' ? '装到桌面后，回来继续会更顺。' : '按这三步完成桌面安装'}
-        closeLabel="返回"
-      >
-        <View style={s.installSheetHero}>
-          <Text style={s.installSheetHeroTitle}>
-            {pwaInstallState.platform === 'android' ? '把 MingMe 装到桌面' : '把 MingMe 放到桌面'}
-          </Text>
-          <Text style={s.installSheetHeroBody}>
-            {pwaInstallState.platform === 'android'
-              ? '装好以后，下次不用再找浏览器入口，直接点桌面图标就能接着聊。'
-              : '添加到主屏幕后，会像 App 一样独立打开，也更容易接上刚才那件事。'}
-          </Text>
-        </View>
-        {pwaInstallState.platform === 'android' ? (
-          <View style={s.installStepList}>
-            <View style={s.installStepCard}>
-              <Text style={s.installStepIndex}>1</Text>
-              <Text style={s.installStepText}>
-                {pwaInstallState.canPrompt ? '点下面的“立即安装”，如果浏览器弹出安装框，直接确认。' : '点浏览器右上角菜单。'}
-              </Text>
-            </View>
-            <View style={s.installStepCard}>
-              <Text style={s.installStepIndex}>2</Text>
-              <Text style={s.installStepText}>
-                {pwaInstallState.canPrompt ? '如果没有弹安装框，再到浏览器菜单里找“安装应用”或“添加到主屏幕”。' : '选择“安装应用”“添加到主屏幕”或“安装 MingMe”。'}
-              </Text>
-            </View>
-            <View style={s.installStepCard}>
-              <Text style={s.installStepIndex}>3</Text>
-              <Text style={s.installStepText}>回到桌面，从 MingMe 图标进入，以后就能像 App 一样继续聊天。</Text>
-            </View>
-          </View>
-        ) : (
-          <View style={s.installStepList}>
-            <View style={s.installStepCard}>
-              <Text style={s.installStepIndex}>1</Text>
-              <Text style={s.installStepText}>{pwaInstallState.safari ? '点 Safari 底部“分享”。' : '先用 Safari 打开当前页面。'}</Text>
-            </View>
-            <View style={s.installStepCard}>
-              <Text style={s.installStepIndex}>2</Text>
-              <Text style={s.installStepText}>{pwaInstallState.safari ? '在分享面板里找到“添加到主屏幕”。' : '然后点“分享”→“添加到主屏幕”。'}</Text>
-            </View>
-            <View style={s.installStepCard}>
-              <Text style={s.installStepIndex}>3</Text>
-              <Text style={s.installStepText}>回到桌面，从 MingMe 图标进入，以后就能像 App 一样独立打开。</Text>
-            </View>
-          </View>
-        )}
-        <View style={s.installSheetActions}>
-          {pwaInstallState.platform === 'android' && pwaInstallState.canPrompt ? (
-            <TouchableOpacity
-              style={s.installSheetPrimaryButton}
-              onPress={async () => {
-                const installed = await promptPwaInstall();
-                if (installed) {
-                  setPwaInstallSheetVisible(false);
-                  setPwaInstallDismissed(true);
-                  setPwaInstallFollowupVisible(false);
-                }
-              }}
-              activeOpacity={0.9}
-            >
-              <Text style={s.installSheetPrimaryButtonText}>立即安装</Text>
-            </TouchableOpacity>
-          ) : null}
-          <TouchableOpacity
-            style={s.installSheetGhostButton}
-            onPress={() => {
-              setPwaInstallSheetVisible(false);
-              setPwaInstallFollowupVisible(false);
-            }}
-            activeOpacity={0.9}
-          >
-            <Text style={s.installSheetGhostButtonText}>我知道了</Text>
-          </TouchableOpacity>
-        </View>
-      </Sheet>
       <AICompanionModal
           visible={aiPage}
           onClose={() => setAiPage(false)}
@@ -4212,11 +4315,6 @@ export function ResultV2Shell(props) {
           voiceLoading={voiceLoading}
         voiceRecording={voiceRecording}
         onVoiceInput={handleVoiceInput}
-        showInstallReminder={pwaInstallFollowupVisible && Platform.OS === 'web' && !pwaInstallState.standalone}
-        installPlatform={pwaInstallState.platform}
-        installCanPrompt={pwaInstallState.canPrompt}
-        onInstallPress={handleInstallPress}
-        onDismissInstallReminder={() => setPwaInstallFollowupVisible(false)}
         onSend={async () => {
           const userMsg = `${chatInput || ''}`.trim();
           if (!userMsg || chatLoading) return;
@@ -4253,9 +4351,6 @@ export function ResultV2Shell(props) {
               setChatHistory([...nextHistory, { role: 'assistant', content: reply || '我在这里，会继续陪你一起梳理。' }]);
               if (Platform.OS === 'web' && userTurnCount === 1) {
                 trackPwaEvent('chat_first_reply_received', { route: 'companion', mode: 'chat' });
-                if (!isStandalonePwa() && (detectPwaPlatform() === 'ios' || detectPwaPlatform() === 'android')) {
-                  setPwaInstallFollowupVisible(true);
-                }
               }
             } catch (error) {
               if (error?.code === 'AI_QUOTA_EXCEEDED') {
