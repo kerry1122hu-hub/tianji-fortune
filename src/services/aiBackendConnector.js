@@ -258,3 +258,91 @@ export async function requestAITranscriptionFromBackend({
 
   return payload;
 }
+
+export async function requestPaywallLeadFromBackend({
+  registration,
+  selectedPlan,
+  profile,
+  userKey,
+  chart,
+  source = 'web_paywall',
+}) {
+  const { baseUrl, authToken, signingSecret, retryCount, retryDelayMs } = getAIBackendConfig();
+  if (!baseUrl) {
+    throw new Error('Missing backend URL. Fill expo.extra.aiBackendUrl in app.json.');
+  }
+
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/api/ai/paywall-lead`;
+  const requestBody = JSON.stringify({
+    registration,
+    selectedPlan,
+    profile,
+    userKey,
+    chart,
+    source,
+  });
+
+  return requestWithRetry(endpoint, requestBody, { authToken, signingSecret, retryCount, retryDelayMs });
+}
+
+export async function requestCreatePaymentOrderFromBackend({
+  userKey,
+  chart,
+  profile,
+  productCode,
+  channelPreference = 'auto',
+  clientScene = 'mobile_h5',
+  inWechat = false,
+  returnUrl = '',
+  source = 'web_paywall',
+  metadata,
+}) {
+  const { baseUrl, authToken, signingSecret, retryCount, retryDelayMs } = getAIBackendConfig();
+  if (!baseUrl) {
+    throw new Error('Missing backend URL. Fill expo.extra.aiBackendUrl in app.json.');
+  }
+
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/api/pay/create-order`;
+  const requestBody = JSON.stringify({
+    userKey,
+    chart,
+    profile,
+    productCode,
+    channelPreference,
+    clientScene,
+    inWechat,
+    returnUrl,
+    source,
+    metadata,
+  });
+
+  return requestWithRetry(endpoint, requestBody, { authToken, signingSecret, retryCount, retryDelayMs });
+}
+
+export async function requestPaymentOrderStatusFromBackend({ orderId }) {
+  const { baseUrl, authToken } = getAIBackendConfig();
+  if (!baseUrl) {
+    throw new Error('Missing backend URL. Fill expo.extra.aiBackendUrl in app.json.');
+  }
+  if (!orderId) {
+    throw new Error('Missing orderId.');
+  }
+
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/api/pay/order/${encodeURIComponent(orderId)}`;
+  const response = await fetch(endpoint, {
+    method: 'GET',
+    headers: {
+      ...(authToken ? { 'X-MingMe-Token': authToken } : {}),
+    },
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    const error = new Error(payload?.error || `Backend order query failed: HTTP ${response.status}`);
+    error.status = response.status;
+    error.code = payload?.code || 'BACKEND_ERROR';
+    throw error;
+  }
+
+  return payload;
+}
