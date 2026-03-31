@@ -36,7 +36,7 @@ import {
 import { analyzeStrengthRules, analyzeTenGodPreference, analyzeUseGod, analyzeLuck, analyzeNarrative, getSeasonByMonthBranch } from '../engines/engine_rules';
 import { generateAIReading, parseAIReading } from '../utils/aiReading';
 import { generateCompanionPack } from '../services/aiCompanion';
-import { getAIBackendConfig } from '../services/aiBackendConnector';
+import { getAIBackendConfig, requestManualPaymentReviewFromBackend, requestPaywallLeadFromBackend } from '../services/aiBackendConnector';
 import { getCityList } from '../utils/chinaCities';
 import { calculateChengGu } from '../utils/chengGu';
 import { generateFortuneCalendar, getMonthSummary } from '../utils/fortuneCalendar';
@@ -1925,15 +1925,45 @@ export default function MingMeV2App() {
     }
   }, [chartResult, memberTier, notificationPrefs, profile]);
 
-  const handleMemberRegistrationSave = useCallback((payload) => {
-    setPaywallVisible(false);
+  const handleMemberRegistrationSave = useCallback(async (payload) => {
     if (payload?.registration) {
       setMemberRegistration({
         ...DEFAULT_MEMBER_REGISTRATION,
         ...payload.registration,
       });
     }
-  }, []);
+
+    try {
+      if (payload?.paymentMethod) {
+        await requestManualPaymentReviewFromBackend({
+          registration: payload?.registration || {},
+          selectedPlan: payload?.selectedPlan || 'annual',
+          paymentMethod: payload?.paymentMethod,
+          amountText: payload?.amountText || '',
+          paidAtText: payload?.paidAtText || '',
+          screenshotName: payload?.screenshotName || '',
+          screenshotDataUrl: payload?.screenshotDataUrl || '',
+          notes: payload?.notes || '',
+          profile,
+          chart: chartResult,
+          source: payload?.source || (Platform.OS === 'web' ? 'web_manual_payment' : 'app_manual_payment'),
+        });
+      } else {
+        await requestPaywallLeadFromBackend({
+          registration: payload?.registration || {},
+          selectedPlan: payload?.selectedPlan || 'annual',
+          profile,
+          chart: chartResult,
+          source: payload?.source || (Platform.OS === 'web' ? 'web_paywall' : 'app_paywall'),
+        });
+      }
+      setPaywallVisible(false);
+      return true;
+    } catch (error) {
+      Alert.alert('提交失败', error?.message || '暂时无法提交开通意向，请稍后再试。');
+      return false;
+    }
+  }, [chartResult, profile]);
 
   useEffect(() => {
     if (booting || !activeFamilyProfileId || !chartResult) return;

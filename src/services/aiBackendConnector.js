@@ -285,6 +285,44 @@ export async function requestPaywallLeadFromBackend({
   return requestWithRetry(endpoint, requestBody, { authToken, signingSecret, retryCount, retryDelayMs });
 }
 
+export async function requestManualPaymentReviewFromBackend({
+  registration,
+  selectedPlan,
+  paymentMethod,
+  amountText,
+  paidAtText,
+  screenshotName,
+  screenshotDataUrl,
+  notes,
+  profile,
+  userKey,
+  chart,
+  source = 'web_manual_payment',
+}) {
+  const { baseUrl, authToken, signingSecret, retryCount, retryDelayMs } = getAIBackendConfig();
+  if (!baseUrl) {
+    throw new Error('Missing backend URL. Fill expo.extra.aiBackendUrl in app.json.');
+  }
+
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/api/ai/manual-payment-review`;
+  const requestBody = JSON.stringify({
+    registration,
+    selectedPlan,
+    paymentMethod,
+    amountText,
+    paidAtText,
+    screenshotName,
+    screenshotDataUrl,
+    notes,
+    profile,
+    userKey,
+    chart,
+    source,
+  });
+
+  return requestWithRetry(endpoint, requestBody, { authToken, signingSecret, retryCount, retryDelayMs });
+}
+
 export async function requestCreatePaymentOrderFromBackend({
   userKey,
   chart,
