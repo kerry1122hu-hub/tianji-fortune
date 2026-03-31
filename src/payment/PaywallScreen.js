@@ -102,7 +102,7 @@ function getQrFallbackHint(paymentMethod) {
   return '优先读取 extra.alipayCollectionQrUrl；如果没配置，Web 版会自动尝试 /alipay-collection-qr.jpg。';
 }
 
-function MembershipSummaryCard({ activePlan }) {
+function MembershipSummaryCard() {
   return (
     <View style={s.summaryCard}>
       <Text style={s.summaryTitle}>会员权益</Text>
@@ -115,10 +115,6 @@ function MembershipSummaryCard({ activePlan }) {
         <Text style={s.summaryItem}>• 详细会员内容将在开通后解锁</Text>
       </View>
       <Text style={s.summaryHint}>当前仅展示简版权益说明，具体内容开通后查看。</Text>
-      <View style={s.planChip}>
-        <Text style={s.planChipLabel}>本次选择</Text>
-        <Text style={s.planChipValue}>{activePlan.title} · {activePlan.priceLabel}</Text>
-      </View>
     </View>
   );
 }
@@ -251,7 +247,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
           {!showPaymentStep ? (
             <View style={s.section}>
               <Text style={s.sectionTitle}>会员权益</Text>
-              <MembershipSummaryCard activePlan={activePlan} />
+              <MembershipSummaryCard />
             </View>
           ) : (
             <>
@@ -458,16 +454,6 @@ const s = StyleSheet.create({
     lineHeight: 18,
     color: C.faint,
   },
-  planChip: {
-    marginTop: 12,
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    backgroundColor: 'rgba(198,146,42,0.12)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  planChipLabel: { fontSize: 11, lineHeight: 16, color: C.faint },
-  planChipValue: { marginTop: 2, fontSize: 13, lineHeight: 18, fontWeight: '800', color: C.gold },
   planCard: {
     borderRadius: 18,
     backgroundColor: C.card,
