@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -17,90 +18,79 @@ const C = {
   ink: '#1C1C1E',
   inkInv: '#FFFFFF',
   soft: 'rgba(28,28,30,0.72)',
-  faint: 'rgba(60,60,67,0.45)',
+  faint: 'rgba(60,60,67,0.46)',
   line: 'rgba(60,60,67,0.12)',
   gold: '#C6922A',
   goldBg: 'rgba(198,146,42,0.10)',
   dark: '#0A0A0C',
-  green: '#34C759',
-  red: '#E85D3F',
+  mint: '#EAF5F1',
+  logoDeep: '#14333A',
+  success: '#34C759',
+  rose: '#E85D3F',
   blue: '#3D6DCC',
 };
 
-const PLAN_PREVIEWS = [
+const PLAN_OPTIONS = [
   {
     key: 'annual',
     title: '年度会员',
-    subtitle: '比包月更划算，全年持续更新',
+    subtitle: '适合真正想把关系、事业、财富和阶段节奏持续看清的人',
     price: '¥168 / 年',
-    badge: '限时开放',
+    badge: '更划算',
+    cta: '锁定年度会员',
   },
   {
     key: 'monthly',
     title: '月度会员',
-    subtitle: '先看完整报告，再决定是否长期使用',
+    subtitle: '先用一个月体验 AI 先生、阶段提醒与连续回顾',
     price: '¥28 / 月',
-    badge: null,
+    badge: '轻量试用',
+    cta: '先开一个月',
   },
 ];
 
-const BENEFIT_CARDS = [
+const VALUE_CARDS = [
   {
     tone: C.gold,
-    title: '命盘深度解读',
-    body: '不只知道自己是什么命，更能看懂十神、神煞、喜用神在现实里的作用。',
+    title: '连续对话，不再每次重来',
+    body: '它会记住你最近在卡什么、上次聊到哪、给过你什么判断和动作。',
   },
   {
     tone: C.blue,
-    title: '每月运势提醒',
-    body: '提前知道本月哪里顺、哪里要稳，减少临场判断时的犹豫和误判。',
+    title: '不是空报告，而是下一步建议',
+    body: '每次不是只告诉你好坏，而是更聚焦“现在先做什么、先别碰什么”。',
   },
   {
-    tone: C.green,
-    title: '事业财富策略',
-    body: '看清适合稳扎稳打还是主动突破，帮助你判断机会、节奏和风险。',
+    tone: C.success,
+    title: '阶段变化会持续提醒',
+    body: '月度提醒、阶段复盘和关键节点提示，会让它更像长期顾问，而不是一次性解读。',
   },
   {
-    tone: C.red,
-    title: '感情关系指导',
-    body: '把关系模式、沟通雷区和相处节奏讲清楚，让亲密关系更可被理解。',
+    tone: C.rose,
+    title: '关系、事业、情绪、金钱可专项深聊',
+    body: '遇到反复纠结的问题，不用从头再讲，系统会顺着之前的脉络继续。',
   },
 ];
 
-const HOT_PREVIEWS = [
-  '今年事业机会在哪几个月出现',
-  '你的财运适合稳扎稳打还是项目爆发',
-  '今年感情中最该避开的关系模式',
-  '哪些月份更适合做重要决定',
-];
-
-const UPDATE_MECHANISMS = [
-  '每月更新运势与关键提醒',
-  '每周给出更贴近日常的行动建议',
-  '特定时间节点会出现阶段提示',
-  '长期档案可以持续回看与校准',
+const POPULAR_SCENARIOS = [
+  '这段关系该继续，还是该先停下来',
+  '这步大运到底是在扶我，还是在压我',
+  '我最近为什么一直累、烦、停不下来',
+  '我现在该扩，还是该收',
 ];
 
 const FAQS = [
   {
-    q: '会员和普通版差别是什么',
-    a: '普通版更适合先认识自己，会员版会提供更完整的档案、专题内容和持续更新提醒。',
+    q: '会员和免费版差在哪？',
+    a: '免费版适合先聊一聊、先看清问题。会员版更强调连续记忆、阶段提醒、专项深聊和长期回顾。',
   },
   {
-    q: '内容多久更新一次',
-    a: '会员内容按月更新运势，也会补充阶段变化和关键节点提醒。',
+    q: '适合新用户吗？',
+    a: '适合。它会把复杂判断翻译成更容易执行的现实建议，不会一上来就压你一堆术语。',
   },
   {
-    q: '是否适合新手',
-    a: '适合。页面会把专业命理语言翻译成更容易理解的现实建议。',
-  },
-  {
-    q: '是否支持多次查看',
-    a: '支持。已经保存的档案和登记信息都可以反复回看。',
-  },
-  {
-    q: '是否有年度深度版',
-    a: '有。当前页面已经预留年度会员方案，后续正式接入支付后可直接开放。',
+    q: '现在是正式支付吗？',
+    a: '当前先整理成最小可卖版页面。你提交开通信息后，后续可直接进入支付或由我们优先通知开通。',
   },
 ];
 
@@ -114,18 +104,25 @@ function buildInitialRegistration(profile, registrationDraft) {
   };
 }
 
+function benefitButtonCopy(planKey) {
+  return planKey === 'annual' ? '锁定年度会员' : '先开一个月';
+}
+
 export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, registrationDraft }) {
   const insets = useSafeAreaInsets();
-  const [selected, setSelected] = useState('annual');
-  const [registration, setRegistration] = useState(() =>
-    buildInitialRegistration(profile, registrationDraft)
-  );
+  const [selectedPlan, setSelectedPlan] = useState('annual');
+  const [registration, setRegistration] = useState(() => buildInitialRegistration(profile, registrationDraft));
 
   useEffect(() => {
     if (visible) {
       setRegistration(buildInitialRegistration(profile, registrationDraft));
     }
   }, [profile, registrationDraft, visible]);
+
+  const activePlan = useMemo(
+    () => PLAN_OPTIONS.find((item) => item.key === selectedPlan) || PLAN_OPTIONS[0],
+    [selectedPlan]
+  );
 
   const updateRegistration = (key, value) => {
     setRegistration((current) => ({
@@ -134,63 +131,67 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
     }));
   };
 
-  const handleSave = () => {
+  const handleSubmit = () => {
     onSaveRegistration?.({
       registration,
-      selectedPlan: selected,
+      selectedPlan,
+      source: Platform.OS === 'web' ? 'web_paywall' : 'app_paywall',
     });
-    Alert.alert('保存成功', '会员登记信息已保存到本机，后续可继续修改。');
+
+    Alert.alert(
+      '已保存开通信息',
+      '你的开通意向已经保存。接下来可继续完善支付链路，或先用这份资料做转化跟进。'
+    );
     onClose?.();
   };
-
-  const selectedPlan = PLAN_PREVIEWS.find((item) => item.key === selected) || PLAN_PREVIEWS[0];
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={s.root}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 182 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 188 }}>
           <View style={[s.hero, { paddingTop: insets.top + 16 }]}>
-            <TouchableOpacity onPress={onClose} style={s.closeBtn}>
-              <Text style={s.closeLabel}>×</Text>
+            <TouchableOpacity onPress={onClose} style={s.closeBtn} activeOpacity={0.85}>
+              <Text style={s.closeLabel}>{'×'}</Text>
             </TouchableOpacity>
 
-            <Text style={s.heroEyebrow}>会员中心</Text>
-            <Text style={s.heroTitle}>开通会员，解锁更完整的人生节奏与行动建议</Text>
+            <Text style={s.heroEyebrow}>{'会员中心'}</Text>
+            <Text style={s.heroTitle}>{'把一次聊天，变成持续看清自己的人生工具'}</Text>
             <Text style={s.heroSubtitle}>
-              不只看命盘，更告诉你什么时候该出手、什么时候该稳住。当前先展示页面结构并保存会员登记信息。
+              明己不想只做一份报告，而是想成为你在关系、事业、情绪和财富上的长期陪伴。会员版，解决的正是“下一次回来，它还记得你”。
             </Text>
 
             <View style={s.heroTagRow}>
               <View style={s.heroTag}>
-                <Text style={s.heroTagText}>限时权益标签</Text>
+                <Text style={s.heroTagText}>{'连续记忆'}</Text>
               </View>
               <View style={s.heroTag}>
-                <Text style={s.heroTagText}>当前版本已开放年度重点分析</Text>
+                <Text style={s.heroTagText}>{'阶段回顾'}</Text>
+              </View>
+              <View style={s.heroTag}>
+                <Text style={s.heroTagText}>{'专项深聊'}</Text>
               </View>
             </View>
 
             <View style={s.priceCard}>
               <View style={s.priceCardTop}>
-                <Text style={s.priceLabel}>会员价格区</Text>
-                <Text style={s.priceBadge}>年卡更划算</Text>
+                <Text style={s.priceLabel}>{'当前主推方案'}</Text>
+                <Text style={s.priceBadge}>{activePlan.badge}</Text>
               </View>
-              <Text style={s.priceTitle}>{selectedPlan.price}</Text>
-              <Text style={s.priceBody}>
-                {selected === 'annual'
-                  ? '未来 12 个月的重要变化，提前掌握。'
-                  : '适合先体验完整命盘解读与现实建议。'}
-              </Text>
-              <TouchableOpacity onPress={handleSave} style={s.heroButton} activeOpacity={0.9}>
-                <Text style={s.heroButtonText}>立即开通按钮</Text>
+              <Text style={s.priceTitle}>{activePlan.price}</Text>
+              <Text style={s.priceBody}>{activePlan.subtitle}</Text>
+              <TouchableOpacity onPress={handleSubmit} style={s.heroButton} activeOpacity={0.9}>
+                <Text style={s.heroButtonText}>{activePlan.cta}</Text>
               </TouchableOpacity>
-              <Text style={s.heroFootnote}>当前按钮先保存会员登记信息，支付接口会在正式上线后接入。</Text>
+              <Text style={s.heroFootnote}>
+                这版先用来验证转化与付费意愿。用户填写开通信息后，你可以继续接正式支付或人工跟进。
+              </Text>
             </View>
           </View>
 
           <View style={s.section}>
-            <Text style={s.sectionTitle}>你将获得什么</Text>
+            <Text style={s.sectionTitle}>{'为什么值得买'}</Text>
             <View style={s.cardGrid}>
-              {BENEFIT_CARDS.map((item) => (
+              {VALUE_CARDS.map((item) => (
                 <View key={item.title} style={s.benefitCard}>
                   <View style={[s.benefitPill, { backgroundColor: `${item.tone}18` }]}>
                     <Text style={[s.benefitPillText, { color: item.tone }]}>{item.title}</Text>
@@ -202,8 +203,8 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
           </View>
 
           <View style={s.section}>
-            <Text style={s.sectionTitle}>热门会员内容预览</Text>
-            {HOT_PREVIEWS.map((item, index) => (
+            <Text style={s.sectionTitle}>{'用户最容易买单的场景'}</Text>
+            {POPULAR_SCENARIOS.map((item, index) => (
               <View key={item} style={s.previewRow}>
                 <Text style={s.previewIndex}>{`0${index + 1}`}</Text>
                 <Text style={s.previewText}>{item}</Text>
@@ -212,23 +213,13 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
           </View>
 
           <View style={s.section}>
-            <Text style={s.sectionTitle}>会员专属更新机制</Text>
-            {UPDATE_MECHANISMS.map((item) => (
-              <View key={item} style={s.updateRow}>
-                <View style={s.updateDot} />
-                <Text style={s.updateText}>{item}</Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>会员方案预览</Text>
-            {PLAN_PREVIEWS.map((plan) => (
+            <Text style={s.sectionTitle}>{'选择方案'}</Text>
+            {PLAN_OPTIONS.map((plan) => (
               <TouchableOpacity
                 key={plan.key}
                 activeOpacity={0.9}
-                onPress={() => setSelected(plan.key)}
-                style={[s.planCard, selected === plan.key && s.planCardSelected]}
+                onPress={() => setSelectedPlan(plan.key)}
+                style={[s.planCard, selectedPlan === plan.key && s.planCardSelected]}
               >
                 <View style={s.planMain}>
                   <View style={s.planHeader}>
@@ -247,7 +238,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
           </View>
 
           <View style={s.section}>
-            <Text style={s.sectionTitle}>用户最关心的问题</Text>
+            <Text style={s.sectionTitle}>{'常见问题'}</Text>
             {FAQS.map((item) => (
               <View key={item.q} style={s.faqCard}>
                 <Text style={s.faqQ}>{item.q}</Text>
@@ -257,48 +248,50 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
           </View>
 
           <View style={s.section}>
-            <Text style={s.sectionTitle}>会员登记信息</Text>
-            <Text style={s.formHint}>基本信息、邮箱和电话都不是必填项，保存后会记录在本机。</Text>
+            <Text style={s.sectionTitle}>{'开通信息'}</Text>
+            <Text style={s.formHint}>
+              这一步先留下最基本的开通线索。你后续可以直接接支付，也可以先用这份资料验证意向用户质量。
+            </Text>
 
             <View style={s.formField}>
-              <Text style={s.formLabel}>昵称</Text>
+              <Text style={s.formLabel}>{'称呼'}</Text>
               <TextInput
                 value={registration.nickname}
                 onChangeText={(value) => updateRegistration('nickname', value)}
-                placeholder="例如：小玫"
+                placeholder={'例如：小玥'}
                 placeholderTextColor={C.faint}
                 style={s.input}
               />
             </View>
 
             <View style={s.formField}>
-              <Text style={s.formLabel}>城市 / 地区</Text>
+              <Text style={s.formLabel}>{'城市 / 地区'}</Text>
               <TextInput
                 value={registration.city}
                 onChangeText={(value) => updateRegistration('city', value)}
-                placeholder="例如：上海"
+                placeholder={'例如：上海'}
                 placeholderTextColor={C.faint}
                 style={s.input}
               />
             </View>
 
             <View style={s.formField}>
-              <Text style={s.formLabel}>关注主题</Text>
+              <Text style={s.formLabel}>{'现在最想解决什么'}</Text>
               <TextInput
                 value={registration.focus}
                 onChangeText={(value) => updateRegistration('focus', value)}
-                placeholder="例如：事业、财富、感情"
+                placeholder={'例如：关系、事业、情绪、财富'}
                 placeholderTextColor={C.faint}
                 style={s.input}
               />
             </View>
 
             <View style={s.formField}>
-              <Text style={s.formLabel}>邮箱</Text>
+              <Text style={s.formLabel}>{'邮箱'}</Text>
               <TextInput
                 value={registration.email}
                 onChangeText={(value) => updateRegistration('email', value)}
-                placeholder="选填"
+                placeholder={'用于后续支付或开通通知'}
                 placeholderTextColor={C.faint}
                 style={s.input}
                 autoCapitalize="none"
@@ -307,11 +300,11 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
             </View>
 
             <View style={s.formField}>
-              <Text style={s.formLabel}>电话</Text>
+              <Text style={s.formLabel}>{'手机号'}</Text>
               <TextInput
                 value={registration.phone}
                 onChangeText={(value) => updateRegistration('phone', value)}
-                placeholder="选填"
+                placeholder={'选填'}
                 placeholderTextColor={C.faint}
                 style={s.input}
                 keyboardType="phone-pad"
@@ -322,11 +315,13 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
 
         <View style={[s.bottomBar, { paddingBottom: insets.bottom + 10 }]}>
           <View style={s.bottomCopy}>
-            <Text style={s.bottomTitle}>今日开通可立即解锁全部深度报告</Text>
-            <Text style={s.bottomBody}>立即查看你的事业、财富与关系关键提示</Text>
+            <Text style={s.bottomTitle}>{'先收第一批付费意向用户'}</Text>
+            <Text style={s.bottomBody}>
+              先跑转化，再决定是接 Stripe、微信支付，还是继续打磨产品。
+            </Text>
           </View>
-          <TouchableOpacity onPress={handleSave} style={s.bottomButton} activeOpacity={0.9}>
-            <Text style={s.bottomButtonText}>保存会员登记信息</Text>
+          <TouchableOpacity onPress={handleSubmit} style={s.bottomButton} activeOpacity={0.9}>
+            <Text style={s.bottomButtonText}>{benefitButtonCopy(selectedPlan)}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -518,30 +513,6 @@ const s = StyleSheet.create({
     color: C.ink,
     fontWeight: '600',
   },
-  updateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderRadius: 14,
-    backgroundColor: C.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: C.line,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    marginBottom: 10,
-  },
-  updateDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 99,
-    backgroundColor: C.gold,
-  },
-  updateText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 19,
-    color: C.ink,
-  },
   planCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -678,3 +649,5 @@ const s = StyleSheet.create({
     color: '#FFFFFF',
   },
 });
+
+export default PaywallScreen;
