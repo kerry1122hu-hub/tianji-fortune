@@ -28,13 +28,46 @@ const C = {
 };
 
 const PLAN_OPTIONS = [
-  { key: 'annual', title: '年度会员', priceLabel: '¥168 / 年', amountText: '168', badge: '更划算' },
-  { key: 'monthly', title: '月度会员', priceLabel: '¥28 / 月', amountText: '28', badge: '低门槛' },
+  { key: 'annual', title: '年度会员', priceLabel: '￥168 / 年', amountText: '168', badge: '更划算' },
+  { key: 'monthly', title: '月度会员', priceLabel: '￥28 / 月', amountText: '28', badge: '低门槛' },
 ];
 
 const PAYMENT_METHODS = [
   { key: 'wechat', title: '微信公司收款码', hint: '更适合微信内和安卓用户' },
   { key: 'alipay', title: '支付宝公司收款码', hint: '更适合手机浏览器和支付宝用户' },
+];
+
+const BENEFIT_GROUPS = [
+  {
+    key: 'fortune',
+    title: '运势类',
+    subtitle: '先看当下，再看接下来怎么走',
+    items: ['近期走势提醒', '阶段重点提示', '关键时机参考'],
+  },
+  {
+    key: 'wealth',
+    title: '事业财富类',
+    subtitle: '更适合想理清主线和节奏的人',
+    items: ['事业推进方向', '财富机会判断', '风险与消耗提醒', '阶段资源配置建议', '重点问题连续追问'],
+  },
+  {
+    key: 'relationship',
+    title: '关系类',
+    subtitle: '看关系状态，也看该怎么应对',
+    items: ['关系现状梳理', '互动节奏判断', '边界与取舍提醒'],
+  },
+  {
+    key: 'decision',
+    title: '决策类',
+    subtitle: '把纠结的问题收成下一步动作',
+    items: ['当前主线判断', '继续还是收缩', '先做哪一步更合适'],
+  },
+  {
+    key: 'planning',
+    title: '长期规划类',
+    subtitle: '适合长期使用，持续回看',
+    items: ['阶段目标整理', '长期方向校准', '持续跟进与回看'],
+  },
 ];
 
 const EXTRA = Constants.expoConfig?.extra || Constants.manifest2?.extra || Constants.manifest?.extra || {};
@@ -60,15 +93,13 @@ function getQrSource(paymentMethod) {
       : EXTRA.alipayCollectionQrUrl || EXTRA.alipayPayQrUrl || '';
   const resolved = `${maybeUrl || ''}`.trim();
   if (resolved) return resolved;
-  if (Platform.OS === 'web') {
-    return WEB_QR_FALLBACKS[paymentMethod] || '';
-  }
+  if (Platform.OS === 'web') return WEB_QR_FALLBACKS[paymentMethod] || '';
   return '';
 }
 
 function pickScreenshotFile() {
   if (Platform.OS !== 'web' || typeof document === 'undefined') {
-    return Promise.reject(new Error('当前环境暂不支持上传截图，请先用 Web/PWA 版完成付款审核。'));
+    return Promise.reject(new Error('当前环境暂不支持上传截图，请先用 Web 或 PWA 版完成付款审核。'));
   }
 
   return new Promise((resolve, reject) => {
@@ -78,7 +109,7 @@ function pickScreenshotFile() {
     input.onchange = () => {
       const file = input.files && input.files[0];
       if (!file) {
-        reject(new Error('未选择付款截图'));
+        reject(new Error('你还没有选择付款截图。'));
         return;
       }
       const reader = new FileReader();
@@ -88,7 +119,7 @@ function pickScreenshotFile() {
           dataUrl: `${reader.result || ''}`,
         });
       };
-      reader.onerror = () => reject(new Error('读取截图失败'));
+      reader.onerror = () => reject(new Error('读取付款截图失败，请重新选择。'));
       reader.readAsDataURL(file);
     };
     input.click();
@@ -97,24 +128,59 @@ function pickScreenshotFile() {
 
 function getQrFallbackHint(paymentMethod) {
   if (paymentMethod === 'wechat') {
-    return '优先读取 extra.wechatCollectionQrUrl；如果没配置，Web 版会自动尝试 /wechat-collection-qr.jpg。';
+    return '优先读取 extra.wechatCollectionQrUrl；如果没有配置，Web 版会自动尝试 /wechat-collection-qr.jpg。';
   }
-  return '优先读取 extra.alipayCollectionQrUrl；如果没配置，Web 版会自动尝试 /alipay-collection-qr.jpg。';
+  return '优先读取 extra.alipayCollectionQrUrl；如果没有配置，Web 版会自动尝试 /alipay-collection-qr.jpg。';
 }
 
 function MembershipSummaryCard() {
+  const [expandedKeys, setExpandedKeys] = useState([]);
+
+  const toggleGroup = (groupKey) => {
+    setExpandedKeys((current) =>
+      current.includes(groupKey) ? current.filter((item) => item !== groupKey) : [...current, groupKey]
+    );
+  };
+
   return (
     <View style={s.summaryCard}>
       <Text style={s.summaryTitle}>会员权益</Text>
       <Text style={s.summaryBody}>
-        这版会员以 AI 无限使用为主，更适合连续追问、长期陪伴和反复回看。先确认方案，再进入扫码付款页。
+        这版会员以明己 AI 先生无限使用为主，更适合连续追问、长期陪伴和反复回看。详细内容默认收起，点开你关心的那一类再看。
       </Text>
       <View style={s.summaryList}>
         <Text style={s.summaryItem}>• 明己 AI 先生无限使用</Text>
         <Text style={s.summaryItem}>• 重要问题可以连续追问</Text>
-        <Text style={s.summaryItem}>• 详细会员内容将在开通后解锁</Text>
+        <Text style={s.summaryItem}>• 详细会员内容开通后持续解锁</Text>
       </View>
-      <Text style={s.summaryHint}>当前仅展示简版权益说明，具体内容开通后查看。</Text>
+
+      <View style={s.benefitGroups}>
+        {BENEFIT_GROUPS.map((group) => {
+          const expanded = expandedKeys.includes(group.key);
+          return (
+            <View key={group.key} style={s.benefitGroupCard}>
+              <TouchableOpacity style={s.benefitGroupHeader} onPress={() => toggleGroup(group.key)} activeOpacity={0.9}>
+                <View style={s.benefitGroupTextWrap}>
+                  <Text style={s.benefitGroupTitle}>{group.title}</Text>
+                  <Text style={s.benefitGroupSubtitle}>{group.subtitle}</Text>
+                </View>
+                <Text style={s.benefitGroupAction}>{expanded ? '收起' : '展开'}</Text>
+              </TouchableOpacity>
+              {expanded ? (
+                <View style={s.benefitGroupItems}>
+                  {group.items.map((item) => (
+                    <Text key={item} style={s.benefitGroupItem}>
+                      • {item}
+                    </Text>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          );
+        })}
+      </View>
+
+      <Text style={s.summaryHint}>未开通前仅展示简要说明，详细内容和使用入口会在开通后解锁。</Text>
     </View>
   );
 }
@@ -137,6 +203,10 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
       setRegistration(buildInitialRegistration(profile, registrationDraft));
       const defaultPlan = PLAN_OPTIONS.find((item) => item.key === selectedPlan) || PLAN_OPTIONS[0];
       setAmountText(defaultPlan.amountText);
+      setPaidAtText('');
+      setNotes('');
+      setScreenshotName('');
+      setScreenshotDataUrl('');
     }
   }, [profile, registrationDraft, selectedPlan, visible]);
 
@@ -217,7 +287,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
             <Text style={s.heroEyebrow}>会员权益</Text>
             <Text style={s.heroTitle}>先看权益，再开通会员</Text>
             <Text style={s.heroSubtitle}>
-              先确认你要开通的方案。点击“开通会员”后，再显示微信和支付宝付款码，以及付款截图上传入口。
+              先确认你要开的方案。点击“开通会员”后，再显示微信和支付宝付款码，以及付款截图上传入口。
             </Text>
           </View>
 
@@ -246,7 +316,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
 
           {!showPaymentStep ? (
             <View style={s.section}>
-              <Text style={s.sectionTitle}>会员权益</Text>
+              <Text style={s.sectionTitle}>会员内容</Text>
               <MembershipSummaryCard />
             </View>
           ) : (
@@ -281,7 +351,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
                   )}
                   <View style={s.qrMeta}>
                     <Text style={s.qrMetaTitle}>{paymentMethod === 'wechat' ? '微信公司收款码' : '支付宝公司收款码'}</Text>
-                    <Text style={s.qrMetaBody}>建议付款金额：¥{activePlan.amountText}</Text>
+                    <Text style={s.qrMetaBody}>建议付款金额：￥{activePlan.amountText}</Text>
                   </View>
                 </View>
               </View>
@@ -294,7 +364,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
                 {screenshotDataUrl ? (
                   <View style={s.proofPreview}>
                     <Image source={{ uri: screenshotDataUrl }} style={s.proofImage} resizeMode="cover" />
-                    <Text style={s.proofName}>{screenshotName || '已上传截图'}</Text>
+                    <Text style={s.proofName}>{screenshotName || '已上传付款截图'}</Text>
                   </View>
                 ) : null}
               </View>
@@ -445,6 +515,34 @@ const s = StyleSheet.create({
   summaryBody: { marginTop: 8, fontSize: 14, lineHeight: 22, color: C.soft },
   summaryList: { marginTop: 12, gap: 6 },
   summaryItem: { fontSize: 14, lineHeight: 20, color: C.ink },
+  benefitGroups: { marginTop: 16, gap: 10 },
+  benefitGroupCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: '#FCFCFD',
+    overflow: 'hidden',
+  },
+  benefitGroupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  benefitGroupTextWrap: { flex: 1 },
+  benefitGroupTitle: { fontSize: 15, lineHeight: 21, fontWeight: '800', color: C.ink },
+  benefitGroupSubtitle: { marginTop: 4, fontSize: 12, lineHeight: 18, color: C.soft },
+  benefitGroupAction: { fontSize: 12, fontWeight: '700', color: C.gold },
+  benefitGroupItems: {
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: C.line,
+    gap: 6,
+  },
+  benefitGroupItem: { fontSize: 13, lineHeight: 19, color: C.ink, marginTop: 10 },
   summaryHint: {
     marginTop: 14,
     paddingTop: 12,
