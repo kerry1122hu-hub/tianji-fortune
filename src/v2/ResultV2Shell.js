@@ -2721,15 +2721,27 @@ function HomeTab(props) {
       return;
     }
 
+    if (pwaInstallState.platform === 'android') {
+      const androidGuide = '这台手机暂时还不能直接弹出安装框。请点浏览器右上角菜单，再选“安装应用”“添加到主屏幕”或“安装 MingMe”。';
+      if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+        window.alert(androidGuide);
+      } else {
+        Alert.alert('安装 MingMe', androidGuide);
+      }
+      return;
+    }
+
     if (pwaInstallState.platform === 'ios' && pwaInstallState.safari) {
       setPwaInstallDismissed(true);
       return;
     }
 
-    Alert.alert(
-      '添加到主屏幕',
-      '请用 Safari 打开 MingMe，然后点“分享”→“添加到主屏幕”。这样下次就能像 App 一样独立打开，继续上次的对话。'
-    );
+    const iosGuide = '请用 Safari 打开 MingMe，然后点“分享”→“添加到主屏幕”。这样下次就能像 App 一样独立打开，继续上次的对话。';
+    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+      window.alert(iosGuide);
+    } else {
+      Alert.alert('添加到主屏幕', iosGuide);
+    }
   };
 
   if (activeToolPage) {
