@@ -50,7 +50,7 @@
       "openaiApiKey": "",
       "openaiBaseUrl": "https://api.openai.com/v1",
       "openaiModel": "gpt-5",
-      "aiBackendUrl": "https://mingme-ai-server-9.onrender.com",
+      "aiBackendUrl": "https://mingme-ai-server.onrender.com",
       "aiBackendAuthToken": "mingme-local-token",
       "aiBackendSigningSecret": "",
       "aiBackendRetryCount": 1,
