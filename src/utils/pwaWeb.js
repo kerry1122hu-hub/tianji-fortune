@@ -20,6 +20,10 @@ export function isStandalonePwa() {
 export function detectPwaPlatform() {
   if (!isBrowser()) return 'native';
   const ua = window.navigator.userAgent || '';
+  const touchPoints = Number(window.navigator.maxTouchPoints || 0);
+  const isDesktopIpad = /macintosh/i.test(ua) && touchPoints > 1;
+
+  if (isDesktopIpad) return 'ios';
   if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
   if (/android/i.test(ua)) return 'android';
   return 'desktop';
@@ -28,6 +32,9 @@ export function detectPwaPlatform() {
 export function isSafariBrowser() {
   if (!isBrowser()) return false;
   const ua = window.navigator.userAgent || '';
+  const touchPoints = Number(window.navigator.maxTouchPoints || 0);
+  const isDesktopIpad = /macintosh/i.test(ua) && touchPoints > 1;
+  if (isDesktopIpad) return true;
   return /safari/i.test(ua) && !/chrome|crios|android|edgios|fxios/i.test(ua);
 }
 
