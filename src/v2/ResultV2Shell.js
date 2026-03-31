@@ -1826,6 +1826,11 @@ function AICompanionModal({
   voiceLoading,
   voiceRecording,
   onVoiceInput,
+  showInstallReminder,
+  installPlatform,
+  installCanPrompt,
+  onInstallPress,
+  onDismissInstallReminder,
 }) {
   const scrollRef = useRef(null);
   const [inputHeight, setInputHeight] = useState(72);
@@ -1954,6 +1959,28 @@ function AICompanionModal({
             <TouchableOpacity style={s.aiQuotaButton} onPress={onOpenPaywall}>
               <Text style={s.aiQuotaButtonText}>{'开通会员'}</Text>
             </TouchableOpacity>
+          </View>
+        ) : null}
+        {showInstallReminder ? (
+          <View style={s.aiInstallReminderCard}>
+            <View style={s.aiInstallReminderCopy}>
+              <Text style={s.aiInstallReminderTitle}>把 MingMe 放到桌面</Text>
+              <Text style={s.aiInstallReminderBody}>
+                {installPlatform === 'ios'
+                  ? '刚聊完这一轮，现在装到桌面，下次会更容易直接接上。'
+                  : '现在就装到桌面，回来看上次那件事会更顺手。'}
+              </Text>
+            </View>
+            <View style={s.aiInstallReminderActions}>
+              <TouchableOpacity style={s.aiInstallReminderGhost} onPress={onDismissInstallReminder} activeOpacity={0.9}>
+                <Text style={s.aiInstallReminderGhostText}>稍后</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.aiInstallReminderButton} onPress={onInstallPress} activeOpacity={0.9}>
+                <Text style={s.aiInstallReminderButtonText}>
+                  {installPlatform === 'android' && installCanPrompt ? '立即安装' : '添加到桌面'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : null}
         <View style={s.aiComposerPanel}>
@@ -2636,7 +2663,8 @@ function HomeTab(props) {
   const [activeToolPage, setActiveToolPage] = useState(null);
   const [pwaInstallState, setPwaInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
   const [pwaInstallDismissed, setPwaInstallDismissed] = useState(false);
-  const [pwaGuideExpanded, setPwaGuideExpanded] = useState(false);
+  const [pwaInstallSheetVisible, setPwaInstallSheetVisible] = useState(false);
+  const [pwaInstallFollowupVisible, setPwaInstallFollowupVisible] = useState(false);
   const weekly = getResolvedWeeklyActions(weeklyActions);
   const hasRegisteredProfile = Boolean(
     result &&
@@ -2707,15 +2735,10 @@ function HomeTab(props) {
   }, [showInstallGuide, pwaInstallState.platform]);
 
   useEffect(() => {
-    if (!showInstallGuide) return;
-    if (pwaInstallState.platform === 'ios') {
-      setPwaGuideExpanded(true);
-      return;
+    if (!showInstallGuide || pwaInstallState.standalone) {
+      setPwaInstallFollowupVisible(false);
     }
-    if (pwaInstallState.platform === 'android' && !pwaInstallState.canPrompt) {
-      setPwaGuideExpanded(true);
-    }
-  }, [showInstallGuide, pwaInstallState.canPrompt, pwaInstallState.platform]);
+  }, [showInstallGuide, pwaInstallState.standalone]);
 
   const handleAiEntryPress = () => {
     trackPwaEvent('cta_start_click', { page: 'home', position: 'hero_ai_entry' });
@@ -2730,12 +2753,12 @@ function HomeTab(props) {
     if (pwaInstallState.platform === 'android' && pwaInstallState.canPrompt) {
       trackPwaEvent('install_prompt_click', { platform: pwaInstallState.platform, surface: 'home_ai_entry', action: 'native_prompt' });
       const installed = await promptPwaInstall();
-      if (!installed) setPwaGuideExpanded(true);
+      if (!installed) setPwaInstallSheetVisible(true);
       return;
     }
 
     trackPwaEvent('install_prompt_click', { platform: pwaInstallState.platform, surface: 'home_ai_entry', action: 'show_steps' });
-    setPwaGuideExpanded(true);
+    setPwaInstallSheetVisible(true);
   };
 
   if (activeToolPage) {
@@ -2804,34 +2827,10 @@ function HomeTab(props) {
           <TouchableOpacity style={s.pwaInstallButton} onPress={handleInstallPress} activeOpacity={0.9}>
             <Text style={s.pwaInstallButtonText}>
               {pwaInstallState.platform === 'android' && pwaInstallState.canPrompt
-                ? '立即安装到桌面'
-                : (pwaInstallState.platform === 'ios' ? '按这三步安装' : '查看安装步骤')}
+                ? '立即安装'
+                : (pwaInstallState.platform === 'ios' ? '添加到桌面' : '查看安装步骤')}
             </Text>
           </TouchableOpacity>
-          {pwaGuideExpanded ? (
-            <View style={s.pwaInstallGuidePanel}>
-              <Text style={s.pwaInstallGuideTitle}>
-                {pwaInstallState.platform === 'android' ? '安卓安装方法' : '添加到主屏幕'}
-              </Text>
-              {pwaInstallState.platform === 'android' ? (
-                <>
-                  <Text style={s.pwaInstallGuideStep}>{pwaInstallState.canPrompt ? '1. 如果弹出安装框，直接确认安装。' : '1. 点浏览器右上角菜单。'}</Text>
-                  <Text style={s.pwaInstallGuideStep}>{pwaInstallState.canPrompt ? '2. 如果没有弹出安装框，再到浏览器菜单里找“安装应用”或“添加到主屏幕”。' : '2. 选择“安装应用”“添加到主屏幕”或“安装 MingMe”。'}</Text>
-                  <Text style={s.pwaInstallGuideStep}>{'3. 回到桌面，从 MingMe 图标打开，就能像 App 一样继续聊天。'}</Text>
-                </>
-              ) : (
-                <>
-                  <Text style={s.pwaInstallGuideStep}>
-                    {pwaInstallState.safari
-                      ? '1. 点 Safari 底部“分享”。'
-                      : '1. 请先复制当前网址，并用 Safari 打开。'}
-                  </Text>
-                  <Text style={s.pwaInstallGuideStep}>{'2. 选择“添加到主屏幕”。'}</Text>
-                  <Text style={s.pwaInstallGuideStep}>{'3. 回到桌面，从 MingMe 图标进入，以后就能像 App 一样独立打开。'}</Text>
-                </>
-              )}
-            </View>
-          ) : null}
         </View>
       ) : null}
       <SmartToolsHub
@@ -4117,7 +4116,88 @@ export function ResultV2Shell(props) {
           </TouchableOpacity>
         ))}
       </Sheet>
-        <AICompanionModal
+      <Sheet
+        visible={pwaInstallSheetVisible}
+        onClose={() => setPwaInstallSheetVisible(false)}
+        title={pwaInstallState.platform === 'android' ? '安装 MingMe' : '添加到主屏幕'}
+        subtitle={pwaInstallState.platform === 'android' ? '装到桌面后，回来继续会更顺。' : '按这三步完成桌面安装'}
+        closeLabel="返回"
+      >
+        <View style={s.installSheetHero}>
+          <Text style={s.installSheetHeroTitle}>
+            {pwaInstallState.platform === 'android' ? '把 MingMe 装到桌面' : '把 MingMe 放到桌面'}
+          </Text>
+          <Text style={s.installSheetHeroBody}>
+            {pwaInstallState.platform === 'android'
+              ? '装好以后，下次不用再找浏览器入口，直接点桌面图标就能接着聊。'
+              : '添加到主屏幕后，会像 App 一样独立打开，也更容易接上刚才那件事。'}
+          </Text>
+        </View>
+        {pwaInstallState.platform === 'android' ? (
+          <View style={s.installStepList}>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>1</Text>
+              <Text style={s.installStepText}>
+                {pwaInstallState.canPrompt ? '点下面的“立即安装”，如果浏览器弹出安装框，直接确认。' : '点浏览器右上角菜单。'}
+              </Text>
+            </View>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>2</Text>
+              <Text style={s.installStepText}>
+                {pwaInstallState.canPrompt ? '如果没有弹安装框，再到浏览器菜单里找“安装应用”或“添加到主屏幕”。' : '选择“安装应用”“添加到主屏幕”或“安装 MingMe”。'}
+              </Text>
+            </View>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>3</Text>
+              <Text style={s.installStepText}>回到桌面，从 MingMe 图标进入，以后就能像 App 一样继续聊天。</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={s.installStepList}>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>1</Text>
+              <Text style={s.installStepText}>{pwaInstallState.safari ? '点 Safari 底部“分享”。' : '先用 Safari 打开当前页面。'}</Text>
+            </View>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>2</Text>
+              <Text style={s.installStepText}>{pwaInstallState.safari ? '在分享面板里找到“添加到主屏幕”。' : '然后点“分享”→“添加到主屏幕”。'}</Text>
+            </View>
+            <View style={s.installStepCard}>
+              <Text style={s.installStepIndex}>3</Text>
+              <Text style={s.installStepText}>回到桌面，从 MingMe 图标进入，以后就能像 App 一样独立打开。</Text>
+            </View>
+          </View>
+        )}
+        <View style={s.installSheetActions}>
+          {pwaInstallState.platform === 'android' && pwaInstallState.canPrompt ? (
+            <TouchableOpacity
+              style={s.installSheetPrimaryButton}
+              onPress={async () => {
+                const installed = await promptPwaInstall();
+                if (installed) {
+                  setPwaInstallSheetVisible(false);
+                  setPwaInstallDismissed(true);
+                  setPwaInstallFollowupVisible(false);
+                }
+              }}
+              activeOpacity={0.9}
+            >
+              <Text style={s.installSheetPrimaryButtonText}>立即安装</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity
+            style={s.installSheetGhostButton}
+            onPress={() => {
+              setPwaInstallSheetVisible(false);
+              setPwaInstallFollowupVisible(false);
+            }}
+            activeOpacity={0.9}
+          >
+            <Text style={s.installSheetGhostButtonText}>我知道了</Text>
+          </TouchableOpacity>
+        </View>
+      </Sheet>
+      <AICompanionModal
           visible={aiPage}
           onClose={() => setAiPage(false)}
         result={result}
@@ -4132,6 +4212,11 @@ export function ResultV2Shell(props) {
           voiceLoading={voiceLoading}
         voiceRecording={voiceRecording}
         onVoiceInput={handleVoiceInput}
+        showInstallReminder={pwaInstallFollowupVisible && Platform.OS === 'web' && !pwaInstallState.standalone}
+        installPlatform={pwaInstallState.platform}
+        installCanPrompt={pwaInstallState.canPrompt}
+        onInstallPress={handleInstallPress}
+        onDismissInstallReminder={() => setPwaInstallFollowupVisible(false)}
         onSend={async () => {
           const userMsg = `${chatInput || ''}`.trim();
           if (!userMsg || chatLoading) return;
@@ -4168,6 +4253,9 @@ export function ResultV2Shell(props) {
               setChatHistory([...nextHistory, { role: 'assistant', content: reply || '我在这里，会继续陪你一起梳理。' }]);
               if (Platform.OS === 'web' && userTurnCount === 1) {
                 trackPwaEvent('chat_first_reply_received', { route: 'companion', mode: 'chat' });
+                if (!isStandalonePwa() && (detectPwaPlatform() === 'ios' || detectPwaPlatform() === 'android')) {
+                  setPwaInstallFollowupVisible(true);
+                }
               }
             } catch (error) {
               if (error?.code === 'AI_QUOTA_EXCEEDED') {
@@ -4292,9 +4380,27 @@ const s = StyleSheet.create({
   pwaInstallBody: { fontSize: 14, lineHeight: 22, color: 'rgba(234,245,241,0.82)' },
   pwaInstallButton: { alignSelf: 'flex-start', minHeight: 42, borderRadius: 999, paddingHorizontal: 15, backgroundColor: 'rgba(234,245,241,0.12)', borderWidth: 1, borderColor: 'rgba(228,211,157,0.28)', justifyContent: 'center' },
   pwaInstallButtonText: { fontSize: 14, fontWeight: '700', color: '#E4D39D' },
-  pwaInstallGuidePanel: { marginTop: 2, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(228,211,157,0.16)', paddingHorizontal: 14, paddingVertical: 12, gap: 6 },
-  pwaInstallGuideTitle: { fontSize: 13, fontWeight: '800', color: '#F4F8F6', marginBottom: 2 },
-  pwaInstallGuideStep: { fontSize: 13, lineHeight: 20, color: 'rgba(234,245,241,0.78)' },
+  installSheetHero: { gap: 8, marginBottom: 8 },
+  installSheetHeroTitle: { fontSize: 18, lineHeight: 24, fontWeight: '800', color: C.ink },
+  installSheetHeroBody: { fontSize: 14, lineHeight: 22, color: C.soft },
+  installStepList: { gap: 10 },
+  installStepCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: '#FFF', paddingHorizontal: 14, paddingVertical: 14 },
+  installStepIndex: { width: 24, height: 24, borderRadius: 999, backgroundColor: '#FBF4E3', color: C.gold, fontSize: 12, fontWeight: '800', textAlign: 'center', lineHeight: 24 },
+  installStepText: { flex: 1, fontSize: 14, lineHeight: 21, color: C.ink },
+  installSheetActions: { flexDirection: 'row', gap: 10, marginTop: 16, alignItems: 'center', justifyContent: 'flex-end' },
+  installSheetGhostButton: { minWidth: 92, height: 44, borderRadius: 999, borderWidth: 1, borderColor: C.line, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  installSheetGhostButtonText: { fontSize: 13, fontWeight: '700', color: C.ink },
+  installSheetPrimaryButton: { minWidth: 108, height: 44, borderRadius: 999, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  installSheetPrimaryButtonText: { fontSize: 13, fontWeight: '800', color: '#FFF' },
+  aiInstallReminderCard: { marginHorizontal: 12, marginTop: 2, marginBottom: 10, borderRadius: 18, backgroundColor: 'rgba(11,16,32,0.96)', borderWidth: 1, borderColor: 'rgba(228,211,157,0.18)', paddingHorizontal: 14, paddingVertical: 14, gap: 12 },
+  aiInstallReminderCopy: { gap: 4 },
+  aiInstallReminderTitle: { fontSize: 15, fontWeight: '800', color: '#F4F8F6' },
+  aiInstallReminderBody: { fontSize: 13, lineHeight: 19, color: 'rgba(234,245,241,0.78)' },
+  aiInstallReminderActions: { flexDirection: 'row', gap: 10 },
+  aiInstallReminderGhost: { minWidth: 76, height: 40, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  aiInstallReminderGhostText: { fontSize: 12, fontWeight: '700', color: 'rgba(244,248,246,0.78)' },
+  aiInstallReminderButton: { minWidth: 108, height: 40, borderRadius: 999, backgroundColor: '#E4D39D', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  aiInstallReminderButtonText: { fontSize: 12, fontWeight: '800', color: '#10222B' },
   heroStatsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   heroStatCard: { flex: 1, minHeight: 78, backgroundColor: 'rgba(255,255,255,0.80)', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(169,222,208,0.20)', justifyContent: 'space-between' },
   heroStatPrimary: { backgroundColor: 'rgba(255,248,232,0.88)', borderColor: 'rgba(198,146,42,0.18)' },
