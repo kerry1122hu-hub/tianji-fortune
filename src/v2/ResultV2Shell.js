@@ -3262,6 +3262,7 @@ function PremiumTab({ memberTier, onOpenPaywall, result, profile, calSummary, fo
   const isMember = memberTier && memberTier !== 'free';
   const hasRegistration = !!(memberRegistration?.nickname || memberRegistration?.city || memberRegistration?.focus || memberRegistration?.email || memberRegistration?.phone);
   const [selectedMemberTopic, setSelectedMemberTopic] = useState(null);
+  const [expandedMemberGroups, setExpandedMemberGroups] = useState([]);
   const memberEntries = useMemo(
     () => buildMemberContentEntries(result, profile, calSummary, fortuneCalendar, weeklyActions),
     [result, profile, calSummary, fortuneCalendar, weeklyActions]
@@ -3273,6 +3274,11 @@ function PremiumTab({ memberTier, onOpenPaywall, result, profile, calSummary, fo
     })).filter((group) => group.items.length),
     [memberEntries]
   );
+  const toggleMemberGroup = (groupKey) => {
+    setExpandedMemberGroups((current) =>
+      current.includes(groupKey) ? current.filter((item) => item !== groupKey) : [...current, groupKey]
+    );
+  };
   return (
     <ScrollView contentContainerStyle={[s.pageContent, { flexGrow: 1 }]} showsVerticalScrollIndicator={false}>
       <Card style={s.darkCard}>
@@ -3302,21 +3308,28 @@ function PremiumTab({ memberTier, onOpenPaywall, result, profile, calSummary, fo
         <SectionHeader eyebrow={'会员内容'} title={hasRegistration ? '会员结果入口' : '完成会员登记后可查看'} body={'当前已接入 24 条会员专题入口，并已按主题分类整理，方便长期回看。'} />
         {groupedMemberEntries.map((group) => (
           <View key={group.key} style={s.memberGroupBlock}>
-            <View style={s.memberGroupHeader}>
-              <Text style={s.memberGroupTitle}>{group.title}</Text>
-              <Text style={s.memberGroupCount}>{`${group.items.length} 条`}</Text>
-            </View>
-            <Text style={s.memberGroupSummary}>{group.summary}</Text>
-            <Text style={s.memberGroupBody}>{group.body}</Text>
-            {group.items.map((item) => (
-              <TouchableOpacity key={item.key} onPress={() => setSelectedMemberTopic(item)} style={s.memberEntryCard}>
-                <View style={s.memberEntryTop}>
-                  <Text style={s.memberEntryTitle}>{item.title}</Text>
-                  <Text style={s.memberEntryAction}>{'查看'}</Text>
+            <TouchableOpacity onPress={() => toggleMemberGroup(group.key)} style={s.memberGroupHeaderCard} activeOpacity={0.9}>
+              <View style={s.memberGroupHeaderMain}>
+                <View style={s.memberGroupHeader}>
+                  <Text style={s.memberGroupTitle}>{group.title}</Text>
+                  <Text style={s.memberGroupCount}>{`${group.items.length} 条`}</Text>
                 </View>
-                <Text numberOfLines={2} style={s.memberEntrySummary}>{item.summary}</Text>
-              </TouchableOpacity>
-            ))}
+                <Text style={s.memberGroupSummary}>{group.summary}</Text>
+                <Text style={s.memberGroupBody}>{group.body}</Text>
+              </View>
+              <Text style={s.memberGroupToggle}>{expandedMemberGroups.includes(group.key) ? '收起' : '展开'}</Text>
+            </TouchableOpacity>
+            {expandedMemberGroups.includes(group.key)
+              ? group.items.map((item) => (
+                  <TouchableOpacity key={item.key} onPress={() => setSelectedMemberTopic(item)} style={s.memberEntryCard}>
+                    <View style={s.memberEntryTop}>
+                      <Text style={s.memberEntryTitle}>{item.title}</Text>
+                      <Text style={s.memberEntryAction}>{'查看'}</Text>
+                    </View>
+                    <Text numberOfLines={2} style={s.memberEntrySummary}>{item.summary}</Text>
+                  </TouchableOpacity>
+                ))
+              : null}
           </View>
         ))}
       </Card>
@@ -4496,11 +4509,23 @@ const s = StyleSheet.create({
   roadmapTitle: { fontSize: 14, fontWeight: '800', color: C.ink, marginBottom: 4 },
   roadmapText: { fontSize: 13, lineHeight: 20, color: C.soft },
   memberGroupBlock: { marginTop: 8 },
+  memberGroupHeaderCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: C.line,
+    backgroundColor: '#FFF',
+    padding: 14,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  memberGroupHeaderMain: { flex: 1 },
   memberGroupHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   memberGroupTitle: { fontSize: 17, fontWeight: '800', color: C.ink },
   memberGroupCount: { fontSize: 12, fontWeight: '700', color: C.gold, backgroundColor: '#FBF4E3', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999 },
   memberGroupSummary: { fontSize: 14, lineHeight: 21, color: C.ink, marginTop: 8, fontWeight: '600' },
   memberGroupBody: { fontSize: 13, lineHeight: 20, color: C.soft, marginTop: 6 },
+  memberGroupToggle: { fontSize: 12, fontWeight: '800', color: C.gold, paddingTop: 2 },
   memberEntryCard: { borderRadius: 16, borderWidth: 1, borderColor: C.line, padding: 14, marginTop: 10, backgroundColor: '#FFF' },
   memberEntryTop: { flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginBottom: 6, alignItems: 'center' },
   memberEntryTitle: { flex: 1, fontSize: 15, fontWeight: '800', color: C.ink },
