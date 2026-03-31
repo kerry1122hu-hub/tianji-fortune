@@ -1,0 +1,271 @@
+{
+  "meta": {
+    "version": "2.0.1",
+    "updated": "2026-03",
+    "note": "经度用于真太阳时计算，时区遵循 IANA 标准"
+  },
+  "mainland": {
+    "北京市": [
+      { "city": "北京", "lat": 39.9042, "lon": 116.4074, "tz": "Asia/Shanghai" }
+    ],
+    "天津市": [
+      { "city": "天津", "lat": 39.1235, "lon": 117.1980, "tz": "Asia/Shanghai" }
+    ],
+    "上海市": [
+      { "city": "上海", "lat": 31.2304, "lon": 121.4737, "tz": "Asia/Shanghai" }
+    ],
+    "重庆市": [
+      { "city": "重庆", "lat": 29.5630, "lon": 106.5516, "tz": "Asia/Shanghai" },
+      { "city": "万州", "lat": 30.8072, "lon": 108.4082, "tz": "Asia/Shanghai" }
+    ],
+    "河北省": [
+      { "city": "石家庄", "lat": 38.0428, "lon": 114.5149, "tz": "Asia/Shanghai" },
+      { "city": "唐山", "lat": 39.6310, "lon": 118.1803, "tz": "Asia/Shanghai" },
+      { "city": "秦皇岛", "lat": 39.9355, "lon": 119.5997, "tz": "Asia/Shanghai" },
+      { "city": "邯郸", "lat": 36.6256, "lon": 114.4890, "tz": "Asia/Shanghai" },
+      { "city": "保定", "lat": 38.8671, "lon": 115.4650, "tz": "Asia/Shanghai" },
+      { "city": "张家口", "lat": 40.8244, "lon": 114.8840, "tz": "Asia/Shanghai" },
+      { "city": "沧州", "lat": 38.3037, "lon": 116.8388, "tz": "Asia/Shanghai" },
+      { "city": "廊坊", "lat": 39.5382, "lon": 116.6835, "tz": "Asia/Shanghai" }
+    ],
+    "山西省": [
+      { "city": "太原", "lat": 37.8706, "lon": 112.5489, "tz": "Asia/Shanghai" },
+      { "city": "大同", "lat": 40.0762, "lon": 113.2999, "tz": "Asia/Shanghai" },
+      { "city": "长治", "lat": 36.1952, "lon": 113.1166, "tz": "Asia/Shanghai" },
+      { "city": "运城", "lat": 35.0222, "lon": 111.0040, "tz": "Asia/Shanghai" },
+      { "city": "临汾", "lat": 36.0880, "lon": 111.5192, "tz": "Asia/Shanghai" }
+    ],
+    "辽宁省": [
+      { "city": "沈阳", "lat": 41.8057, "lon": 123.4315, "tz": "Asia/Shanghai" },
+      { "city": "大连", "lat": 38.9140, "lon": 121.6147, "tz": "Asia/Shanghai" },
+      { "city": "鞍山", "lat": 41.1080, "lon": 122.9951, "tz": "Asia/Shanghai" },
+      { "city": "抚顺", "lat": 41.8808, "lon": 123.9573, "tz": "Asia/Shanghai" },
+      { "city": "丹东", "lat": 40.1289, "lon": 124.3831, "tz": "Asia/Shanghai" },
+      { "city": "锦州", "lat": 41.0953, "lon": 121.1269, "tz": "Asia/Shanghai" }
+    ],
+    "吉林省": [
+      { "city": "长春", "lat": 43.8171, "lon": 125.3235, "tz": "Asia/Shanghai" },
+      { "city": "吉林", "lat": 43.8378, "lon": 126.5497, "tz": "Asia/Shanghai" },
+      { "city": "延吉", "lat": 42.9088, "lon": 129.5131, "tz": "Asia/Shanghai" }
+    ],
+    "黑龙江省": [
+      { "city": "哈尔滨", "lat": 45.8038, "lon": 126.5340, "tz": "Asia/Shanghai" },
+      { "city": "齐齐哈尔", "lat": 47.3540, "lon": 123.9180, "tz": "Asia/Shanghai" },
+      { "city": "大庆", "lat": 46.5962, "lon": 125.1032, "tz": "Asia/Shanghai" },
+      { "city": "牡丹江", "lat": 44.5500, "lon": 129.5980, "tz": "Asia/Shanghai" },
+      { "city": "佳木斯", "lat": 46.7997, "lon": 130.3190, "tz": "Asia/Shanghai" }
+    ],
+    "江苏省": [
+      { "city": "南京", "lat": 32.0603, "lon": 118.7969, "tz": "Asia/Shanghai" },
+      { "city": "无锡", "lat": 31.5693, "lon": 120.2986, "tz": "Asia/Shanghai" },
+      { "city": "徐州", "lat": 34.2044, "lon": 117.2845, "tz": "Asia/Shanghai" },
+      { "city": "常州", "lat": 31.7714, "lon": 119.9741, "tz": "Asia/Shanghai" },
+      { "city": "苏州", "lat": 31.2990, "lon": 120.5853, "tz": "Asia/Shanghai" },
+      { "city": "南通", "lat": 31.9807, "lon": 120.8944, "tz": "Asia/Shanghai" },
+      { "city": "扬州", "lat": 32.3941, "lon": 119.4128, "tz": "Asia/Shanghai" },
+      { "city": "镇江", "lat": 32.1874, "lon": 119.4240, "tz": "Asia/Shanghai" }
+    ],
+    "浙江省": [
+      { "city": "杭州", "lat": 30.2741, "lon": 120.1551, "tz": "Asia/Shanghai" },
+      { "city": "宁波", "lat": 29.8683, "lon": 121.5440, "tz": "Asia/Shanghai" },
+      { "city": "温州", "lat": 27.9938, "lon": 120.6724, "tz": "Asia/Shanghai" },
+      { "city": "嘉兴", "lat": 30.7468, "lon": 120.7557, "tz": "Asia/Shanghai" },
+      { "city": "绍兴", "lat": 30.0008, "lon": 120.5853, "tz": "Asia/Shanghai" },
+      { "city": "金华", "lat": 29.0785, "lon": 119.6474, "tz": "Asia/Shanghai" },
+      { "city": "台州", "lat": 28.6563, "lon": 121.4208, "tz": "Asia/Shanghai" }
+    ],
+    "安徽省": [
+      { "city": "合肥", "lat": 31.8206, "lon": 117.2272, "tz": "Asia/Shanghai" },
+      { "city": "芜湖", "lat": 31.3522, "lon": 118.4327, "tz": "Asia/Shanghai" },
+      { "city": "蚌埠", "lat": 32.9166, "lon": 117.3536, "tz": "Asia/Shanghai" },
+      { "city": "安庆", "lat": 30.5430, "lon": 117.0630, "tz": "Asia/Shanghai" },
+      { "city": "阜阳", "lat": 32.8900, "lon": 115.8149, "tz": "Asia/Shanghai" }
+    ],
+    "福建省": [
+      { "city": "福州", "lat": 26.0753, "lon": 119.3062, "tz": "Asia/Shanghai" },
+      { "city": "厦门", "lat": 24.4798, "lon": 118.0894, "tz": "Asia/Shanghai" },
+      { "city": "泉州", "lat": 24.9139, "lon": 118.5858, "tz": "Asia/Shanghai" },
+      { "city": "漳州", "lat": 24.5133, "lon": 117.6472, "tz": "Asia/Shanghai" }
+    ],
+    "江西省": [
+      { "city": "南昌", "lat": 28.6820, "lon": 115.8581, "tz": "Asia/Shanghai" },
+      { "city": "九江", "lat": 29.7050, "lon": 116.0019, "tz": "Asia/Shanghai" },
+      { "city": "赣州", "lat": 25.8308, "lon": 114.9330, "tz": "Asia/Shanghai" }
+    ],
+    "山东省": [
+      { "city": "济南", "lat": 36.6512, "lon": 117.1201, "tz": "Asia/Shanghai" },
+      { "city": "青岛", "lat": 36.0671, "lon": 120.3826, "tz": "Asia/Shanghai" },
+      { "city": "淄博", "lat": 36.8131, "lon": 118.0548, "tz": "Asia/Shanghai" },
+      { "city": "烟台", "lat": 37.5366, "lon": 121.3919, "tz": "Asia/Shanghai" },
+      { "city": "潍坊", "lat": 36.7069, "lon": 119.1616, "tz": "Asia/Shanghai" },
+      { "city": "济宁", "lat": 35.4154, "lon": 116.5870, "tz": "Asia/Shanghai" },
+      { "city": "泰安", "lat": 36.1996, "lon": 117.0875, "tz": "Asia/Shanghai" },
+      { "city": "威海", "lat": 37.5135, "lon": 122.1200, "tz": "Asia/Shanghai" },
+      { "city": "临沂", "lat": 35.1047, "lon": 118.3564, "tz": "Asia/Shanghai" },
+      { "city": "菏泽", "lat": 35.2330, "lon": 115.4808, "tz": "Asia/Shanghai" }
+    ],
+    "河南省": [
+      { "city": "郑州", "lat": 34.7466, "lon": 113.6254, "tz": "Asia/Shanghai" },
+      { "city": "开封", "lat": 34.7971, "lon": 114.3071, "tz": "Asia/Shanghai" },
+      { "city": "洛阳", "lat": 34.6587, "lon": 112.4536, "tz": "Asia/Shanghai" },
+      { "city": "南阳", "lat": 32.9897, "lon": 112.5285, "tz": "Asia/Shanghai" },
+      { "city": "新乡", "lat": 35.3031, "lon": 113.9265, "tz": "Asia/Shanghai" },
+      { "city": "许昌", "lat": 34.0365, "lon": 113.8523, "tz": "Asia/Shanghai" }
+    ],
+    "湖北省": [
+      { "city": "武汉", "lat": 30.5928, "lon": 114.3055, "tz": "Asia/Shanghai" },
+      { "city": "宜昌", "lat": 30.6914, "lon": 111.2865, "tz": "Asia/Shanghai" },
+      { "city": "襄阳", "lat": 32.0098, "lon": 112.1222, "tz": "Asia/Shanghai" },
+      { "city": "荆州", "lat": 30.3335, "lon": 112.2395, "tz": "Asia/Shanghai" }
+    ],
+    "湖南省": [
+      { "city": "长沙", "lat": 28.2277, "lon": 112.9388, "tz": "Asia/Shanghai" },
+      { "city": "株洲", "lat": 27.8274, "lon": 113.1340, "tz": "Asia/Shanghai" },
+      { "city": "衡阳", "lat": 26.8933, "lon": 112.5719, "tz": "Asia/Shanghai" },
+      { "city": "岳阳", "lat": 29.3714, "lon": 113.1293, "tz": "Asia/Shanghai" },
+      { "city": "常德", "lat": 29.0315, "lon": 111.6987, "tz": "Asia/Shanghai" },
+      { "city": "张家界", "lat": 29.1172, "lon": 110.4791, "tz": "Asia/Shanghai" }
+    ],
+    "广东省": [
+      { "city": "广州", "lat": 23.1291, "lon": 113.2644, "tz": "Asia/Shanghai" },
+      { "city": "深圳", "lat": 22.5431, "lon": 114.0579, "tz": "Asia/Shanghai" },
+      { "city": "珠海", "lat": 22.2710, "lon": 113.5767, "tz": "Asia/Shanghai" },
+      { "city": "汕头", "lat": 23.3535, "lon": 116.6820, "tz": "Asia/Shanghai" },
+      { "city": "佛山", "lat": 23.0219, "lon": 113.1219, "tz": "Asia/Shanghai" },
+      { "city": "东莞", "lat": 23.0430, "lon": 113.7633, "tz": "Asia/Shanghai" },
+      { "city": "中山", "lat": 22.5154, "lon": 113.3925, "tz": "Asia/Shanghai" },
+      { "city": "惠州", "lat": 23.1115, "lon": 114.4152, "tz": "Asia/Shanghai" },
+      { "city": "湛江", "lat": 21.2707, "lon": 110.3594, "tz": "Asia/Shanghai" }
+    ],
+    "海南省": [
+      { "city": "海口", "lat": 20.0458, "lon": 110.3417, "tz": "Asia/Shanghai" },
+      { "city": "三亚", "lat": 18.2528, "lon": 109.5118, "tz": "Asia/Shanghai" }
+    ],
+    "四川省": [
+      { "city": "成都", "lat": 30.5728, "lon": 104.0668, "tz": "Asia/Shanghai" },
+      { "city": "绵阳", "lat": 31.4678, "lon": 104.6796, "tz": "Asia/Shanghai" },
+      { "city": "泸州", "lat": 28.8714, "lon": 105.4425, "tz": "Asia/Shanghai" },
+      { "city": "宜宾", "lat": 28.7518, "lon": 104.6428, "tz": "Asia/Shanghai" },
+      { "city": "南充", "lat": 30.8376, "lon": 106.1100, "tz": "Asia/Shanghai" }
+    ],
+    "贵州省": [
+      { "city": "贵阳", "lat": 26.6470, "lon": 106.6302, "tz": "Asia/Shanghai" },
+      { "city": "遵义", "lat": 27.7254, "lon": 106.9272, "tz": "Asia/Shanghai" }
+    ],
+    "云南省": [
+      { "city": "昆明", "lat": 25.0453, "lon": 102.7096, "tz": "Asia/Shanghai" },
+      { "city": "大理", "lat": 25.5924, "lon": 100.2253, "tz": "Asia/Shanghai" },
+      { "city": "丽江", "lat": 26.8721, "lon": 100.2330, "tz": "Asia/Shanghai" },
+      { "city": "西双版纳", "lat": 22.0070, "lon": 100.7980, "tz": "Asia/Shanghai" }
+    ],
+    "陕西省": [
+      { "city": "西安", "lat": 34.3416, "lon": 108.9398, "tz": "Asia/Shanghai" },
+      { "city": "宝鸡", "lat": 34.3612, "lon": 107.2370, "tz": "Asia/Shanghai" },
+      { "city": "咸阳", "lat": 34.3297, "lon": 108.7094, "tz": "Asia/Shanghai" },
+      { "city": "延安", "lat": 36.5853, "lon": 109.4897, "tz": "Asia/Shanghai" },
+      { "city": "汉中", "lat": 33.0668, "lon": 107.0282, "tz": "Asia/Shanghai" }
+    ],
+    "甘肃省": [
+      { "city": "兰州", "lat": 36.0611, "lon": 103.8343, "tz": "Asia/Shanghai" },
+      { "city": "天水", "lat": 34.5809, "lon": 105.7248, "tz": "Asia/Shanghai" },
+      { "city": "嘉峪关", "lat": 39.7724, "lon": 98.2895, "tz": "Asia/Shanghai" }
+    ],
+    "青海省": [
+      { "city": "西宁", "lat": 36.6232, "lon": 101.7782, "tz": "Asia/Shanghai" },
+      { "city": "格尔木", "lat": 36.4072, "lon": 94.9031, "tz": "Asia/Shanghai" }
+    ],
+    "内蒙古自治区": [
+      { "city": "呼和浩特", "lat": 40.8414, "lon": 111.7519, "tz": "Asia/Shanghai" },
+      { "city": "包头", "lat": 40.6567, "lon": 109.8402, "tz": "Asia/Shanghai" },
+      { "city": "赤峰", "lat": 42.2680, "lon": 118.9564, "tz": "Asia/Shanghai" },
+      { "city": "鄂尔多斯", "lat": 39.6086, "lon": 109.7812, "tz": "Asia/Shanghai" }
+    ],
+    "广西壮族自治区": [
+      { "city": "南宁", "lat": 22.8170, "lon": 108.3665, "tz": "Asia/Shanghai" },
+      { "city": "柳州", "lat": 24.3262, "lon": 109.4159, "tz": "Asia/Shanghai" },
+      { "city": "桂林", "lat": 25.2736, "lon": 110.2907, "tz": "Asia/Shanghai" },
+      { "city": "北海", "lat": 21.4810, "lon": 109.1198, "tz": "Asia/Shanghai" }
+    ],
+    "西藏自治区": [
+      { "city": "拉萨", "lat": 29.6500, "lon": 91.1000, "tz": "Asia/Shanghai" },
+      { "city": "日喀则", "lat": 29.2677, "lon": 88.8812, "tz": "Asia/Shanghai" },
+      { "city": "林芝", "lat": 29.6486, "lon": 94.3623, "tz": "Asia/Shanghai" }
+    ],
+    "新疆维吾尔自治区": [
+      { "city": "乌鲁木齐", "lat": 43.8256, "lon": 87.6168, "tz": "Asia/Urumqi" },
+      { "city": "喀什", "lat": 39.4670, "lon": 75.9890, "tz": "Asia/Urumqi" },
+      { "city": "库尔勒", "lat": 41.7256, "lon": 86.1742, "tz": "Asia/Urumqi" },
+      { "city": "伊宁", "lat": 43.9071, "lon": 81.3278, "tz": "Asia/Urumqi" }
+    ],
+    "宁夏回族自治区": [
+      { "city": "银川", "lat": 38.4680, "lon": 106.2729, "tz": "Asia/Shanghai" },
+      { "city": "固原", "lat": 36.0153, "lon": 106.2428, "tz": "Asia/Shanghai" }
+    ],
+    "中国其它地区": [
+      { "city": "香港", "lat": 22.3193, "lon": 114.1694, "tz": "Asia/Hong_Kong" },
+      { "city": "澳门", "lat": 22.1987, "lon": 113.5439, "tz": "Asia/Macau" },
+      { "city": "台北", "lat": 25.0330, "lon": 121.5654, "tz": "Asia/Taipei" },
+      { "city": "高雄", "lat": 22.6273, "lon": 120.3014, "tz": "Asia/Taipei" }
+    ]
+  },
+  "global": {
+    "东亚": [
+      { "city": "东京", "country": "日本", "lat": 35.6762, "lon": 139.6503, "tz": "Asia/Tokyo" },
+      { "city": "大阪", "country": "日本", "lat": 34.6937, "lon": 135.5022, "tz": "Asia/Tokyo" },
+      { "city": "首尔", "country": "韩国", "lat": 37.5665, "lon": 126.9780, "tz": "Asia/Seoul" },
+      { "city": "釜山", "country": "韩国", "lat": 35.1796, "lon": 129.0756, "tz": "Asia/Seoul" }
+    ],
+    "东南亚": [
+      { "city": "新加坡", "country": "新加坡", "lat": 1.3521, "lon": 103.8198, "tz": "Asia/Singapore" },
+      { "city": "吉隆坡", "country": "马来西亚", "lat": 3.1390, "lon": 101.6869, "tz": "Asia/Kuala_Lumpur" },
+      { "city": "曼谷", "country": "泰国", "lat": 13.7563, "lon": 100.5018, "tz": "Asia/Bangkok" },
+      { "city": "河内", "country": "越南", "lat": 21.0285, "lon": 105.8542, "tz": "Asia/Ho_Chi_Minh" },
+      { "city": "胡志明市", "country": "越南", "lat": 10.8231, "lon": 106.6297, "tz": "Asia/Ho_Chi_Minh" },
+      { "city": "雅加达", "country": "印度尼西亚", "lat": -6.2088, "lon": 106.8456, "tz": "Asia/Jakarta" },
+      { "city": "马尼拉", "country": "菲律宾", "lat": 14.5995, "lon": 120.9842, "tz": "Asia/Manila" }
+    ],
+    "南亚": [
+      { "city": "新德里", "country": "印度", "lat": 28.6139, "lon": 77.2090, "tz": "Asia/Kolkata" },
+      { "city": "孟买", "country": "印度", "lat": 19.0760, "lon": 72.8777, "tz": "Asia/Kolkata" },
+      { "city": "卡拉奇", "country": "巴基斯坦", "lat": 24.8607, "lon": 67.0011, "tz": "Asia/Karachi" }
+    ],
+    "中亚西亚": [
+      { "city": "迪拜", "country": "阿联酋", "lat": 25.2048, "lon": 55.2708, "tz": "Asia/Dubai" },
+      { "city": "利雅得", "country": "沙特阿拉伯", "lat": 24.7136, "lon": 46.6753, "tz": "Asia/Riyadh" },
+      { "city": "伊斯坦布尔", "country": "土耳其", "lat": 41.0082, "lon": 28.9784, "tz": "Europe/Istanbul" },
+      { "city": "德黑兰", "country": "伊朗", "lat": 35.6892, "lon": 51.3890, "tz": "Asia/Tehran" }
+    ],
+    "欧洲": [
+      { "city": "伦敦", "country": "英国", "lat": 51.5074, "lon": -0.1278, "tz": "Europe/London" },
+      { "city": "巴黎", "country": "法国", "lat": 48.8566, "lon": 2.3522, "tz": "Europe/Paris" },
+      { "city": "柏林", "country": "德国", "lat": 52.5200, "lon": 13.4050, "tz": "Europe/Berlin" },
+      { "city": "阿姆斯特丹", "country": "荷兰", "lat": 52.3676, "lon": 4.9041, "tz": "Europe/Amsterdam" },
+      { "city": "苏黎世", "country": "瑞士", "lat": 47.3769, "lon": 8.5417, "tz": "Europe/Zurich" },
+      { "city": "马德里", "country": "西班牙", "lat": 40.4168, "lon": -3.7038, "tz": "Europe/Madrid" },
+      { "city": "罗马", "country": "意大利", "lat": 41.9028, "lon": 12.4964, "tz": "Europe/Rome" },
+      { "city": "莫斯科", "country": "俄罗斯", "lat": 55.7558, "lon": 37.6173, "tz": "Europe/Moscow" }
+    ],
+    "北美洲": [
+      { "city": "纽约", "country": "美国", "lat": 40.7128, "lon": -74.0060, "tz": "America/New_York" },
+      { "city": "洛杉矶", "country": "美国", "lat": 34.0522, "lon": -118.2437, "tz": "America/Los_Angeles" },
+      { "city": "旧金山", "country": "美国", "lat": 37.7749, "lon": -122.4194, "tz": "America/Los_Angeles" },
+      { "city": "芝加哥", "country": "美国", "lat": 41.8781, "lon": -87.6298, "tz": "America/Chicago" },
+      { "city": "多伦多", "country": "加拿大", "lat": 43.6532, "lon": -79.3832, "tz": "America/Toronto" },
+      { "city": "温哥华", "country": "加拿大", "lat": 49.2827, "lon": -123.1207, "tz": "America/Vancouver" }
+    ],
+    "大洋洲": [
+      { "city": "悉尼", "country": "澳大利亚", "lat": -33.8688, "lon": 151.2093, "tz": "Australia/Sydney" },
+      { "city": "墨尔本", "country": "澳大利亚", "lat": -37.8136, "lon": 144.9631, "tz": "Australia/Melbourne" },
+      { "city": "奥克兰", "country": "新西兰", "lat": -36.8485, "lon": 174.7633, "tz": "Pacific/Auckland" }
+    ],
+    "南美洲": [
+      { "city": "圣保罗", "country": "巴西", "lat": -23.5505, "lon": -46.6333, "tz": "America/Sao_Paulo" },
+      { "city": "布宜诺斯艾利斯", "country": "阿根廷", "lat": -34.6037, "lon": -58.3816, "tz": "America/Argentina/Buenos_Aires" }
+    ],
+    "非洲": [
+      { "city": "开罗", "country": "埃及", "lat": 30.0444, "lon": 31.2357, "tz": "Africa/Cairo" },
+      { "city": "约翰内斯堡", "country": "南非", "lat": -26.2041, "lon": 28.0473, "tz": "Africa/Johannesburg" },
+      { "city": "内罗毕", "country": "肯尼亚", "lat": -1.2921, "lon": 36.8219, "tz": "Africa/Nairobi" }
+    ]
+  }
+}

@@ -1,0 +1,208 @@
+/**
+ * 明己 MingMe - 主入口（完整版含全部功能模块）
+ */
+import React, { useState, useCallback, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, StatusBar, Dimensions, Platform, ActivityIndicator } from 'react-native';
+import { fullBaZiChart, getDayPillar, getShiShen, TIAN_GAN, DI_ZHI, WU_XING, DZ_WX, WX_EMOJIS, SHENG_KE, CANG_GAN } from './src/utils/baziEngine';
+import { getTrueSolarTime, getCityList } from './src/utils/trueSolarTime';
+import { t, tGan, tZhi, tWuXing, tShengXiao, tShiShen, setLocale, getLocale, getSupportedLocales, getFortuneAdvice, getActionTemplates } from './src/utils/i18n';
+import { generateFortuneCalendar, getMonthSummary } from './src/utils/fortuneCalendar';
+import { selectBestDates, getEventTypeList } from './src/utils/zeRi';
+import { analyzeCompatibility } from './src/utils/compatibility';
+import { generateAIReading, parseAIReading } from './src/utils/aiReading';
+
+const { width: SW } = Dimensions.get('window');
+const TH = { bg:'#0a0a12', bgC:'rgba(255,255,255,0.03)', bgHL:'rgba(212,175,55,0.06)', g:'#d4af37', gD:'rgba(212,175,55,0.5)', gB:'rgba(212,175,55,0.15)', gBA:'rgba(212,175,55,0.4)', tx:'#e8dcc8', txD:'rgba(255,255,255,0.5)', txV:'rgba(255,255,255,0.25)', bd:'rgba(255,255,255,0.08)', inBg:'rgba(255,255,255,0.06)', inBd:'rgba(212,175,55,0.2)' };
+const WXC = {"木":"#2ECC71","火":"#E74C3C","土":"#F39C12","金":"#F1C40F","水":"#3498DB"};
+const WD = {'zh-Hans':['日','一','二','三','四','五','六'],'zh-Hant':['日','一','二','三','四','五','六'],'en':['Sun','Mon','Tue','Wed','Thu','Fri','Sat']};
+
+const Card=({children,hl,st})=><View style={[$.card,hl&&{borderColor:TH.gB,backgroundColor:TH.bgHL},st]}>{children}</View>;
+const CTitle=({t:tx})=><Text style={$.cTitle}>─ {tx} ─</Text>;
+const ScoreRing=({score,size=100})=>{const c=score>=80?TH.g:score>=60?'#4a9eff':'#ff6b6b';return<View style={{width:size,height:size,alignItems:'center',justifyContent:'center'}}><View style={{width:size,height:size,borderRadius:size/2,borderWidth:5,borderColor:'rgba(255,255,255,0.06)',alignItems:'center',justifyContent:'center'}}><View style={{position:'absolute',width:size,height:size,borderRadius:size/2,borderWidth:5,borderColor:c,borderTopColor:'transparent',borderRightColor:score>75?c:'transparent',borderBottomColor:score>50?c:'transparent',transform:[{rotate:'-45deg'}]}}/><Text style={{fontSize:28,fontWeight:'800',color:c}}>{score}</Text><Text style={{fontSize:9,color:TH.txD}}>{t('fortuneScore')}</Text></View></View>;};
+const WXChart=({counts})=>{const mx=Math.max(...Object.values(counts),1);return<View style={{flexDirection:'row',justifyContent:'space-around',height:90,alignItems:'flex-end',paddingHorizontal:8}}>{Object.entries(counts).map(([wx,c])=><View key={wx} style={{alignItems:'center',flex:1}}><Text style={{fontSize:10,color:TH.txD}}>{c}</Text><View style={{width:24,height:Math.max((c/mx)*60+6,6),backgroundColor:WXC[wx]+'55',borderRadius:4,borderWidth:1,borderColor:WXC[wx]+'44',marginVertical:3}}/><Text style={{fontSize:11,color:WXC[wx],fontWeight:'600'}}>{WX_EMOJIS[wx]}{tWuXing(wx)}</Text></View>)}</View>;};
+const Pillar=({label,gan,zhi,ss})=>{const gw=WU_XING[TIAN_GAN.indexOf(gan)],zw=DZ_WX[DI_ZHI.indexOf(zhi)],lo=getLocale();return<View style={{alignItems:'center',minWidth:66}}><Text style={{fontSize:10,color:TH.gD,letterSpacing:1,marginBottom:3}}>{label}</Text>{ss&&<View style={{backgroundColor:'rgba(255,255,255,0.05)',borderRadius:8,paddingHorizontal:6,paddingVertical:1,marginBottom:3}}><Text style={{fontSize:8,color:TH.txD}}>{tShiShen(ss)}</Text></View>}<View style={{width:56,paddingVertical:10,borderRadius:10,borderBottomLeftRadius:0,borderBottomRightRadius:0,borderWidth:1,borderColor:WXC[gw]+'55',backgroundColor:WXC[gw]+'12',alignItems:'center'}}><Text style={{fontSize:22,fontWeight:'700',color:WXC[gw]}}>{lo==='en'?tGan(gan):gan}</Text><Text style={{fontSize:8,color:TH.txD}}>{tWuXing(gw)}</Text></View><View style={{width:56,paddingVertical:10,borderRadius:10,borderTopLeftRadius:0,borderTopRightRadius:0,borderWidth:1,borderColor:WXC[zw]+'55',backgroundColor:WXC[zw]+'12',alignItems:'center',marginTop:-1}}><Text style={{fontSize:22,fontWeight:'700',color:WXC[zw]}}>{lo==='en'?tZhi(zhi):zhi}</Text><Text style={{fontSize:8,color:TH.txD}}>{tWuXing(zw)}</Text></View></View>;};
+const TabBar=({tabs,act,onP})=><View style={{flexDirection:'row',marginBottom:14,borderRadius:10,overflow:'hidden',borderWidth:1,borderColor:TH.bd}}>{tabs.map((tb,i)=><TouchableOpacity key={i} onPress={()=>onP(i)} style={{flex:1,paddingVertical:9,backgroundColor:act===i?'rgba(212,175,55,0.12)':'transparent',borderRightWidth:i<tabs.length-1?1:0,borderRightColor:TH.bd}}><Text style={{textAlign:'center',fontSize:11,color:act===i?TH.g:TH.txD,fontWeight:act===i?'600':'400'}}>{tb}</Text></TouchableOpacity>)}</View>;
+const LangSw=({lo,sh,setSh,chg})=><><View style={$.lBar}><TouchableOpacity onPress={()=>setSh(!sh)} style={$.lBtn}><Text style={$.lBtnT}>🌐 {getSupportedLocales().find(l=>l.code===lo)?.nativeName}</Text></TouchableOpacity></View>{sh&&<View style={$.lPick}>{getSupportedLocales().map(l=><TouchableOpacity key={l.code} onPress={()=>chg(l.code)} style={[$.lOpt,lo===l.code&&$.lOptA]}><Text style={[$.lOptT,lo===l.code&&{color:TH.g}]}>{l.nativeName}</Text></TouchableOpacity>)}</View>}</>;
+
+export default function App(){
+  const [pg,setPg]=useState('home'),[lo,setLo]=useState('zh-Hans'),[bd,setBd]=useState({year:'1990',month:'6',day:'15',hour:'10',gender:'male',city:'北京'});
+  const [res,setRes]=useState(null),[tab,setTab]=useState(0),[shL,setShL]=useState(false),[shC,setShC]=useState(false);
+  const [cal,setCal]=useState(null),[calS,setCalS]=useState(null),[zrT,setZrT]=useState(null),[zrR,setZrR]=useState(null);
+  const [c2,setC2]=useState({year:'1992',month:'3',day:'20',hour:'14',gender:'female'}),[cR,setCR]=useState(null);
+  const [aiT,setAiT]=useState(null),[aiL,setAiL]=useState(false);
+  const chL=(l)=>{setLocale(l);setLo(l);setShL(false);};
+  const calc=useCallback(()=>{
+    const y=parseInt(bd.year)||1990,m=parseInt(bd.month)||1,d=parseInt(bd.day)||1;let h=parseInt(bd.hour)||0;
+    const st=getTrueSolarTime(y,m,d,h,0,bd.city);h=st.trueSolarHour;
+    const ch=fullBaZiChart(y,m,d,h,bd.gender);setRes({...ch,sC:st.correction,city:bd.city});
+    const ca=generateFortuneCalendar(ch.dayGan,30);setCal(ca);setCalS(getMonthSummary(ca));
+    setZrT(null);setZrR(null);setCR(null);setAiT(null);setTab(0);setPg('result');
+  },[bd]);
+  const doZr=(k)=>{if(!res)return;setZrT(k);setZrR(selectBestDates(res.dayGan,k,30,lo));};
+  const doCo=()=>{if(!res)return;const p1={year:parseInt(bd.year),month:parseInt(bd.month),day:parseInt(bd.day),hour:parseInt(bd.hour),gender:bd.gender};const p2={year:parseInt(c2.year)||1992,month:parseInt(c2.month)||1,day:parseInt(c2.day)||1,hour:parseInt(c2.hour)||0,gender:c2.gender};setCR(analyzeCompatibility(p1,p2));};
+  const doAI=async()=>{if(!res)return;setAiL(true);try{const tx=await generateAIReading(res,lo);setAiT(parseAIReading(tx));}catch(e){console.error(e);}setAiL(false);};
+
+  if(pg==='home'){return(
+    <View style={$.ctn}><StatusBar barStyle="light-content" backgroundColor={TH.bg}/>
+    <ScrollView contentContainerStyle={$.scr} showsVerticalScrollIndicator={false}>
+      <LangSw lo={lo} sh={shL} setSh={setShL} chg={chL}/>
+      <View style={$.logoA}><View style={$.logoR}><Text style={{fontSize:28,color:TH.g}}>明</Text></View><Text style={$.appT}>{t('appName')}</Text><Text style={$.appS}>{t('appSubtitle')}</Text></View>
+      <Card><CTitle t={t('inputTitle')}/>
+        <View style={$.row}><View style={$.inG}><Text style={$.lab}>{t('birthYear')}</Text><TextInput style={$.inp} keyboardType="number-pad" value={bd.year} onChangeText={v=>setBd(d=>({...d,year:v}))} placeholderTextColor={TH.txV}/></View><View style={$.inG}><Text style={$.lab}>{t('birthMonth')}</Text><TextInput style={$.inp} keyboardType="number-pad" value={bd.month} onChangeText={v=>setBd(d=>({...d,month:v}))} placeholderTextColor={TH.txV}/></View></View>
+        <View style={$.row}><View style={$.inG}><Text style={$.lab}>{t('birthDay')}</Text><TextInput style={$.inp} keyboardType="number-pad" value={bd.day} onChangeText={v=>setBd(d=>({...d,day:v}))} placeholderTextColor={TH.txV}/></View><View style={$.inG}><Text style={$.lab}>{t('birthHour')}</Text><TextInput style={$.inp} keyboardType="number-pad" value={bd.hour} onChangeText={v=>setBd(d=>({...d,hour:v}))} placeholderTextColor={TH.txV}/></View></View>
+        <View style={{marginTop:10}}><Text style={$.lab}>{t('birthCity')}</Text><TouchableOpacity onPress={()=>setShC(!shC)} style={$.cityBtn}><Text style={{color:TH.tx,fontSize:14}}>{bd.city||t('selectCity')}</Text><Text style={{color:TH.gD}}>▼</Text></TouchableOpacity></View>
+        {shC&&<ScrollView style={$.cityL} nestedScrollEnabled>{Object.entries(getCityList()).map(([r,cs])=><View key={r}><Text style={$.cityR}>{r}</Text><View style={$.cityG}>{cs.map(c=><TouchableOpacity key={c} onPress={()=>{setBd(d=>({...d,city:c}));setShC(false);}} style={[$.cityI,bd.city===c&&$.cityIA]}><Text style={[$.cityIT,bd.city===c&&{color:TH.g}]}>{c}</Text></TouchableOpacity>)}</View></View>)}</ScrollView>}
+        <View style={{marginTop:12}}><Text style={$.lab}>{t('gender')}</Text><View style={$.row}>{[['male',t('male')],['female',t('female')]].map(([v,l])=><TouchableOpacity key={v} onPress={()=>setBd(d=>({...d,gender:v}))} style={[$.gBtn,bd.gender===v&&$.gBtnA]}><Text style={[$.gBtnT,bd.gender===v&&{color:TH.g,fontWeight:'600'}]}>{l}</Text></TouchableOpacity>)}</View></View>
+      </Card>
+      <TouchableOpacity onPress={calc} activeOpacity={0.7} style={$.calcBtn}><Text style={$.calcBtnT}>{t('calculate')}</Text></TouchableOpacity>
+      <Text style={$.ft}>{t('disclaimer')}</Text>
+    </ScrollView></View>
+  );}
+
+  if(pg==='result'&&res){
+    const{pillars,shiShen:ss,wxCount,dayStrength,naYin,shengXiao,dailyFortune:df,todayPillar:tp,jiFang:jf,jiShi:js,guiRen:gr,daYun:dy,liuNianPillar:lnp,liuNianFortune:lnf,liuNianYear:lny,dayGan:dg,dayWuXing:dw,birthInfo:bi,sC}=res;
+    const today=new Date(),age=today.getFullYear()-bi.year;
+    const ftM={92:'greatLuck',78:'goodLuck',72:'smallLuck',75:'wealthLuck',52:'cautious'},ft=ftM[df.score]||'cautious';
+    const adv=getFortuneAdvice(ft),atpl=getActionTemplates();
+    const pL=lo==='en'?['Year','Month','Day','Hour']:lo==='zh-Hant'?['年柱','月柱','日柱','時柱']:['年柱','月柱','日柱','时柱'];
+    const tbs=lo==='en'?['Overview','Calendar','Best Date','Match','AI Reading']:lo==='zh-Hant'?['總覽','日曆','擇日','合作','AI解讀']:['总览','日历','择日','合作','AI解读'];
+
+    return(
+    <View style={$.ctn}><StatusBar barStyle="light-content" backgroundColor={TH.bg}/>
+    <ScrollView contentContainerStyle={$.scr} showsVerticalScrollIndicator={false}>
+      <View style={$.topBar}><TouchableOpacity onPress={()=>setPg('home')}><Text style={$.back}>← {t('reCalculate')}</Text></TouchableOpacity><TouchableOpacity onPress={()=>setShL(!shL)} style={$.lBtn}><Text style={$.lBtnT}>🌐</Text></TouchableOpacity></View>
+      {shL&&<View style={$.lPick}>{getSupportedLocales().map(l=><TouchableOpacity key={l.code} onPress={()=>chL(l.code)} style={[$.lOpt,lo===l.code&&$.lOptA]}><Text style={[$.lOptT,lo===l.code&&{color:TH.g}]}>{l.nativeName}</Text></TouchableOpacity>)}</View>}
+      <View style={{alignItems:'center',marginBottom:12}}>
+        <Text style={{fontSize:11,color:TH.gD,letterSpacing:2}}>{tShengXiao(((bi.year-4)%12+12)%12)} · {naYin}</Text>
+        <View style={{flexDirection:'row',alignItems:'center',backgroundColor:'rgba(255,255,255,0.04)',paddingHorizontal:14,paddingVertical:7,borderRadius:18,borderWidth:1,borderColor:TH.gB,marginTop:6}}>
+          <Text style={{fontSize:16,marginRight:6}}>{WX_EMOJIS[dw]}</Text>
+          <Text style={{fontSize:14,color:TH.g,fontWeight:'600'}}>{t('dayMaster')} {lo==='en'?tGan(dg):dg}{tWuXing(dw)} · {res.gender==='male'?t('qianZao'):t('kunZao')}</Text>
+        </View>
+      </View>
+      <TabBar tabs={tbs} act={tab} onP={setTab}/>
+
+      {/* TAB 0: Overview */}
+      {tab===0&&<>
+        <Card><CTitle t={t('fourPillars')}/><View style={{flexDirection:'row',justifyContent:'center',gap:8}}>{pillars.map((p,i)=><Pillar key={i} label={pL[i]} gan={p.gan} zhi={p.zhi} ss={ss[i]}/>)}</View></Card>
+        <Card><CTitle t={t('wuxingAnalysis')}/><WXChart counts={wxCount}/><Text style={{textAlign:'center',fontSize:11,color:TH.txD,marginTop:8}}>{dayStrength.strength==='旺'?t('dayMasterStrong'):dayStrength.strength==='弱'?t('dayMasterWeak'):t('dayMasterBalanced')}{Object.entries(wxCount).filter(([,c])=>c===0).length>0&&(' · '+t('wuxingLack')+': '+Object.entries(wxCount).filter(([,c])=>c===0).map(([w])=>tWuXing(w)).join(', '))}</Text></Card>
+        <Card hl><CTitle t={`${t('todayFortune')} · ${lo==='en'?tGan(tp.gan)+' '+tZhi(tp.zhi):tp.gan+tp.zhi+'日'}`}/>
+          <View style={{flexDirection:'row',alignItems:'center',marginBottom:14}}><ScoreRing score={df.score}/><View style={{flex:1,marginLeft:14}}><Text style={{fontSize:16,fontWeight:'700',color:TH.g,marginBottom:6}}>{t(`themes.${ft}`)||df.theme}</Text><Text style={{fontSize:12,color:TH.txD,lineHeight:19}}>{adv.advice||df.advice}</Text></View></View>
+          <View style={{flexDirection:'row',flexWrap:'wrap',gap:6}}>{[{i:'🧭',tl:t('luckyDirection'),v:jf.ji},{i:'⚠️',tl:t('unluckyDirection'),v:jf.xiong,c:'rgba(255,100,100,0.8)'},{i:'🎨',tl:t('luckyColor'),v:jf.color},{i:'🔢',tl:t('luckyNumber'),v:jf.num}].map((d,idx)=><View key={idx} style={{flex:1,minWidth:(SW-80)/2-6,backgroundColor:'rgba(255,255,255,0.04)',borderRadius:8,padding:10}}><Text style={{fontSize:9,color:TH.gD}}>{d.i} {d.tl}</Text><Text style={{fontSize:12,color:d.c||TH.tx,marginTop:3}}>{d.v}</Text></View>)}</View>
+          <View style={{backgroundColor:'rgba(212,175,55,0.05)',borderRadius:8,padding:12,marginTop:10,borderWidth:1,borderColor:TH.gB}}><Text style={{fontSize:10,color:TH.gD}}>💼 {t('businessAdvice')}</Text><Text style={{fontSize:12,color:TH.txD,lineHeight:18,marginTop:4}}>{adv.business||df.business}</Text></View>
+        </Card>
+        <Card><CTitle t={t('daYunTitle')}/>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>{dy.map((d,i)=>{const cur=age>=d.startAge&&age<=d.endAge;const dyw=WU_XING[TIAN_GAN.indexOf(d.gan)];return<View key={i} style={[$.dyI,cur&&$.dyIA]}><Text style={{fontSize:8,color:TH.txV}}>{d.startAge}-{d.endAge}{t('age')}</Text><Text style={{fontSize:16,fontWeight:'700',color:cur?TH.g:WXC[dyw],marginVertical:2}}>{d.gan}{d.zhi}</Text><Text style={{fontSize:8,color:TH.txV}}>{tShiShen(getShiShen(dg,d.gan))}</Text>{cur&&<View style={{backgroundColor:'rgba(212,175,55,0.15)',borderRadius:6,paddingHorizontal:5,paddingVertical:1,marginTop:2}}><Text style={{fontSize:7,color:TH.g}}>{t('currentDaYun')}</Text></View>}</View>})}</ScrollView>
+        </Card>
+        <Card><CTitle t={t('actionGuide')}/>{[{i:'🌅',tl:t('morning'),d:atpl.morningTemplate(jf.ji.split('、')[0])},{i:'👔',tl:t('dressing'),d:atpl.dressingTemplate(jf.color.split('、')[0])},{i:'🤝',tl:t('social'),d:adv.people||df.people},{i:'📍',tl:t('direction'),d:atpl.directionTemplate(jf.ji)},{i:'⏰',tl:t('timing'),d:atpl.timingTemplate(js[0]?.zhi||'',js[0]?.time||'')}].map((it,i)=><View key={i} style={{flexDirection:'row',padding:8,backgroundColor:'rgba(255,255,255,0.03)',borderRadius:8,marginBottom:6}}><Text style={{fontSize:18}}>{it.i}</Text><View style={{flex:1,marginLeft:10}}><Text style={{fontSize:12,fontWeight:'600',color:TH.g}}>{it.tl}</Text><Text style={{fontSize:11,color:TH.txD,lineHeight:17}}>{it.d}</Text></View></View>)}</Card>
+      </>}
+
+      {/* TAB 1: Calendar */}
+      {tab===1&&cal&&<>
+        {calS&&<Card hl><CTitle t={lo==='en'?'30-Day Overview':'30天运势概览'}/>
+          <View style={{flexDirection:'row',justifyContent:'space-around',marginBottom:8}}>
+            <View style={{alignItems:'center'}}><Text style={{fontSize:28,fontWeight:'800',color:TH.g}}>{calS.averageScore}</Text><Text style={{fontSize:10,color:TH.txD}}>{lo==='en'?'Avg Score':'平均分'}</Text></View>
+            <View style={{alignItems:'center'}}><Text style={{fontSize:28,fontWeight:'800',color:'#2ECC71'}}>{calS.goodDays}</Text><Text style={{fontSize:10,color:TH.txD}}>{lo==='en'?'Good Days':'好日子'}</Text></View>
+            <View style={{alignItems:'center'}}><Text style={{fontSize:28,fontWeight:'800',color:'#E74C3C'}}>{calS.cautionDays}</Text><Text style={{fontSize:10,color:TH.txD}}>{lo==='en'?'Caution':'需谨慎'}</Text></View>
+          </View>
+        </Card>}
+        {cal.map((day,i)=>{const wd=(WD[lo]||WD['zh-Hans'])[day.date.weekDay];return(
+          <View key={i} style={[$.calD,day.isToday&&{borderColor:TH.gBA,backgroundColor:TH.bgHL}]}>
+            <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
+              <View style={{flexDirection:'row',alignItems:'center'}}>
+                <Text style={{fontSize:15,fontWeight:'700',color:day.isToday?TH.g:TH.tx,marginRight:6}}>{day.date.month}/{day.date.day}</Text>
+                <Text style={{fontSize:10,color:day.isWeekend?'#E74C3C':TH.txD}}>{wd}</Text>
+                <Text style={{fontSize:9,color:TH.txV,marginLeft:6}}>{day.dayPillar.gan}{day.dayPillar.zhi}</Text>
+                {day.isToday&&<View style={{backgroundColor:'rgba(212,175,55,0.2)',borderRadius:6,paddingHorizontal:5,paddingVertical:1,marginLeft:5}}><Text style={{fontSize:8,color:TH.g}}>{lo==='en'?'Today':'今天'}</Text></View>}
+              </View>
+              <Text style={{fontSize:14,fontWeight:'700',color:day.fortune.score>=80?TH.g:day.fortune.score>=60?'#4a9eff':'#ff6b6b'}}>{day.fortune.score}</Text>
+            </View>
+            {day.tags.length>0&&<View style={{flexDirection:'row',flexWrap:'wrap',gap:4,marginTop:5}}>{day.tags.map((tg,ti)=><View key={ti} style={{backgroundColor:tg.type.includes('best')||tg.type==='tianDe'?'rgba(212,175,55,0.15)':tg.type==='wealth'?'rgba(46,204,113,0.12)':'rgba(52,152,219,0.12)',borderRadius:5,paddingHorizontal:5,paddingVertical:1}}><Text style={{fontSize:8,color:tg.type.includes('best')||tg.type==='tianDe'?TH.g:tg.type==='wealth'?'#2ECC71':'#3498DB'}}>{tg.label[lo]||tg.label['zh-Hans']}</Text></View>)}</View>}
+            <View style={{flexDirection:'row',marginTop:4}}>
+              <Text style={{fontSize:10,color:'#2ECC71'}}>✓ {day.yiJi.yi.slice(0,2).map(y=>y[lo]||y['zh-Hans']).join(' · ')}</Text>
+              <Text style={{fontSize:10,color:'#E74C3C',marginLeft:10}}>✗ {day.yiJi.ji.slice(0,1).map(j=>j[lo]||j['zh-Hans']).join(' · ')}</Text>
+            </View>
+          </View>
+        );})}
+      </>}
+
+      {/* TAB 2: Ze Ri */}
+      {tab===2&&<>
+        <Card><CTitle t={lo==='en'?'Select Event Type':'选择事项类型'}/>
+          <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>{getEventTypeList(lo).map(et=>
+            <TouchableOpacity key={et.key} onPress={()=>doZr(et.key)} style={[$.evBtn,zrT===et.key&&$.evBtnA]}>
+              <Text style={{fontSize:20}}>{et.icon}</Text><Text style={{fontSize:10,color:zrT===et.key?TH.g:TH.txD,marginTop:3,textAlign:'center'}}>{et.name}</Text>
+            </TouchableOpacity>
+          )}</View>
+        </Card>
+        {zrR&&<Card hl><CTitle t={`${zrR.eventIcon} ${lo==='en'?'Top 5 Dates':'最佳5天'}`}/>
+          {zrR.recommendations.map((r,i)=>{const wd=(WD[lo]||WD['zh-Hans'])[r.date.weekDay];return(
+            <View key={i} style={[$.zrI,i===0&&{borderColor:TH.gBA,backgroundColor:TH.bgHL}]}>
+              <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
+                <View style={{flexDirection:'row',alignItems:'center'}}>{i===0&&<Text style={{fontSize:14,marginRight:4}}>🏆</Text>}<Text style={{fontSize:15,fontWeight:'700',color:i===0?TH.g:TH.tx}}>{r.date.month}/{r.date.day}</Text><Text style={{fontSize:10,color:TH.txD,marginLeft:5}}>{wd} · {r.dayPillar.gan}{r.dayPillar.zhi}</Text></View>
+                <Text style={{fontSize:15,fontWeight:'700',color:r.score>=80?TH.g:r.score>=65?'#2ECC71':'#3498DB'}}>{r.score}</Text>
+              </View>
+              {r.reasons.length>0&&<Text style={{fontSize:11,color:TH.txD,marginTop:5,lineHeight:16}}>{r.reasons.join('；')}</Text>}
+              <View style={{flexDirection:'row',gap:5,marginTop:5}}>{r.bestHours.slice(0,3).map((bh,bi)=><View key={bi} style={{backgroundColor:'rgba(255,255,255,0.04)',borderRadius:5,paddingHorizontal:7,paddingVertical:3}}><Text style={{fontSize:9,color:TH.gD}}>⏰ {bh.zhi}{lo!=='en'?'时':''} {bh.timeRange}</Text></View>)}</View>
+            </View>
+          );})}
+        </Card>}
+      </>}
+
+      {/* TAB 3: Compatibility */}
+      {tab===3&&<>
+        <Card><CTitle t={lo==='en'?"Partner's Birth Info":'对方出生信息'}/>
+          <View style={$.row}><View style={$.inG}><Text style={$.lab}>{t('birthYear')}</Text><TextInput style={$.inp} keyboardType="number-pad" value={c2.year} onChangeText={v=>setC2(d=>({...d,year:v}))} placeholderTextColor={TH.txV}/></View><View style={$.inG}><Text style={$.lab}>{t('birthMonth')}</Text><TextInput style={$.inp} keyboardType="number-pad" value={c2.month} onChangeText={v=>setC2(d=>({...d,month:v}))} placeholderTextColor={TH.txV}/></View></View>
+          <View style={$.row}><View style={$.inG}><Text style={$.lab}>{t('birthDay')}</Text><TextInput style={$.inp} keyboardType="number-pad" value={c2.day} onChangeText={v=>setC2(d=>({...d,day:v}))} placeholderTextColor={TH.txV}/></View><View style={$.inG}><Text style={$.lab}>{t('birthHour')}</Text><TextInput style={$.inp} keyboardType="number-pad" value={c2.hour} onChangeText={v=>setC2(d=>({...d,hour:v}))} placeholderTextColor={TH.txV}/></View></View>
+          <View style={{marginTop:8}}><Text style={$.lab}>{t('gender')}</Text><View style={$.row}>{[['male',t('male')],['female',t('female')]].map(([v,l])=><TouchableOpacity key={v} onPress={()=>setC2(d=>({...d,gender:v}))} style={[$.gBtn,c2.gender===v&&$.gBtnA]}><Text style={[$.gBtnT,c2.gender===v&&{color:TH.g,fontWeight:'600'}]}>{l}</Text></TouchableOpacity>)}</View></View>
+          <TouchableOpacity onPress={doCo} activeOpacity={0.7} style={[$.sBtn,{marginTop:12}]}><Text style={$.sBtnT}>{lo==='en'?'Analyze Match':'分析合作匹配度'}</Text></TouchableOpacity>
+        </Card>
+        {cR&&<Card hl>
+          <View style={{alignItems:'center',marginBottom:14}}><ScoreRing score={cR.totalScore} size={120}/><Text style={{fontSize:18,fontWeight:'700',color:cR.level.color,marginTop:8}}>{cR.level.label[lo]||cR.level.label['zh-Hans']}</Text></View>
+          <View style={{flexDirection:'row',justifyContent:'space-around',marginBottom:14}}>
+            <View style={{alignItems:'center'}}><Text style={{fontSize:10,color:TH.gD,marginBottom:5}}>{lo==='en'?'You':'你'}</Text><View style={{flexDirection:'row',gap:3}}>{cR.person1.pillars.map((p,i)=><View key={i} style={{alignItems:'center'}}><Text style={{fontSize:13,fontWeight:'600',color:WXC[WU_XING[TIAN_GAN.indexOf(p.gan)]]}}>{p.gan}</Text><Text style={{fontSize:13,fontWeight:'600',color:WXC[DZ_WX[DI_ZHI.indexOf(p.zhi)]]}}>{p.zhi}</Text></View>)}</View></View>
+            <View style={{justifyContent:'center'}}><Text style={{fontSize:18}}>⚡</Text></View>
+            <View style={{alignItems:'center'}}><Text style={{fontSize:10,color:TH.gD,marginBottom:5}}>{lo==='en'?'Partner':'对方'}</Text><View style={{flexDirection:'row',gap:3}}>{cR.person2.pillars.map((p,i)=><View key={i} style={{alignItems:'center'}}><Text style={{fontSize:13,fontWeight:'600',color:WXC[WU_XING[TIAN_GAN.indexOf(p.gan)]]}}>{p.gan}</Text><Text style={{fontSize:13,fontWeight:'600',color:WXC[DZ_WX[DI_ZHI.indexOf(p.zhi)]]}}>{p.zhi}</Text></View>)}</View></View>
+          </View>
+          <View style={{gap:5,marginBottom:12}}>{[{l:lo==='en'?'Stem Harmony':'天干合',sc:cR.scores.tianGanHe.score},{l:lo==='en'?'Branch Harmony':'地支合',sc:cR.scores.diZhiHe.score},{l:lo==='en'?'Element Balance':'五行互补',sc:cR.scores.wuxingBubu.score},{l:lo==='en'?'Day Master':'日主关系',sc:cR.scores.dayMasterRelation.score}].map((d,i)=><View key={i} style={{flexDirection:'row',alignItems:'center',gap:6}}><Text style={{fontSize:10,color:TH.txD,width:65}}>{d.l}</Text><View style={{flex:1,height:7,borderRadius:4,backgroundColor:'rgba(255,255,255,0.06)'}}><View style={{width:`${d.sc}%`,height:7,borderRadius:4,backgroundColor:d.sc>=70?'#2ECC71':d.sc>=50?'#F39C12':'#E74C3C'}}/></View><Text style={{fontSize:10,fontWeight:'600',color:d.sc>=70?'#2ECC71':d.sc>=50?'#F39C12':'#E74C3C',width:28}}>{d.sc}</Text></View>)}</View>
+          {cR.advice[lo]&&<>{cR.advice[lo].strengths.length>0&&<View style={{marginBottom:8}}><Text style={{fontSize:10,color:'#2ECC71',fontWeight:'600',marginBottom:3}}>✅ {lo==='en'?'Strengths':'合作优势'}</Text>{cR.advice[lo].strengths.map((s2,i)=><Text key={i} style={{fontSize:10,color:TH.txD,lineHeight:16}}>• {s2}</Text>)}</View>}{cR.advice[lo].challenges.length>0&&<View style={{marginBottom:8}}><Text style={{fontSize:10,color:'#F39C12',fontWeight:'600',marginBottom:3}}>⚡ {lo==='en'?'Challenges':'潜在挑战'}</Text>{cR.advice[lo].challenges.map((s2,i)=><Text key={i} style={{fontSize:10,color:TH.txD,lineHeight:16}}>• {s2}</Text>)}</View>}{cR.advice[lo].tips.length>0&&<View><Text style={{fontSize:10,color:'#3498DB',fontWeight:'600',marginBottom:3}}>💡 {lo==='en'?'Tips':'合作建议'}</Text>{cR.advice[lo].tips.map((s2,i)=><Text key={i} style={{fontSize:10,color:TH.txD,lineHeight:16}}>• {s2}</Text>)}</View>}</>}
+        </Card>}
+      </>}
+
+      {/* TAB 4: AI Reading */}
+      {tab===4&&<>
+        <Card><CTitle t={t('aiReading')}/>
+          <Text style={{fontSize:11,color:TH.txD,textAlign:'center',marginBottom:12,lineHeight:17}}>{lo==='en'?'Get a personalized energy reading powered by AI.':lo==='zh-Hant'?'獲取AI驅動的個性化能量解讀。':'获取AI驱动的个性化能量解读。'}</Text>
+          <TouchableOpacity onPress={doAI} activeOpacity={0.7} style={$.sBtn}><Text style={$.sBtnT}>{aiL?t('aiGenerating'):aiT?(lo==='en'?'Regenerate':'重新生成'):t('unlockAI')}</Text></TouchableOpacity>
+        </Card>
+        {aiL&&<View style={{alignItems:'center',padding:36}}><ActivityIndicator size="large" color={TH.g}/><Text style={{color:TH.gD,marginTop:10,fontSize:11}}>{t('aiGenerating')}</Text></View>}
+        {aiT&&!aiL&&<>{[{k:'career',i:'💼',tl:t('aiCareer')},{k:'wealth',i:'💰',tl:t('aiWealth')},{k:'relationship',i:'🤝',tl:t('aiRelationship')},{k:'summary',i:'🌟',tl:t('aiSummary')}].map(sec=>aiT[sec.k]?<Card key={sec.k}><Text style={{fontSize:13,fontWeight:'600',color:TH.g,marginBottom:6}}>{sec.i} {sec.tl}</Text><Text style={{fontSize:12,color:TH.txD,lineHeight:21}}>{aiT[sec.k]}</Text></Card>:null)}</>}
+      </>}
+
+      <View style={{alignItems:'center',paddingVertical:20}}><Text style={$.ft}>{t('appName')} · {lo==='en'?'Know Yourself, Shape Your Success':'明白自己，成就自己'}</Text><Text style={[$.ft,{fontSize:9,marginTop:3}]}>{t('motto')}</Text></View>
+    </ScrollView></View>);
+  }
+  return<View style={$.ctn}/>;
+}
+
+const $=StyleSheet.create({
+  ctn:{flex:1,backgroundColor:TH.bg},scr:{paddingHorizontal:18,paddingTop:Platform.OS==='ios'?56:36,paddingBottom:36},
+  lBar:{flexDirection:'row',justifyContent:'flex-end',marginBottom:8},lBtn:{padding:7,borderRadius:8,backgroundColor:'rgba(255,255,255,0.05)'},lBtnT:{fontSize:12,color:TH.gD},
+  lPick:{flexDirection:'row',justifyContent:'center',marginBottom:14,gap:6},lOpt:{paddingVertical:7,paddingHorizontal:14,borderRadius:18,borderWidth:1,borderColor:TH.bd},lOptA:{borderColor:TH.gBA,backgroundColor:'rgba(212,175,55,0.1)'},lOptT:{fontSize:12,color:TH.txD},
+  logoA:{alignItems:'center',paddingVertical:24},logoR:{width:70,height:70,borderRadius:35,borderWidth:2,borderColor:'rgba(212,175,55,0.3)',alignItems:'center',justifyContent:'center',marginBottom:16},
+  appT:{fontSize:28,fontWeight:'900',color:TH.g,letterSpacing:5},appS:{fontSize:11,color:TH.gD,letterSpacing:2,marginTop:6},
+  card:{backgroundColor:TH.bgC,borderRadius:14,padding:16,borderWidth:1,borderColor:TH.bd,marginBottom:14},cTitle:{fontSize:12,color:TH.gD,textAlign:'center',letterSpacing:2,marginBottom:14},
+  row:{flexDirection:'row',gap:10},inG:{flex:1,marginBottom:10},lab:{fontSize:10,color:TH.txD,marginBottom:5},
+  inp:{backgroundColor:TH.inBg,borderWidth:1,borderColor:TH.inBd,borderRadius:9,padding:11,fontSize:15,color:TH.tx},
+  cityBtn:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',backgroundColor:TH.inBg,borderWidth:1,borderColor:TH.inBd,borderRadius:9,padding:11},
+  cityL:{maxHeight:220,marginTop:6,borderRadius:8,backgroundColor:'rgba(255,255,255,0.04)',padding:8},cityR:{fontSize:10,color:TH.gD,marginTop:8,marginBottom:4},
+  cityG:{flexDirection:'row',flexWrap:'wrap',gap:5},cityI:{paddingVertical:5,paddingHorizontal:10,borderRadius:7,borderWidth:1,borderColor:TH.bd,backgroundColor:'rgba(255,255,255,0.03)'},
+  cityIA:{borderColor:TH.gBA,backgroundColor:'rgba(212,175,55,0.1)'},cityIT:{fontSize:11,color:TH.txD},
+  gBtn:{flex:1,padding:11,borderRadius:9,borderWidth:1,borderColor:TH.bd,backgroundColor:'rgba(255,255,255,0.03)',alignItems:'center'},gBtnA:{borderColor:TH.gBA,backgroundColor:'rgba(212,175,55,0.1)'},gBtnT:{fontSize:14,color:TH.txD},
+  calcBtn:{padding:16,borderRadius:12,borderWidth:1,borderColor:TH.gBA,backgroundColor:'rgba(212,175,55,0.15)',alignItems:'center',marginTop:6,marginBottom:6},calcBtnT:{fontSize:17,fontWeight:'700',color:TH.g,letterSpacing:5},
+  sBtn:{padding:12,borderRadius:10,borderWidth:1,borderColor:TH.gBA,backgroundColor:'rgba(212,175,55,0.1)',alignItems:'center'},sBtnT:{fontSize:14,fontWeight:'600',color:TH.g},
+  topBar:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:8},back:{color:TH.gD,fontSize:13,padding:6},ft:{textAlign:'center',fontSize:10,color:TH.txV,marginTop:8},
+  dyI:{minWidth:58,alignItems:'center',padding:8,borderRadius:8,borderWidth:1,borderColor:TH.bd,backgroundColor:'rgba(255,255,255,0.03)',marginRight:5},dyIA:{borderColor:TH.gBA,backgroundColor:'rgba(212,175,55,0.1)'},
+  calD:{backgroundColor:TH.bgC,borderRadius:10,padding:12,marginBottom:7,borderWidth:1,borderColor:TH.bd},
+  evBtn:{width:(SW-60)/4-6,alignItems:'center',paddingVertical:12,borderRadius:10,borderWidth:1,borderColor:TH.bd,backgroundColor:'rgba(255,255,255,0.03)'},evBtnA:{borderColor:TH.gBA,backgroundColor:'rgba(212,175,55,0.1)'},
+  zrI:{backgroundColor:TH.bgC,borderRadius:10,padding:12,marginBottom:7,borderWidth:1,borderColor:TH.bd},
+});

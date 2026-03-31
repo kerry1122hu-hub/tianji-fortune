@@ -1,0 +1,74 @@
+﻿{
+  "expo": {
+    "name": "MingMe",
+    "slug": "mingme",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0a12"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mingme.app",
+      "buildNumber": "3",
+      "infoPlist": {
+        "CFBundleDisplayName": "MingMe",
+        "NSCalendarsUsageDescription": "Used for displaying fortune calendar",
+        "NSLocationWhenInUseUsageDescription": "Used to auto-fill your city and local rhythm hints for your profile.",
+        "NSMicrophoneUsageDescription": "Used to let you speak to AI MingMe and convert your voice into text input.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a12"
+      },
+      "package": "com.mingme.app",
+      "versionCode": 3,
+      "permissions": [],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "openaiApiKey": "",
+      "openaiBaseUrl": "https://api.openai.com/v1",
+      "openaiModel": "gpt-5",
+      "aiBackendUrl": "https://mingme-ai-server-9.onrender.com",
+      "aiBackendAuthToken": "mingme-local-token",
+      "aiBackendSigningSecret": "",
+      "aiBackendRetryCount": 1,
+      "aiBackendRetryDelayMs": 700,
+      "revenueCatIosApiKey": "",
+      "revenueCatAndroidApiKey": "",
+      "revenueCatEntitlementId": "premium",
+      "eas": {
+        "projectId": "a810d8d7-960d-4672-95a7-b00dd07d5562"
+      }
+    },
+    "plugins": [
+      "expo-font",
+      "expo-router"
+    ],
+    "description": "Know Yourself, Seize the Moment",
+    "primaryColor": "#d4af37"
+  }
+}
+
+
