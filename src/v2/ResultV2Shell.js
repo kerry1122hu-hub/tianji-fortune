@@ -2636,7 +2636,7 @@ function HomeTab(props) {
   const [activeToolPage, setActiveToolPage] = useState(null);
   const [pwaInstallState, setPwaInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
   const [pwaInstallDismissed, setPwaInstallDismissed] = useState(false);
-  const [pwaGuideExpanded, setPwaGuideExpanded] = useState(false);
+  const [pwaGuideExpanded, setPwaGuideExpanded] = useState(true);
   const weekly = getResolvedWeeklyActions(weeklyActions);
   const hasRegisteredProfile = Boolean(
     result &&
@@ -2727,11 +2727,6 @@ function HomeTab(props) {
       return;
     }
 
-    if (pwaInstallState.platform === 'ios' && pwaInstallState.safari) {
-      setPwaGuideExpanded((prev) => !prev);
-      return;
-    }
-
     setPwaGuideExpanded((prev) => !prev);
   };
 
@@ -2799,7 +2794,11 @@ function HomeTab(props) {
             </Text>
           </View>
           <TouchableOpacity style={s.pwaInstallButton} onPress={handleInstallPress} activeOpacity={0.9}>
-            <Text style={s.pwaInstallButtonText}>{pwaInstallState.platform === 'android' && pwaInstallState.canPrompt ? '立即安装' : (pwaInstallState.platform === 'ios' && pwaInstallState.safari ? '我知道了' : '查看安装方法')}</Text>
+            <Text style={s.pwaInstallButtonText}>
+              {pwaInstallState.platform === 'android' && pwaInstallState.canPrompt
+                ? '立即安装'
+                : (pwaGuideExpanded ? '收起安装说明' : '查看安装说明')}
+            </Text>
           </TouchableOpacity>
           {pwaGuideExpanded ? (
             <View style={s.pwaInstallGuidePanel}>
