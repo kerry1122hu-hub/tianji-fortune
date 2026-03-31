@@ -24,71 +24,71 @@ const C = {
   gold: '#C6922A',
   dark: '#0A0A0C',
   success: '#34C759',
-  rose: '#E85D3F',
   blue: '#3D6DCC',
+  rose: '#E85D3F',
 };
 
 const PLAN_OPTIONS = [
   {
     key: 'annual',
     title: '年度会员',
-    subtitle: '适合想把关系、事业、情绪与金钱问题持续看清的人。',
+    subtitle: '适合已经确认会长期使用，希望把 AI 先生真正变成日常陪伴工具的人。',
     price: '¥168 / 年',
     badge: '更划算',
-    cta: '立即锁定年度席位',
+    cta: '提交年度开通意向',
   },
   {
     key: 'monthly',
     title: '月度会员',
-    subtitle: '适合先体验一个月，确认自己愿不愿意长期聊下去。',
+    subtitle: '适合先试一个月，看看自己是否愿意持续聊下去、持续回来的人。',
     price: '¥28 / 月',
     badge: '低门槛',
-    cta: '立即开始月度体验',
+    cta: '提交月度开通意向',
   },
 ];
 
 const VALUE_CARDS = [
   {
     tone: C.gold,
-    title: '记得你上次聊到哪',
-    body: '不是每次重开一篇，而是继续接住你正在卡住的那件事。',
+    title: 'AI 无限使用',
+    body: '最核心的权益就是不再被次数打断。想聊就聊，重点问题可以一直往下拆，不用顾虑今天还剩几次。',
   },
   {
     tone: C.blue,
-    title: '每次都给下一步',
-    body: '不是只说好坏，而是更聚焦现在先做什么、先别做什么。',
+    title: '连续记忆',
+    body: '它会记得你上次说到哪、卡在哪、偏好什么口气，回来不用重新解释一遍前情。',
   },
   {
     tone: C.success,
-    title: '阶段提醒会持续跟着走',
-    body: '当你的关系、事业和情绪进入新阶段，它会提醒你怎么拿节奏。',
+    title: '阶段回顾',
+    body: '每次聊天不只是当场有用，还能沉淀成阶段提醒，让你更容易看见自己的变化和重复模式。',
   },
   {
     tone: C.rose,
-    title: '复杂问题可以反复深聊',
-    body: '同一个问题可以顺着聊下去，不用每次重新解释前情。',
+    title: '优先体验',
+    body: '新的陪伴能力、回顾能力和更深的对话体验，会优先开放给会员用户。',
   },
 ];
 
 const POPULAR_SCENARIOS = [
-  '这段关系该继续，还是该先停下来？',
-  '这步大运是在扶我，还是在压我？',
-  '我最近为什么一直累、烦、停不下来？',
-  '现在该扩，还是该收？',
+  '我现在最该先处理什么？',
+  '这段关系还要不要继续？',
+  '最近为什么一直累、烦、停不下来？',
+  '这一步到底该扩，还是该收？',
 ];
 
 const FAQS = [
   {
-    q: '会员和免费版差在哪？',
-    a: '免费版适合先试一次。会员版更强调连续记忆、阶段提醒、专题深聊和长期回看。',
+    q: '会员最重要的权益是什么？',
+    a: '最重要的就是 AI 无限使用。你不用被次数打断，复杂问题才能真正聊深、聊透、聊出结果。',
   },
   {
-    q: '现在就会直接扣费吗？',
-    a: '这一步先提交开通意向和联系方式。你后续可以直接接支付，也可以先人工确认后再收款。',
+    q: '现在点开通会立刻扣费吗？',
+    a: '这一步先提交开通意向和联系方式。后面再进入支付或人工确认，先把真正愿意付费的人收住。',
   },
   {
-    q: '为什么先做这个流程？',
-    a: '因为现在最重要的是先验证真实付费意愿，看看用户更愿意买哪档、为什么愿意买。',
+    q: '为什么先做留资，不一步到位支付？',
+    a: '现在先验证真实付费意向和方案偏好，等名单和转化感觉对了，再把支付链路做得更完整。',
   },
 ];
 
@@ -102,8 +102,8 @@ function buildInitialRegistration(profile, registrationDraft) {
   };
 }
 
-function benefitButtonCopy(planKey) {
-  return planKey === 'annual' ? '立即锁定年度席位' : '立即开始月度体验';
+function getSubmitButtonText(planKey) {
+  return planKey === 'annual' ? '提交年度开通意向' : '提交月度开通意向';
 }
 
 export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, registrationDraft }) {
@@ -129,14 +129,16 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const payload = {
       registration,
       selectedPlan,
       source: Platform.OS === 'web' ? 'web_paywall' : 'app_paywall',
     };
 
-    onSaveRegistration?.(payload);
+    const saved = await onSaveRegistration?.(payload);
+    if (saved === false) return;
+
     trackPwaEvent('paywall_lead_submit', {
       plan: selectedPlan,
       hasEmail: Boolean(String(registration.email || '').trim()),
@@ -146,7 +148,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
 
     Alert.alert(
       '已提交开通意向',
-      '你的方案偏好和联系方式已经记录。下一步可以直接接支付，也可以先做人工确认与转化跟进。'
+      '你的方案偏好和联系方式已经记录。下一步可以进入支付，或由我们先跟进确认。'
     );
     onClose?.();
   };
@@ -160,48 +162,48 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
               <Text style={s.closeLabel}>{'×'}</Text>
             </TouchableOpacity>
 
-            <Text style={s.heroEyebrow}>{'会员中心'}</Text>
-            <Text style={s.heroTitle}>{'把一次聊天，变成持续看清自己的人生工具'}</Text>
+            <Text style={s.heroEyebrow}>会员中心</Text>
+            <Text style={s.heroTitle}>先把 AI 无限使用这件事解锁，再慢慢把自己看清。</Text>
             <Text style={s.heroSubtitle}>
-              明己不是只给你一份报告，而是想陪你把关系、事业、情绪和金钱这些最难想清楚的事，持续看得更明白。
+              会员版不强调花哨功能，先把最值钱的一条做好：你想聊的时候随时能聊，复杂问题可以持续往下拆，不再被次数打断。
             </Text>
 
             <View style={s.heroTagRow}>
               <View style={s.heroTag}>
-                <Text style={s.heroTagText}>{'连续记忆'}</Text>
+                <Text style={s.heroTagText}>AI 无限使用</Text>
               </View>
               <View style={s.heroTag}>
-                <Text style={s.heroTagText}>{'阶段回顾'}</Text>
+                <Text style={s.heroTagText}>连续记忆</Text>
               </View>
               <View style={s.heroTag}>
-                <Text style={s.heroTagText}>{'专项深聊'}</Text>
+                <Text style={s.heroTagText}>阶段回顾</Text>
               </View>
             </View>
 
             <View style={s.priceCard}>
               <View style={s.priceCardTop}>
-                <Text style={s.priceLabel}>{'当前主推方案'}</Text>
+                <Text style={s.priceLabel}>当前主推方案</Text>
                 <Text style={s.priceBadge}>{activePlan.badge}</Text>
               </View>
               <Text style={s.priceTitle}>{activePlan.price}</Text>
               <Text style={s.priceBody}>{activePlan.subtitle}</Text>
               <View style={s.heroFlowCard}>
-                <Text style={s.heroFlowTitle}>{'开通流程很简单'}</Text>
+                <Text style={s.heroFlowTitle}>开通路径</Text>
                 <Text style={s.heroFlowBody}>
-                  {'先留下开通意向和联系方式，再进入支付或人工确认。先把愿意付费的人收住，再继续优化支付体验。'}
+                  先提交开通意向和联系方式，再进入支付或人工确认。这样我们可以先看清，用户更愿意买哪一档。
                 </Text>
               </View>
               <TouchableOpacity onPress={handleSubmit} style={s.heroButton} activeOpacity={0.9}>
                 <Text style={s.heroButtonText}>{activePlan.cta}</Text>
               </TouchableOpacity>
               <Text style={s.heroFootnote}>
-                {'这一步先验证真实付费意愿，再看年度和月度哪档更容易转化。跑出第一批愿意付费的人，比先把支付页面做满更重要。'}
+                现阶段先把“有人愿意付费”这件事验证出来，比一开始就做很重的支付链路更重要。
               </Text>
             </View>
           </View>
 
           <View style={s.section}>
-            <Text style={s.sectionTitle}>{'为什么值得买'}</Text>
+            <Text style={s.sectionTitle}>会员权益，先讲重点</Text>
             <View style={s.cardGrid}>
               {VALUE_CARDS.map((item) => (
                 <View key={item.title} style={s.benefitCard}>
@@ -215,7 +217,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
           </View>
 
           <View style={s.section}>
-            <Text style={s.sectionTitle}>{'最容易成交的场景'}</Text>
+            <Text style={s.sectionTitle}>最容易成交的场景</Text>
             {POPULAR_SCENARIOS.map((item, index) => (
               <View key={item} style={s.previewRow}>
                 <Text style={s.previewIndex}>{`0${index + 1}`}</Text>
@@ -225,7 +227,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
           </View>
 
           <View style={s.section}>
-            <Text style={s.sectionTitle}>{'选择方案'}</Text>
+            <Text style={s.sectionTitle}>选择方案</Text>
             {PLAN_OPTIONS.map((plan) => (
               <TouchableOpacity
                 key={plan.key}
@@ -248,7 +250,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
           </View>
 
           <View style={s.section}>
-            <Text style={s.sectionTitle}>{'常见问题'}</Text>
+            <Text style={s.sectionTitle}>常见问题</Text>
             {FAQS.map((item) => (
               <View key={item.q} style={s.faqCard}>
                 <Text style={s.faqQ}>{item.q}</Text>
@@ -258,50 +260,50 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
           </View>
 
           <View style={s.section}>
-            <Text style={s.sectionTitle}>{'提交开通意向'}</Text>
+            <Text style={s.sectionTitle}>提交开通意向</Text>
             <Text style={s.formHint}>
-              {'这一步不是普通保存，而是正式提交开通意向。你后续可以直接接支付，也可以先根据这些线索做人工转化。'}
+              这一步不是普通保存，而是正式留资。我们会根据方案偏好和联系方式，继续跟进支付或开通转化。
             </Text>
 
             <View style={s.formField}>
-              <Text style={s.formLabel}>{'称呼'}</Text>
+              <Text style={s.formLabel}>称呼</Text>
               <TextInput
                 value={registration.nickname}
                 onChangeText={(value) => updateRegistration('nickname', value)}
-                placeholder={'例如：小婉'}
+                placeholder="例如：小林"
                 placeholderTextColor={C.faint}
                 style={s.input}
               />
             </View>
 
             <View style={s.formField}>
-              <Text style={s.formLabel}>{'城市 / 地区'}</Text>
+              <Text style={s.formLabel}>城市 / 地区</Text>
               <TextInput
                 value={registration.city}
                 onChangeText={(value) => updateRegistration('city', value)}
-                placeholder={'例如：上海'}
+                placeholder="例如：上海"
                 placeholderTextColor={C.faint}
                 style={s.input}
               />
             </View>
 
             <View style={s.formField}>
-              <Text style={s.formLabel}>{'你现在最想处理什么'}</Text>
+              <Text style={s.formLabel}>你现在最想处理什么？</Text>
               <TextInput
                 value={registration.focus}
                 onChangeText={(value) => updateRegistration('focus', value)}
-                placeholder={'例如：关系、事业、情绪、金钱'}
+                placeholder="例如：关系、事业、情绪、金钱"
                 placeholderTextColor={C.faint}
                 style={s.input}
               />
             </View>
 
             <View style={s.formField}>
-              <Text style={s.formLabel}>{'邮箱'}</Text>
+              <Text style={s.formLabel}>邮箱</Text>
               <TextInput
                 value={registration.email}
                 onChangeText={(value) => updateRegistration('email', value)}
-                placeholder={'用于后续支付或开通通知'}
+                placeholder="用于支付或开通通知"
                 placeholderTextColor={C.faint}
                 style={s.input}
                 autoCapitalize="none"
@@ -310,11 +312,11 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
             </View>
 
             <View style={s.formField}>
-              <Text style={s.formLabel}>{'手机号'}</Text>
+              <Text style={s.formLabel}>手机号</Text>
               <TextInput
                 value={registration.phone}
                 onChangeText={(value) => updateRegistration('phone', value)}
-                placeholder={'选填'}
+                placeholder="选填"
                 placeholderTextColor={C.faint}
                 style={s.input}
                 keyboardType="phone-pad"
@@ -325,13 +327,13 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
 
         <View style={[s.bottomBar, { paddingBottom: insets.bottom + 10 }]}>
           <View style={s.bottomCopy}>
-            <Text style={s.bottomTitle}>{'先拿到第一批真实付费意向'}</Text>
+            <Text style={s.bottomTitle}>先把愿意付费的人留下来。</Text>
             <Text style={s.bottomBody}>
-              {'先把愿意付费的人收进来，再决定是接 Stripe、微信支付，还是继续打磨支付链路。'}
+              先验证“愿不愿意为 AI 无限使用买单”，再决定支付链路怎么做得更重。
             </Text>
           </View>
           <TouchableOpacity onPress={handleSubmit} style={s.bottomButton} activeOpacity={0.9}>
-            <Text style={s.bottomButtonText}>{benefitButtonCopy(selectedPlan)}</Text>
+            <Text style={s.bottomButtonText}>{getSubmitButtonText(selectedPlan)}</Text>
           </TouchableOpacity>
         </View>
       </View>
