@@ -2636,6 +2636,7 @@ function HomeTab(props) {
   const [activeToolPage, setActiveToolPage] = useState(null);
   const [pwaInstallState, setPwaInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
   const [pwaInstallDismissed, setPwaInstallDismissed] = useState(false);
+  const [pwaGuideExpanded, setPwaGuideExpanded] = useState(false);
   const weekly = getResolvedWeeklyActions(weeklyActions);
   const hasRegisteredProfile = Boolean(
     result &&
@@ -2722,26 +2723,16 @@ function HomeTab(props) {
     }
 
     if (pwaInstallState.platform === 'android') {
-      const androidGuide = '这台手机暂时还不能直接弹出安装框。请点浏览器右上角菜单，再选“安装应用”“添加到主屏幕”或“安装 MingMe”。';
-      if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-        window.alert(androidGuide);
-      } else {
-        Alert.alert('安装 MingMe', androidGuide);
-      }
+      setPwaGuideExpanded((prev) => !prev);
       return;
     }
 
     if (pwaInstallState.platform === 'ios' && pwaInstallState.safari) {
-      setPwaInstallDismissed(true);
+      setPwaGuideExpanded((prev) => !prev);
       return;
     }
 
-    const iosGuide = '请用 Safari 打开 MingMe，然后点“分享”→“添加到主屏幕”。这样下次就能像 App 一样独立打开，继续上次的对话。';
-    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-      window.alert(iosGuide);
-    } else {
-      Alert.alert('添加到主屏幕', iosGuide);
-    }
+    setPwaGuideExpanded((prev) => !prev);
   };
 
   if (activeToolPage) {
@@ -2810,6 +2801,30 @@ function HomeTab(props) {
           <TouchableOpacity style={s.pwaInstallButton} onPress={handleInstallPress} activeOpacity={0.9}>
             <Text style={s.pwaInstallButtonText}>{pwaInstallState.platform === 'android' && pwaInstallState.canPrompt ? '立即安装' : (pwaInstallState.platform === 'ios' && pwaInstallState.safari ? '我知道了' : '查看安装方法')}</Text>
           </TouchableOpacity>
+          {pwaGuideExpanded ? (
+            <View style={s.pwaInstallGuidePanel}>
+              <Text style={s.pwaInstallGuideTitle}>
+                {pwaInstallState.platform === 'android' ? '安卓安装方法' : '添加到主屏幕'}
+              </Text>
+              {pwaInstallState.platform === 'android' ? (
+                <>
+                  <Text style={s.pwaInstallGuideStep}>{'1. 点浏览器右上角菜单。'}</Text>
+                  <Text style={s.pwaInstallGuideStep}>{'2. 选择“安装应用”“添加到主屏幕”或“安装 MingMe”。'}</Text>
+                  <Text style={s.pwaInstallGuideStep}>{'3. 回到桌面，从 MingMe 图标打开，就能像 App 一样继续聊天。'}</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={s.pwaInstallGuideStep}>
+                    {pwaInstallState.safari
+                      ? '1. 点 Safari 底部“分享”。'
+                      : '1. 请先用 Safari 打开当前页面。'}
+                  </Text>
+                  <Text style={s.pwaInstallGuideStep}>{'2. 选择“添加到主屏幕”。'}</Text>
+                  <Text style={s.pwaInstallGuideStep}>{'3. 回到桌面，从 MingMe 图标进入。'}</Text>
+                </>
+              )}
+            </View>
+          ) : null}
         </View>
       ) : null}
       <SmartToolsHub
@@ -4261,6 +4276,9 @@ const s = StyleSheet.create({
   pwaInstallBody: { fontSize: 14, lineHeight: 22, color: 'rgba(234,245,241,0.82)' },
   pwaInstallButton: { alignSelf: 'flex-start', minHeight: 42, borderRadius: 999, paddingHorizontal: 15, backgroundColor: 'rgba(234,245,241,0.12)', borderWidth: 1, borderColor: 'rgba(228,211,157,0.28)', justifyContent: 'center' },
   pwaInstallButtonText: { fontSize: 14, fontWeight: '700', color: '#E4D39D' },
+  pwaInstallGuidePanel: { marginTop: 2, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(228,211,157,0.16)', paddingHorizontal: 14, paddingVertical: 12, gap: 6 },
+  pwaInstallGuideTitle: { fontSize: 13, fontWeight: '800', color: '#F4F8F6', marginBottom: 2 },
+  pwaInstallGuideStep: { fontSize: 13, lineHeight: 20, color: 'rgba(234,245,241,0.78)' },
   heroStatsRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
   heroStatCard: { flex: 1, minHeight: 78, backgroundColor: 'rgba(255,255,255,0.80)', borderRadius: 18, paddingHorizontal: 12, paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(169,222,208,0.20)', justifyContent: 'space-between' },
   heroStatPrimary: { backgroundColor: 'rgba(255,248,232,0.88)', borderColor: 'rgba(198,146,42,0.18)' },
