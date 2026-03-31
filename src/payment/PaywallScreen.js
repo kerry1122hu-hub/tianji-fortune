@@ -41,6 +41,10 @@ const PAYMENT_METHODS = [
 ];
 
 const EXTRA = Constants.expoConfig?.extra || Constants.manifest2?.extra || Constants.manifest?.extra || {};
+const WEB_QR_FALLBACKS = {
+  wechat: '/wechat-collection-qr.jpg',
+  alipay: '/alipay-collection-qr.jpg',
+};
 
 function buildInitialRegistration(profile, registrationDraft) {
   return {
@@ -57,7 +61,12 @@ function getQrSource(paymentMethod) {
     paymentMethod === 'wechat'
       ? EXTRA.wechatCollectionQrUrl || EXTRA.wechatPayQrUrl || ''
       : EXTRA.alipayCollectionQrUrl || EXTRA.alipayPayQrUrl || '';
-  return `${maybeUrl || ''}`.trim();
+  const resolved = `${maybeUrl || ''}`.trim();
+  if (resolved) return resolved;
+  if (Platform.OS === 'web') {
+    return WEB_QR_FALLBACKS[paymentMethod] || '';
+  }
+  return '';
 }
 
 function pickScreenshotFile() {
@@ -87,6 +96,13 @@ function pickScreenshotFile() {
     };
     input.click();
   });
+}
+
+function getQrFallbackHint(paymentMethod) {
+  if (paymentMethod === 'wechat') {
+    return '优先读取 extra.wechatCollectionQrUrl；如果没配置，Web 版会自动尝试 /wechat-collection-qr.png。';
+  }
+  return '优先读取 extra.alipayCollectionQrUrl；如果没配置，Web 版会自动尝试 /alipay-collection-qr.png。';
 }
 
 export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, registrationDraft }) {
@@ -238,7 +254,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
                 <View style={s.qrPlaceholder}>
                   <Text style={s.qrPlaceholderTitle}>此处放公司收款码</Text>
                   <Text style={s.qrPlaceholderBody}>
-                    你把 {paymentMethod === 'wechat' ? '微信公司收款码' : '支付宝公司收款码'} 的图片地址配进前端后，这里就会直接显示。
+                    {getQrFallbackHint(paymentMethod)}
                   </Text>
                 </View>
               )}
