@@ -1829,7 +1829,7 @@ function AICompanionModal({
   onVoiceInput,
 }) {
   const scrollRef = useRef(null);
-  const [inputHeight, setInputHeight] = useState(56);
+  const [inputHeight, setInputHeight] = useState(48);
   const [installState, setInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
   const [installReminderVisible, setInstallReminderVisible] = useState(false);
   const [installSheetVisible, setInstallSheetVisible] = useState(false);
@@ -1845,7 +1845,7 @@ function AICompanionModal({
 
   useEffect(() => {
     if (!`${chatInput || ''}`.trim()) {
-      setInputHeight(56);
+      setInputHeight(48);
     }
   }, [chatInput]);
 
@@ -2068,7 +2068,7 @@ function AICompanionModal({
                 }, 150);
               }}
               onContentSizeChange={(event) => {
-                const nextHeight = Math.max(56, Math.min(152, Math.ceil((event?.nativeEvent?.contentSize?.height || 48) + 6)));
+                const nextHeight = Math.max(48, Math.min(128, Math.ceil((event?.nativeEvent?.contentSize?.height || 40) + 4)));
                 setInputHeight(nextHeight);
                 setTimeout(() => {
                   scrollRef.current?.scrollToEnd?.({ animated: true });
@@ -2080,7 +2080,7 @@ function AICompanionModal({
               scrollEnabled
               maxLength={500}
               editable={aiAllowed && !chatLoading}
-               style={[s.aiInput, { height: inputHeight, minHeight: 56, maxHeight: 152 }]}
+               style={[s.aiInput, { height: inputHeight, minHeight: 48, maxHeight: 128 }]}
             />
             <TouchableOpacity
               onPress={onSend}
@@ -4867,18 +4867,18 @@ const s = StyleSheet.create({
   aiQuotaBody: { fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.62)' },
   aiQuotaButton: { minWidth: 78, height: 36, borderRadius: 999, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: C.logoDeep },
   aiQuotaButtonText: { fontSize: 13, fontWeight: '800', color: '#F7FFFC' },
-  aiComposerPanel: { minHeight: 156, marginHorizontal: 10, marginBottom: 10, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(60,60,67,0.08)', backgroundColor: 'rgba(242,242,247,0.95)', paddingTop: 12, paddingHorizontal: 12, paddingBottom: 10, justifyContent: 'space-between', shadowColor: '#102733', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  aiComposerTopline: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, marginBottom: 10 },
+  aiComposerPanel: { minHeight: 132, marginHorizontal: 10, marginBottom: 10, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(196,218,255,0.72)', backgroundColor: 'rgba(242,242,247,0.95)', paddingTop: 10, paddingHorizontal: 12, paddingBottom: 8, justifyContent: 'space-between', shadowColor: '#102733', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  aiComposerTopline: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, marginBottom: 8 },
   aiComposerToplineDot: { width: 8, height: 8, borderRadius: 999, backgroundColor: 'rgba(198,146,42,0.84)', shadowColor: '#C6922A', shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 1 } },
   aiComposerToplineText: { fontSize: 12, lineHeight: 17, color: 'rgba(20,51,58,0.58)', fontWeight: '700' },
-  aiInputDock: { flex: 1, borderRadius: 22, backgroundColor: 'rgba(248,251,250,0.96)', paddingHorizontal: 8, paddingTop: 8, paddingBottom: 8, flexDirection: 'row', alignItems: 'stretch', gap: 8, borderWidth: 1, borderColor: 'rgba(169,222,208,0.14)' },
-  aiVoiceButton: { width: 46, height: 46, borderRadius: 999, backgroundColor: 'rgba(237,246,242,0.98)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.28)', alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 4 },
+  aiInputDock: { flex: 1, borderRadius: 20, backgroundColor: 'rgba(250,253,255,0.98)', paddingHorizontal: 8, paddingTop: 6, paddingBottom: 6, flexDirection: 'row', alignItems: 'stretch', gap: 8, borderWidth: 1, borderColor: 'rgba(167,198,255,0.72)' },
+  aiVoiceButton: { width: 42, height: 42, borderRadius: 999, backgroundColor: 'rgba(237,246,242,0.98)', borderWidth: 1, borderColor: 'rgba(167,198,255,0.48)', alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 2 },
   aiVoiceButtonDisabled: { opacity: 0.66 },
   aiVoiceButtonActive: { backgroundColor: '#DDF4ED', borderColor: 'rgba(30,142,109,0.32)' },
   aiVoiceText: { fontSize: 17, fontWeight: '800', color: C.logoDeep },
   aiVoiceTextActive: { color: '#1E8E6D' },
-  aiInput: { flex: 1, alignSelf: 'stretch', backgroundColor: 'transparent', borderRadius: 18, paddingHorizontal: 8, paddingTop: 10, paddingBottom: 10, fontSize: 15, lineHeight: 22, color: '#1C1C1E', borderWidth: 0, textAlignVertical: 'top' },
-  aiSendButton: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 4 },
+  aiInput: { flex: 1, alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.52)', borderRadius: 16, paddingHorizontal: 8, paddingTop: 8, paddingBottom: 8, fontSize: 15, lineHeight: 21, color: '#1C1C1E', borderWidth: 1, borderColor: 'rgba(187,210,255,0.86)', textAlignVertical: 'top' },
+  aiSendButton: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 2 },
   aiSendButtonActive: { backgroundColor: C.logoDeep, borderWidth: 1, borderColor: 'rgba(169,222,208,0.32)', shadowColor: '#78D4BC', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
   aiSendButtonDisabled: { backgroundColor: 'rgba(60,60,67,0.15)', borderWidth: 1, borderColor: 'rgba(60,60,67,0.06)' },
   aiSendText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
