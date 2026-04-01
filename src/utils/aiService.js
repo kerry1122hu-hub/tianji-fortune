@@ -517,7 +517,7 @@ function detectTerminologyIntent(userMessage = '') {
     return 'structure_pattern';
   }
 
-  if (/(我是什么八字|我的八字是什么|八字是什么|我的四柱是什么|四柱是什么|八字盘是什么|八字结构是什么)/.test(text)) return 'four_pillars';
+  if (/(我是什么八字|我的八字是什么|八字是什么|我的四柱是什么|我的四柱八字是什么|四柱是什么|四柱八字是什么|八字盘是什么|八字结构是什么)/.test(text)) return 'four_pillars';
   if (/(我的干支是什么|我的八字干支是什么|天干地支是什么|干支是什么)/.test(text)) return 'ganzhi';
   if (/(日柱|日支|日干)/.test(text)) return 'day_pillar';
   if (/(五行|五行属性|五行分布|五行缺|缺什么)/.test(text)) return 'wuxing';
