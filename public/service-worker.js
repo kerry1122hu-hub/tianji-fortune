@@ -1,4 +1,4 @@
-const CACHE_VERSION = "mingme-v1.0.2";
+const CACHE_VERSION = "mingme-v1.0.3";
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
