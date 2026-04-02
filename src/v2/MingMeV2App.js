@@ -36,7 +36,7 @@ import {
 import { analyzeStrengthRules, analyzeTenGodPreference, analyzeUseGod, analyzeLuck, analyzeNarrative, getSeasonByMonthBranch } from '../engines/engine_rules';
 import { generateAIReading, parseAIReading } from '../utils/aiReading';
 import { generateCompanionPack } from '../services/aiCompanion';
-import { getAIBackendConfig, requestManualPaymentReviewFromBackend, requestPaywallLeadFromBackend } from '../services/aiBackendConnector';
+import { getAIBackendConfig, requestContactMingjiFromBackend, requestManualPaymentReviewFromBackend, requestPaywallLeadFromBackend } from '../services/aiBackendConnector';
 import { getCityList } from '../utils/chinaCities';
 import { calculateChengGu } from '../utils/chengGu';
 import { generateFortuneCalendar, getMonthSummary } from '../utils/fortuneCalendar';
@@ -1965,6 +1965,23 @@ export default function MingMeV2App() {
     }
   }, [chartResult, profile]);
 
+  const handleContactMingjiSubmit = useCallback(async (payload) => {
+    try {
+      await requestContactMingjiFromBackend({
+        registration: payload?.registration || {},
+        topic: payload?.topic || '',
+        message: payload?.message || '',
+        profile,
+        chart: chartResult,
+        source: payload?.source || (Platform.OS === 'web' ? 'web_member_contact' : 'app_member_contact'),
+      });
+      return true;
+    } catch (error) {
+      Alert.alert('提交失败', error?.message || '暂时无法提交留言，请稍后再试。');
+      return false;
+    }
+  }, [chartResult, profile]);
+
   useEffect(() => {
     if (booting || !activeFamilyProfileId || !chartResult) return;
     setFamilyProfiles((prev) => prev.map((item) => (
@@ -2295,6 +2312,7 @@ export default function MingMeV2App() {
             visible={paywallVisible && !hideMembership}
             onClose={() => setPaywallVisible(false)}
             onSaveRegistration={handleMemberRegistrationSave}
+            onSubmitContact={handleContactMingjiSubmit}
             profile={profile}
             registrationDraft={memberRegistration}
           />

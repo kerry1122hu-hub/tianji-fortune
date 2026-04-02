@@ -142,6 +142,31 @@ function MembershipSummaryCard() {
     );
   };
 
+  const handleContactSubmit = async () => {
+    if (!`${contactMessage || ''}`.trim()) {
+      Alert.alert('请先输入内容', '把你想咨询的问题写下来，再提交给明己。');
+      return;
+    }
+
+    const saved = await onSubmitContact?.({
+      registration,
+      topic: contactTopic,
+      message: contactMessage,
+      source: Platform.OS === 'web' ? 'web_member_contact' : 'app_member_contact',
+    });
+    if (saved === false) return;
+
+    trackPwaEvent('contact_mingji_submit', {
+      hasTopic: Boolean(String(contactTopic || '').trim()),
+      hasEmail: Boolean(String(registration.email || '').trim()),
+      hasPhone: Boolean(String(registration.phone || '').trim()),
+    });
+
+    setContactTopic('');
+    setContactMessage('');
+    Alert.alert('已提交', '你的问题已经送到后台，我们会看到并跟进。');
+  };
+
   return (
     <View style={s.summaryCard}>
       <Text style={s.summaryTitle}>会员权益</Text>
@@ -185,7 +210,7 @@ function MembershipSummaryCard() {
   );
 }
 
-export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, registrationDraft }) {
+export function PaywallScreen({ visible, onClose, onSaveRegistration, onSubmitContact, profile, registrationDraft }) {
   const insets = useSafeAreaInsets();
   const [selectedPlan, setSelectedPlan] = useState('annual');
   const [paymentMethod, setPaymentMethod] = useState('wechat');
@@ -196,6 +221,8 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
   const [notes, setNotes] = useState('');
   const [screenshotName, setScreenshotName] = useState('');
   const [screenshotDataUrl, setScreenshotDataUrl] = useState('');
+  const [contactTopic, setContactTopic] = useState('');
+  const [contactMessage, setContactMessage] = useState('');
 
   useEffect(() => {
     if (visible) {
@@ -207,6 +234,8 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
       setNotes('');
       setScreenshotName('');
       setScreenshotDataUrl('');
+      setContactTopic('');
+      setContactMessage('');
     }
   }, [profile, registrationDraft, selectedPlan, visible]);
 
@@ -445,6 +474,43 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, profile, r
               </View>
             </>
           )}
+
+          <View style={s.section}>
+            <Text style={s.sectionTitle}>联系明己</Text>
+            <View style={s.summaryCard}>
+              <Text style={s.summaryTitle}>有问题，直接留言给明己</Text>
+              <Text style={s.summaryBody}>
+                注册、充值、开通会员，或者想补充说明自己的情况，都可以在这里直接留言，后台会看到。
+              </Text>
+
+              <View style={s.formField}>
+                <Text style={s.formLabel}>主题</Text>
+                <TextInput
+                  value={contactTopic}
+                  onChangeText={setContactTopic}
+                  placeholder="例如：会员开通、付款问题、想补充命盘情况"
+                  placeholderTextColor={C.faint}
+                  style={s.input}
+                />
+              </View>
+
+              <View style={s.formField}>
+                <Text style={s.formLabel}>想说的话</Text>
+                <TextInput
+                  value={contactMessage}
+                  onChangeText={setContactMessage}
+                  placeholder="把你的问题写给明己，我们会在后台查看。"
+                  placeholderTextColor={C.faint}
+                  style={[s.input, s.textarea]}
+                  multiline
+                />
+              </View>
+
+              <TouchableOpacity style={s.uploadButton} onPress={handleContactSubmit} activeOpacity={0.9}>
+                <Text style={s.uploadButtonText}>提交给明己</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </ScrollView>
 
         <View style={[s.bottomBar, { paddingBottom: insets.bottom + 10 }]}>
