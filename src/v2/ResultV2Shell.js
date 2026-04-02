@@ -3761,6 +3761,15 @@ function MeTab({ profile, locale, supportedLocales, onLocaleChange, onEditProfil
         />
       ) : null}
       <Card>
+        <SectionHeader eyebrow={'支持入口'} title={'联系明己'} body={'遇到会员开通、付款、资料补充，或想单独留言给明己，都可以从这里进入。'} />
+        <Text style={s.paragraph}>
+          打开后可直接填写想问的问题或需要协助的内容，提交后会同步进入后台留言区，方便后续跟进。
+        </Text>
+        <TouchableOpacity onPress={onOpenPaywall} style={s.primaryButton}>
+          <Text style={s.primaryButtonText}>{'联系明己'}</Text>
+        </TouchableOpacity>
+      </Card>
+      <Card>
         <SectionHeader eyebrow={S.settings} title={S.languageReminders} />
         <View style={s.infoRow}>
           <Text style={s.infoRowLabel}>{'\u8bed\u8a00'}</Text>
