@@ -3,6 +3,7 @@ import { getAIBackendConfig } from '../services/aiBackendConnector';
 
 const PWA_EVENTS_KEY = 'mingme.pwa.events';
 const PWA_SESSION_KEY = 'mingme.pwa.session';
+const PWA_REFRESH_GUARD_KEY = 'mingme.pwa.refresh.guard';
 let deferredInstallPrompt = null;
 
 function isBrowser() {
@@ -104,9 +105,60 @@ export function ensurePwaHead() {
 
 export function registerPwaServiceWorker() {
   if (!isBrowser() || !('serviceWorker' in navigator)) return;
+  if (window.__mingmeSwRegistered) return;
+  window.__mingmeSwRegistered = true;
+
+  const handleControllerChange = () => {
+    if (window.__mingmeSwReloading) return;
+    window.__mingmeSwReloading = true;
+    window.location.reload();
+  };
+
+  navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js').catch(() => undefined);
+    navigator.serviceWorker.register('/service-worker.js')
+      .then((registration) => {
+        registration.update?.().catch(() => undefined);
+
+        const installWorker = registration.installing || registration.waiting;
+        if (installWorker) {
+          installWorker.postMessage?.({ type: 'SKIP_WAITING' });
+        }
+
+        registration.addEventListener('updatefound', () => {
+          const nextWorker = registration.installing;
+          if (!nextWorker) return;
+          nextWorker.addEventListener('statechange', () => {
+            if (nextWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              nextWorker.postMessage?.({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+      })
+      .catch(() => undefined);
   });
+}
+
+export async function forcePwaRefresh() {
+  if (!isBrowser()) return;
+  if (window.sessionStorage.getItem(PWA_REFRESH_GUARD_KEY) === '1') return;
+  window.sessionStorage.setItem(PWA_REFRESH_GUARD_KEY, '1');
+
+  try {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister().catch(() => false)));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key).catch(() => false)));
+    }
+  } catch {
+    // ignore cleanup errors
+  }
+
+  window.location.reload();
 }
 
 export function trackPwaEvent(name, payload = {}) {

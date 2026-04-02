@@ -245,6 +245,31 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, onSubmitCo
   );
   const qrSource = useMemo(() => getQrSource(paymentMethod), [paymentMethod]);
 
+  const handleContactSubmit = async () => {
+    if (!`${contactMessage || ''}`.trim()) {
+      Alert.alert('请先输入内容', '把你想咨询的问题写下来，再提交给明己。');
+      return;
+    }
+
+    const saved = await onSubmitContact?.({
+      registration,
+      topic: contactTopic,
+      message: contactMessage,
+      source: Platform.OS === 'web' ? 'web_member_contact' : 'app_member_contact',
+    });
+    if (saved === false) return;
+
+    trackPwaEvent('contact_mingji_submit', {
+      hasTopic: Boolean(String(contactTopic || '').trim()),
+      hasEmail: Boolean(String(registration.email || '').trim()),
+      hasPhone: Boolean(String(registration.phone || '').trim()),
+    });
+
+    setContactTopic('');
+    setContactMessage('');
+    Alert.alert('已提交', '你的问题已经送到后台，我们会看到并跟进。');
+  };
+
   const updateRegistration = (key, value) => {
     setRegistration((current) => ({
       ...current,
