@@ -1647,6 +1647,7 @@ export default function MingMeV2App() {
       currentDaYunLabel: currentDaYun ? `${currentDaYun.gan || ''}${currentDaYun.zhi || ''}` : '',
       todayPillar,
       liuNianPillar: engineChart.liuNianPillar,
+      currentMonthPillar: engineChart.currentMonthPillar,
       guiRen: engineChart.guiRen,
       wenChang: engineChart.wenChang,
       yiMa: engineChart.yiMa,
@@ -1732,6 +1733,29 @@ export default function MingMeV2App() {
       },
     };
   }, [profile]);
+
+  useEffect(() => {
+    if (booting || !chartResult?.dayGan) return;
+    const freshChart = buildChart();
+    const freshCalendar = generateFortuneCalendar(freshChart.dayGan, 30);
+    const freshSummary = getMonthSummary(freshCalendar);
+    const nextCalendarStart = freshCalendar?.[0]?.dateStr || '';
+    const currentCalendarStart = fortuneCalendar?.[0]?.dateStr || '';
+    const nextMonthPillar = `${freshChart?.currentMonthPillar?.ganZhi || ''}`;
+    const currentMonthPillar = `${chartResult?.currentMonthPillar?.ganZhi || ''}`;
+    const nextTodayPillar = `${freshChart?.todayPillar?.ganZhi || freshChart?.todayPillar?.pillar || ''}`;
+    const currentTodayPillar = `${chartResult?.todayPillar?.ganZhi || chartResult?.todayPillar?.pillar || ''}`;
+    const needsRefresh =
+      nextCalendarStart !== currentCalendarStart ||
+      nextMonthPillar !== currentMonthPillar ||
+      nextTodayPillar !== currentTodayPillar;
+
+    if (!needsRefresh) return;
+
+    setChartResult((prev) => ({ ...(prev || {}), ...freshChart }));
+    setFortuneCalendar(freshCalendar);
+    setCalSummary(freshSummary);
+  }, [booting, buildChart, chartResult, fortuneCalendar]);
 
   const handleGenerate = useCallback(() => {
     clearTimers();

@@ -804,6 +804,24 @@ function buildAvailableMonths(days = []) {
   }, []);
 }
 
+function isSameCalendarDate(item, date = new Date()) {
+  return Number(item?.year) === date.getFullYear()
+    && Number(item?.month) === date.getMonth() + 1
+    && Number(item?.day) === date.getDate();
+}
+
+function findTodayCalendarCell(fortuneCalendar = [], result = null) {
+  const today = new Date();
+  const existing = getCalendarCells(fortuneCalendar).find((item) => isSameCalendarDate(item, today));
+  if (existing) return existing;
+  const generated = buildFullMonthFortuneDays(
+    { year: today.getFullYear(), month: today.getMonth() + 1 },
+    fortuneCalendar,
+    result
+  );
+  return getCalendarCells(generated).find((item) => isSameCalendarDate(item, today)) || null;
+}
+
 function buildFullMonthFortuneDays(monthInfo, fortuneCalendar = [], result) {
   if (!monthInfo?.year || !monthInfo?.month || !result?.dayGan) {
     return Array.isArray(fortuneCalendar)
@@ -2798,7 +2816,7 @@ function HomeTab(props) {
       onRefreshAIQuota,
       onOpenPaywall,
     } = props;
-  const today = getCalendarCells(fortuneCalendar)[0];
+  const today = findTodayCalendarCell(fortuneCalendar, result);
   const [activeToolPage, setActiveToolPage] = useState(null);
   const [pwaInstallState, setPwaInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
   const [pwaInstallDismissed, setPwaInstallDismissed] = useState(false);
@@ -3207,6 +3225,14 @@ function StageTab({ result, fortuneCalendar, calSummary, profile, reviewMode, we
     const selectedMonthKey = selectedDay ? `${selectedDay.year}-${selectedDay.month}` : '';
     if (!selectedMonthKey) return;
     const nextIndex = availableMonths.findIndex((item) => item.key === selectedMonthKey);
+    if (nextIndex >= 0) setMonthIndex(nextIndex);
+  }, [availableMonths, selectedDay]);
+
+  useEffect(() => {
+    if (!availableMonths.length || selectedDay) return;
+    const today = new Date();
+    const todayMonthKey = `${today.getFullYear()}-${today.getMonth() + 1}`;
+    const nextIndex = availableMonths.findIndex((item) => item.key === todayMonthKey);
     if (nextIndex >= 0) setMonthIndex(nextIndex);
   }, [availableMonths, selectedDay]);
 
@@ -3995,7 +4021,7 @@ export function ResultV2Shell(props) {
   };
 
   const openTodayDetail = () => {
-    const today = getCalendarCells(fortuneCalendar)[0];
+    const today = findTodayCalendarCell(fortuneCalendar, result);
     if (!today) return;
     setSelectedCalendarDay(today);
     setCalendarQuickAddMode(false);

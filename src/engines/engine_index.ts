@@ -17,6 +17,7 @@ import {
   getCurrentJieqiMonth,
   getDaysToNextJieqi,
   getJieqiCalendar,
+  getMonthPillar,
   isJieqi,
   JieqiName,
   JieqiEntry,
@@ -134,6 +135,14 @@ export type EngineOutput = {
   trueSolarOffsetMin?: number;
   correctedTime: Date;
   currentJieqiMonth: ReturnType<typeof getCurrentJieqiMonth>;
+  currentMonthPillar: {
+    stem: string;
+    branch: string;
+    pillar: string;
+    monthIndex: number;
+    ganZhi: string;
+    date: string;
+  };
   nextJieqi: ReturnType<typeof getDaysToNextJieqi>;
   birthYearJieqi: JieqiCalendarItem[];
   tenGods: {
@@ -2014,6 +2023,8 @@ export function computeChart(input: EngineInput): EngineOutput {
   const now = new Date();
   const todayPillar = getDayPillarForDate(now);
   const liuNianPillar = { ...getYearPillarForDate(now), year: now.getFullYear() };
+  const currentYearStemIndex = Math.max(0, TIAN_GAN.indexOf(liuNianPillar.gan as typeof TIAN_GAN[number]));
+  const currentMonthPillar = getMonthPillar(now, currentYearStemIndex, true);
   const daYun = buildDaYunList(eightChar, input.gender || "male");
   const classicalDecisionRules = buildClassicalDecisionRules({
     correctedTime,
@@ -2021,8 +2032,8 @@ export function computeChart(input: EngineInput): EngineOutput {
     daYun,
     liuNianPillar,
   });
-  const currentJieqiMonth = getCurrentJieqiMonth(correctedTime);
-  const nextJieqi = getDaysToNextJieqi(correctedTime);
+  const currentJieqiMonth = getCurrentJieqiMonth(now);
+  const nextJieqi = getDaysToNextJieqi(now);
   const birthYearJieqi = getJieqiCalendar(solarDate.getFullYear(), solarDate);
 
   return {
@@ -2032,6 +2043,11 @@ export function computeChart(input: EngineInput): EngineOutput {
     trueSolarOffsetMin,
     correctedTime,
     currentJieqiMonth,
+    currentMonthPillar: {
+      ...currentMonthPillar,
+      ganZhi: currentMonthPillar.pillar,
+      date: formatDate(now),
+    },
     nextJieqi,
     birthYearJieqi,
     tenGods,

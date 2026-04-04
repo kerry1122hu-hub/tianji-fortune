@@ -447,6 +447,24 @@ function getResolvedMonthCommand(result) {
   );
 }
 
+function getResolvedCurrentMonthPillar(result) {
+  return firstValid(
+    result?.currentMonthPillar?.ganZhi,
+    result?.currentMonthPillar?.pillar,
+    `${textOf(result?.currentMonthPillar?.stem)}${textOf(result?.currentMonthPillar?.branch)}`,
+    textOf(result?.currentMonthPillar),
+    '未明确'
+  );
+}
+
+function getResolvedCurrentJieqiName(result) {
+  return firstValid(
+    result?.currentJieqiMonth?.currentJieqi?.name,
+    result?.currentJieqiMonth?.name,
+    '未明确'
+  );
+}
+
 function getResolvedCurrentDaYunEntry(result) {
   const currentExplicit = result?.currentDaYun || result?.currentDayun || null;
   if (formatDaYunEntry(currentExplicit)) {
@@ -530,6 +548,7 @@ function detectTerminologyIntent(userMessage = '') {
   if (/(生肖|属相)/.test(text)) return 'zodiac';
   if (/(下个大运|下一步大运|下一步运|下一柱大运|下步大运|接下来走什么大运)/.test(text)) return 'next_luck_cycle';
   if (/(当前流年|今年流年|流年是什么|流年呢|今年岁运|今年是什么年运)/.test(text)) return 'liunian';
+  if (/(现在是什么月|现在什么月|这个月是什么月|当前是什么月|目前是什么月|当前流月|现在流月|现在是什么月令|当前月令)/.test(text)) return 'current_month';
   if (/(大运|流年|运势阶段|阶段节奏)/.test(text)) return 'luck_cycle';
   if (/(藏干)/.test(text)) return 'hidden_stems';
   if (/(冲合刑害|合冲|冲合|刑害|有没有冲|有没有合|盘里有什么冲合)/.test(text)) return 'structure_relations';
@@ -982,6 +1001,8 @@ function buildDeterministicAnswerMap(result, context = {}) {
   const nextDayunAgeRange = getNextDayunAgeRange(result);
   const liunian = getResolvedLiunianLabel(result);
   const monthCommand = getResolvedMonthCommand(result);
+  const currentMonthPillar = getResolvedCurrentMonthPillar(result);
+  const currentJieqiName = getResolvedCurrentJieqiName(result);
   const resolvedUseGod = isResolvedValue(useGod.primary) ? useGod.primary : '';
   const adviceFollowup = isAdviceFollowupQuestion(currentQuestion);
   const useGodExtra = [
@@ -1043,6 +1064,11 @@ function buildDeterministicAnswerMap(result, context = {}) {
       : isFollowup
         ? `你的生肖是 ${zodiac}。放到这张盘里，生肖更多是外层标签，能帮助理解一些气质联想，但真正更影响你现实判断和阶段表现的，还是日元状态、结构重心和当前主线。`
         : `你的生肖是 ${zodiac}。生肖更像一个外层标签，真正更影响判断的，还是日元状态、结构重心和当前阶段。`,
+    current_month: isCorrection
+      ? `按当前现实时间重算，此刻仍在${currentMonthPillar}${currentJieqiName && currentJieqiName !== '未明确' ? `这一步节气月（${currentJieqiName}阶段）` : '这一步节气月'}。`
+      : isFollowup
+        ? `你现在问的是当前流月，不是出生月柱。按现实时间推，此刻仍在${currentMonthPillar}${currentJieqiName && currentJieqiName !== '未明确' ? `这一步节气月（${currentJieqiName}阶段）` : ''}。这层看的是当下时令在推什么，不是你命盘里原来的月柱。`
+        : `按现实时间推，你现在所在的节气月是${currentMonthPillar}${currentJieqiName && currentJieqiName !== '未明确' ? `，当前节气落在${currentJieqiName}` : ''}。这一层是当前流月，不是你的出生月柱。`,
     luck_cycle: isCorrection
       ? `按当前年龄重算，你现在行的是 ${dayunLabel}${ageRange ? `（约 ${ageRange}）` : ''}。这一层先以这步大运为准，再往下看它是在扶你还是压你。`
       : isFollowup
