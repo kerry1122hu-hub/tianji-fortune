@@ -2021,10 +2021,19 @@ export function computeChart(input: EngineInput): EngineOutput {
   };
 
   const now = new Date();
+  const nowSolar = Solar.fromDate(now);
+  const nowEightChar = nowSolar.getLunar().getEightChar();
   const todayPillar = getDayPillarForDate(now);
   const liuNianPillar = { ...getYearPillarForDate(now), year: now.getFullYear() };
   const currentYearStemIndex = Math.max(0, TIAN_GAN.indexOf(liuNianPillar.gan as typeof TIAN_GAN[number]));
-  const currentMonthPillar = getMonthPillar(now, currentYearStemIndex, true);
+  const fallbackCurrentMonthPillar = getMonthPillar(now, currentYearStemIndex, true);
+  const currentMonthGanZhi = `${nowEightChar?.getMonth?.() || ""}`.trim() || fallbackCurrentMonthPillar.pillar;
+  const currentMonthPillar = {
+    stem: currentMonthGanZhi.charAt(0) || fallbackCurrentMonthPillar.stem,
+    branch: currentMonthGanZhi.charAt(1) || fallbackCurrentMonthPillar.branch,
+    pillar: currentMonthGanZhi || fallbackCurrentMonthPillar.pillar,
+    monthIndex: fallbackCurrentMonthPillar.monthIndex,
+  };
   const daYun = buildDaYunList(eightChar, input.gender || "male");
   const classicalDecisionRules = buildClassicalDecisionRules({
     correctedTime,

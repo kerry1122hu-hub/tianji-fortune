@@ -548,7 +548,7 @@ function detectTerminologyIntent(userMessage = '') {
   if (/(生肖|属相)/.test(text)) return 'zodiac';
   if (/(下个大运|下一步大运|下一步运|下一柱大运|下步大运|接下来走什么大运)/.test(text)) return 'next_luck_cycle';
   if (/(当前流年|今年流年|流年是什么|流年呢|今年岁运|今年是什么年运)/.test(text)) return 'liunian';
-  if (/(现在是什么月|现在什么月|这个月是什么月|当前是什么月|目前是什么月|当前流月|现在流月|现在是什么月令|当前月令)/.test(text)) return 'current_month';
+  if (/(现在是什么月|现在什么月|现在是几月|这个月是什么月|这个月是几月|当前是什么月|目前是什么月|目前是几月|当前流月|现在流月|现在是什么月令|当前月令)/.test(text)) return 'current_month';
   if (/(大运|流年|运势阶段|阶段节奏)/.test(text)) return 'luck_cycle';
   if (/(藏干)/.test(text)) return 'hidden_stems';
   if (/(冲合刑害|合冲|冲合|刑害|有没有冲|有没有合|盘里有什么冲合)/.test(text)) return 'structure_relations';
