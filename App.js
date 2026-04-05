@@ -49,12 +49,14 @@ if (typeof window !== 'undefined') {
 class MingMeErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { crashed: false, upgradeRecovery: false };
+    this.state = { crashed: false, upgradeRecovery: false, errorMessage: '' };
   }
 
   componentDidCatch(error) {
     const upgradeRecovery = shouldTriggerPwaRecovery(error);
-    this.setState({ crashed: true, upgradeRecovery });
+    const errorMessage = `${error?.message || error || ''}`.trim();
+    this.setState({ crashed: true, upgradeRecovery, errorMessage });
+    console.error('MingMeErrorBoundary caught:', error);
     if (upgradeRecovery) {
       forcePwaRefresh().catch(() => undefined);
     }
@@ -72,6 +74,11 @@ class MingMeErrorBoundary extends React.Component {
               ? '系统正在自动刷新到最新版，请稍等片刻。'
               : '刚才那次对话触发了页面异常。请返回后再试一次，我们已经把升级刷新和普通错误分开处理了。'}
           </Text>
+          {!this.state.upgradeRecovery && this.state.errorMessage ? (
+            <Text style={{ marginTop: 12, fontSize: 12, lineHeight: 18, color: 'rgba(28,28,30,0.55)', textAlign: 'center' }}>
+              错误摘要：{this.state.errorMessage}
+            </Text>
+          ) : null}
         </View>
       );
     }
