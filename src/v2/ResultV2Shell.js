@@ -1833,6 +1833,7 @@ function AICompanionModal({
   visible,
   onClose,
   result,
+  profile,
   chatHistory,
   chatInput,
   onChangeInput,
@@ -4395,6 +4396,7 @@ export function ResultV2Shell(props) {
           visible={aiPage}
           onClose={() => setAiPage(false)}
         result={result}
+        profile={profile}
         chatHistory={chatHistory}
         chatInput={chatInput}
         onChangeInput={setChatInput}
