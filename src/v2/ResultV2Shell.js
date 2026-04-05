@@ -1948,6 +1948,17 @@ function AICompanionModal({
     return '点开继续聊下去';
   };
 
+  const normalizeChatText = (value, fallback = '') => {
+    if (typeof value === 'string') return value;
+    if (value === undefined || value === null) return fallback;
+    if (typeof value === 'number' || typeof value === 'boolean') return `${value}`;
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return fallback;
+    }
+  };
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
@@ -2019,10 +2030,10 @@ function AICompanionModal({
                 </View>
               ) : null}
               <View style={[s.aiBubbleCard, msg.role === 'user' ? s.aiBubbleCardUser : s.aiBubbleCardAssistant]}>
-                <Text style={[s.aiBubbleText, msg.role === 'user' && s.aiBubbleTextUser]}>{msg.content}</Text>
+                  <Text style={[s.aiBubbleText, msg.role === 'user' && s.aiBubbleTextUser]}>{normalizeChatText(msg.content)}</Text>
+                </View>
               </View>
-            </View>
-          ))}
+            ))}
 
           {chatLoading ? (
             <View style={s.aiBubbleRow}>
@@ -4425,7 +4436,7 @@ export function ResultV2Shell(props) {
               console.warn('AI companion quota precheck warning:', error?.message || error);
             }
 
-            const nextHistory = [...chatHistory, { role: 'user', content: userMsg }];
+            const nextHistory = [...chatHistory, { role: 'user', content: normalizeChatText(userMsg) }];
             const userTurnCount = nextHistory.filter((item) => item.role === 'user').length;
             setChatInput('');
             setChatLoading(true);
@@ -4449,7 +4460,7 @@ export function ResultV2Shell(props) {
 
             try {
               const reply = await aiChat(userMsg, result, chatHistory, quotaArgs);
-              setChatHistory([...nextHistory, { role: 'assistant', content: reply || '我在这里，会继续陪你一起梳理。' }]);
+              setChatHistory([...nextHistory, { role: 'assistant', content: normalizeChatText(reply, '我在这里，会继续陪你一起梳理。') || '我在这里，会继续陪你一起梳理。' }]);
               if (Platform.OS === 'web' && userTurnCount === 1) {
                 try {
                   trackPwaEvent('chat_first_reply_received', { route: 'companion', mode: 'chat' });
@@ -4457,9 +4468,9 @@ export function ResultV2Shell(props) {
               }
             } catch (error) {
               if (error?.code === 'AI_QUOTA_EXCEEDED') {
-                setChatHistory([...nextHistory, { role: 'assistant', content: '今日免费次数已用完，可开通会员继续使用 AI。' }]);
+                setChatHistory([...nextHistory, { role: 'assistant', content: normalizeChatText('今日免费次数已用完，可开通会员继续使用 AI。') }]);
               } else {
-                setChatHistory([...nextHistory, { role: 'assistant', content: '抱歉，我暂时无法回应。请检查网络后重试。' }]);
+                setChatHistory([...nextHistory, { role: 'assistant', content: normalizeChatText('抱歉，我暂时无法回应。请检查网络后重试。') }]);
               }
             } finally {
               setChatLoading(false);
