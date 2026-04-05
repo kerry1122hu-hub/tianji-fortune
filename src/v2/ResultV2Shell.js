@@ -1847,7 +1847,7 @@ function AICompanionModal({
   onVoiceInput,
 }) {
   const scrollRef = useRef(null);
-  const [inputHeight, setInputHeight] = useState(48);
+  const [inputHeight, setInputHeight] = useState(44);
   const [installState, setInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
   const [installReminderVisible, setInstallReminderVisible] = useState(false);
   const [installSheetVisible, setInstallSheetVisible] = useState(false);
@@ -1863,7 +1863,7 @@ function AICompanionModal({
 
   useEffect(() => {
     if (!`${chatInput || ''}`.trim()) {
-      setInputHeight(36);
+      setInputHeight(44);
     }
   }, [chatInput]);
 
@@ -1920,17 +1920,30 @@ function AICompanionModal({
     setInstallSheetVisible(true);
   };
 
-  const quickPrompts = [
+  const quickPromptPool = [
     '我最近情绪很低落，怎么办？',
     '我面临一个重要选择，需要建议',
     '帮我分析一下我的性格特点',
     '我在关系中总是受伤，为什么？',
+    '你觉得我最近真正卡住的点是什么？',
+    '结合我的命盘，这个月我最该注意什么？',
   ];
+  const randomQuickPrompt = useMemo(() => {
+    const seed = [
+      profile?.nickname || '',
+      result?.dayGan || '',
+      result?.solarBirthInfo?.year || result?.birthInfo?.year || '',
+      new Date().toISOString().slice(0, 10),
+    ].join('|');
+    const hash = `${seed}`.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+    return quickPromptPool[hash % quickPromptPool.length] || quickPromptPool[0];
+  }, [profile?.nickname, result?.dayGan, result?.solarBirthInfo?.year, result?.birthInfo?.year]);
   const getQuickPromptActionLabel = (prompt) => {
     if (/(关系|受伤|伴侣|沟通)/.test(prompt)) return '说说这对你现在意味着什么';
     if (/(情绪|低落|累|焦虑|压力)/.test(prompt)) return '想继续听我解释';
     if (/(选择|决定|工作|方向)/.test(prompt)) return '结合你这张人生说明书再展开';
     if (/(性格|特点|日主|五行|十神)/.test(prompt)) return '想继续听我怎么理解';
+    if (/(命盘|这个月|注意什么)/.test(prompt)) return '从当前运势切进去看';
     return '点开继续聊下去';
   };
 
@@ -1980,21 +1993,19 @@ function AICompanionModal({
                 {result ? '我已结合你的当前资料，可以陪你一起梳理情绪、关系和重要决定。' : '先完成资料建立，我就能更好地理解你。'}
               </Text>
               <View style={s.aiQuickList}>
-                {quickPrompts.map((item) => (
-                  <TouchableOpacity key={item} onPress={() => onChangeInput?.(item)} style={s.aiQuickCard}>
-                    <View style={s.aiQuickTop}>
-                      <View style={s.aiQuickIcon}>
-                        <Text style={s.aiQuickIconText}>{'✦'}</Text>
-                      </View>
-                      <Text style={s.aiQuickLabel}>{'快捷提问'}</Text>
+                <TouchableOpacity onPress={() => onChangeInput?.(randomQuickPrompt)} style={s.aiQuickCard}>
+                  <View style={s.aiQuickTop}>
+                    <View style={s.aiQuickIcon}>
+                      <Text style={s.aiQuickIconText}>{'✦'}</Text>
                     </View>
-                    <Text style={s.aiQuickText}>{item}</Text>
-                    <View style={s.aiQuickFooter}>
-                      <Text style={s.aiQuickAction}>{getQuickPromptActionLabel(item)}</Text>
-                      <Text style={s.aiQuickArrow}>{'›'}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                    <Text style={s.aiQuickLabel}>{'今日随机提问'}</Text>
+                  </View>
+                  <Text style={s.aiQuickText}>{randomQuickPrompt}</Text>
+                  <View style={s.aiQuickFooter}>
+                    <Text style={s.aiQuickAction}>{getQuickPromptActionLabel(randomQuickPrompt)}</Text>
+                    <Text style={s.aiQuickArrow}>{'›'}</Text>
+                  </View>
+                </TouchableOpacity>
               </View>
             </View>
           ) : null}
@@ -2086,19 +2097,19 @@ function AICompanionModal({
                 }, 150);
               }}
               onContentSizeChange={(event) => {
-                const nextHeight = Math.max(36, Math.min(104, Math.ceil((event?.nativeEvent?.contentSize?.height || 30) + 2)));
+                const nextHeight = Math.max(44, Math.min(112, Math.ceil((event?.nativeEvent?.contentSize?.height || 34) + 4)));
                 setInputHeight(nextHeight);
                 setTimeout(() => {
                   scrollRef.current?.scrollToEnd?.({ animated: true });
                 }, 60);
               }}
-              placeholder={aiAllowed ? '随时跟我说说…' : '今日次数已用完，明天再来'}
-              placeholderTextColor={'rgba(60,60,67,0.40)'}
+              placeholder={aiAllowed ? '给明己AI先生发消息…' : '今日次数已用完，明天再来'}
+              placeholderTextColor={'rgba(60,60,67,0.46)'}
               multiline
               scrollEnabled
               maxLength={500}
               editable={aiAllowed && !chatLoading}
-               style={[s.aiInput, { height: inputHeight, minHeight: 36, maxHeight: 104 }]}
+               style={[s.aiInput, { height: inputHeight, minHeight: 44, maxHeight: 112 }]}
             />
             <TouchableOpacity
               onPress={onSend}
@@ -4872,13 +4883,13 @@ const s = StyleSheet.create({
   aiAvatarHeroText: { fontSize: 28, color: C.logoDeep, fontWeight: '700' },
   aiWelcomeTitle: { fontSize: 17, fontWeight: '700', color: C.logoDeep, marginBottom: 8 },
   aiWelcomeBody: { fontSize: 14, color: 'rgba(20,51,58,0.62)', textAlign: 'center', lineHeight: 22, paddingHorizontal: 24 },
-  aiQuickList: { marginTop: 14, gap: 5, width: '100%' },
-  aiQuickCard: { backgroundColor: 'rgba(255,255,255,0.90)', borderRadius: 13, paddingHorizontal: 10, paddingVertical: 7, borderWidth: 1, borderColor: 'rgba(169,222,208,0.16)', shadowColor: '#12343A', shadowOpacity: 0.03, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 1 },
+  aiQuickList: { marginTop: 14, gap: 6, width: '100%' },
+  aiQuickCard: { backgroundColor: 'rgba(255,255,255,0.94)', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 10, borderWidth: 1, borderColor: 'rgba(169,222,208,0.22)', shadowColor: '#12343A', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
   aiQuickTop: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 },
   aiQuickIcon: { width: 18, height: 18, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,222,208,0.14)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.18)' },
   aiQuickIconText: { fontSize: 9, fontWeight: '800', color: C.logoDeep },
-  aiQuickLabel: { fontSize: 10, fontWeight: '800', color: 'rgba(20,51,58,0.48)', textTransform: 'uppercase' },
-  aiQuickText: { fontSize: 12, lineHeight: 17, color: C.logoDeep, fontWeight: '600' },
+  aiQuickLabel: { fontSize: 10, fontWeight: '800', color: 'rgba(20,51,58,0.48)', textTransform: 'uppercase', letterSpacing: 0.4 },
+  aiQuickText: { fontSize: 13, lineHeight: 19, color: C.logoDeep, fontWeight: '700' },
   aiQuickFooter: { marginTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   aiQuickAction: { fontSize: 10, fontWeight: '800', color: '#2E8A72' },
   aiQuickArrow: { fontSize: 14, fontWeight: '800', color: C.gold, marginTop: -1 },
@@ -4902,22 +4913,22 @@ const s = StyleSheet.create({
   aiQuotaBody: { fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.62)' },
   aiQuotaButton: { minWidth: 78, height: 36, borderRadius: 999, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: C.logoDeep },
   aiQuotaButtonText: { fontSize: 13, fontWeight: '800', color: '#F7FFFC' },
-  aiComposerPanel: { minHeight: 112, marginHorizontal: 10, marginBottom: 10, borderRadius: 24, borderWidth: 1, borderColor: 'rgba(196,218,255,0.72)', backgroundColor: 'rgba(242,242,247,0.95)', paddingTop: 8, paddingHorizontal: 12, paddingBottom: 8, justifyContent: 'space-between', shadowColor: '#102733', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  aiComposerTopline: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, marginBottom: 6 },
+  aiComposerPanel: { minHeight: 106, marginHorizontal: 10, marginBottom: 10, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(196,218,255,0.86)', backgroundColor: 'rgba(248,249,252,0.98)', paddingTop: 8, paddingHorizontal: 10, paddingBottom: 8, justifyContent: 'space-between', shadowColor: '#0E2230', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
+  aiComposerTopline: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, marginBottom: 5 },
   aiComposerToplineDot: { width: 8, height: 8, borderRadius: 999, backgroundColor: 'rgba(198,146,42,0.84)', shadowColor: '#C6922A', shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 1 } },
-  aiComposerToplineText: { fontSize: 12, lineHeight: 17, color: 'rgba(20,51,58,0.58)', fontWeight: '700' },
-  aiInputDock: { flex: 1, borderRadius: 20, backgroundColor: 'rgba(250,253,255,0.98)', paddingHorizontal: 8, paddingTop: 5, paddingBottom: 5, flexDirection: 'row', alignItems: 'stretch', gap: 8, borderWidth: 1, borderColor: 'rgba(167,198,255,0.72)' },
-  aiVoiceButton: { width: 38, height: 38, borderRadius: 999, backgroundColor: 'rgba(237,246,242,0.98)', borderWidth: 1, borderColor: 'rgba(167,198,255,0.48)', alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 1 },
+  aiComposerToplineText: { fontSize: 12, lineHeight: 17, color: 'rgba(20,51,58,0.60)', fontWeight: '700' },
+  aiInputDock: { flex: 1, borderRadius: 22, backgroundColor: '#FFFFFF', paddingHorizontal: 8, paddingTop: 6, paddingBottom: 6, flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1.5, borderColor: 'rgba(150,182,245,0.88)', shadowColor: '#91A8D8', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 2 } },
+  aiVoiceButton: { width: 40, height: 40, borderRadius: 999, backgroundColor: 'rgba(245,248,252,1)', borderWidth: 1, borderColor: 'rgba(167,198,255,0.62)', alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 2 },
   aiVoiceButtonDisabled: { opacity: 0.66 },
   aiVoiceButtonActive: { backgroundColor: '#DDF4ED', borderColor: 'rgba(30,142,109,0.32)' },
   aiVoiceText: { fontSize: 17, fontWeight: '800', color: C.logoDeep },
   aiVoiceTextActive: { color: '#1E8E6D' },
-  aiInput: { flex: 1, alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.52)', borderRadius: 16, paddingHorizontal: 8, paddingTop: 7, paddingBottom: 7, fontSize: 14, lineHeight: 19, color: '#1C1C1E', borderWidth: 1, borderColor: 'rgba(187,210,255,0.92)', textAlignVertical: 'top' },
-  aiSendButton: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 1 },
+  aiInput: { flex: 1, alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 16, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 10, fontSize: 15, lineHeight: 21, color: '#1C1C1E', borderWidth: 1.5, borderColor: 'rgba(184,204,246,0.98)', textAlignVertical: 'top' },
+  aiSendButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 2 },
   aiSendButtonActive: { backgroundColor: C.logoDeep, borderWidth: 1, borderColor: 'rgba(169,222,208,0.32)', shadowColor: '#78D4BC', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
   aiSendButtonDisabled: { backgroundColor: 'rgba(60,60,67,0.15)', borderWidth: 1, borderColor: 'rgba(60,60,67,0.06)' },
   aiSendText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-  aiInputHint: { paddingHorizontal: 8, paddingTop: 8, fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.52)' },
+  aiInputHint: { paddingHorizontal: 8, paddingTop: 8, fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.56)' },
   structureOverviewCard: { borderRadius: 18, backgroundColor: '#FBFAF5', borderWidth: 1, borderColor: 'rgba(198,146,42,0.16)', padding: 14, marginTop: 2, marginBottom: 8 },
   structureOverviewTitle: { fontSize: 16, lineHeight: 23, fontWeight: '800', color: C.ink },
   structureOverviewBody: { fontSize: 13, lineHeight: 20, color: C.soft, marginTop: 6 },
