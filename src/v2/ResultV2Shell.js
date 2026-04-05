@@ -4412,7 +4412,8 @@ export function ResultV2Shell(props) {
           const userMsg = `${chatInput || ''}`.trim();
           if (!userMsg || chatLoading) return;
 
-            const quotaArgs = { isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', chart: result, profile };
+          const quotaArgs = { isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', chart: result, profile };
+          try {
             try {
               const allowed = await canUseAI(quotaArgs);
               if (!allowed) {
@@ -4424,26 +4425,35 @@ export function ResultV2Shell(props) {
               console.warn('AI companion quota precheck warning:', error?.message || error);
             }
 
-          const nextHistory = [...chatHistory, { role: 'user', content: userMsg }];
-          const userTurnCount = nextHistory.filter((item) => item.role === 'user').length;
-          setChatInput('');
-          setChatLoading(true);
-          setChatHistory(nextHistory);
-          if (Platform.OS === 'web') {
-            if (userTurnCount === 1) {
-              trackPwaEvent('chat_first_message_sent', { topic: 'general' });
-            } else if (userTurnCount === 2) {
-              trackPwaEvent('chat_second_message_sent', { topic: 'general' });
-            }
-          }
+            const nextHistory = [...chatHistory, { role: 'user', content: userMsg }];
+            const userTurnCount = nextHistory.filter((item) => item.role === 'user').length;
+            setChatInput('');
+            setChatLoading(true);
+            setChatHistory(nextHistory);
 
-            await incrementUsage(quotaArgs);
+            if (Platform.OS === 'web') {
+              try {
+                if (userTurnCount === 1) {
+                  trackPwaEvent('chat_first_message_sent', { topic: 'general' });
+                } else if (userTurnCount === 2) {
+                  trackPwaEvent('chat_second_message_sent', { topic: 'general' });
+                }
+              } catch {}
+            }
+
+            try {
+              await incrementUsage(quotaArgs);
+            } catch (error) {
+              console.warn('AI companion usage tracking warning:', error?.message || error);
+            }
 
             try {
               const reply = await aiChat(userMsg, result, chatHistory, quotaArgs);
               setChatHistory([...nextHistory, { role: 'assistant', content: reply || '我在这里，会继续陪你一起梳理。' }]);
               if (Platform.OS === 'web' && userTurnCount === 1) {
-                trackPwaEvent('chat_first_reply_received', { route: 'companion', mode: 'chat' });
+                try {
+                  trackPwaEvent('chat_first_reply_received', { route: 'companion', mode: 'chat' });
+                } catch {}
               }
             } catch (error) {
               if (error?.code === 'AI_QUOTA_EXCEEDED') {
@@ -4458,6 +4468,10 @@ export function ResultV2Shell(props) {
                 setAiAllowed(await canUseAI(quotaArgs));
               } catch {}
             }
+          } catch (error) {
+            console.warn('AI companion send flow warning:', error?.message || error);
+            setChatLoading(false);
+          }
         }}
       />
       <Modal visible={!!profileReadyVisible} transparent animationType="fade" onRequestClose={onDismissProfileReady}>
