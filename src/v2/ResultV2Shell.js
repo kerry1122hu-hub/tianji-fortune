@@ -1848,6 +1848,7 @@ function AICompanionModal({
   onVoiceInput,
 }) {
   const scrollRef = useRef(null);
+  const inputHeightRef = useRef(44);
   const [inputHeight, setInputHeight] = useState(44);
   const [installState, setInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
   const [installReminderVisible, setInstallReminderVisible] = useState(false);
@@ -1864,7 +1865,8 @@ function AICompanionModal({
 
   useEffect(() => {
     if (!`${chatInput || ''}`.trim()) {
-      setInputHeight(44);
+      inputHeightRef.current = 44;
+      setInputHeight((current) => (current === 44 ? current : 44));
     }
   }, [chatInput]);
 
@@ -2110,10 +2112,17 @@ function AICompanionModal({
               }}
               onContentSizeChange={(event) => {
                 const nextHeight = Math.max(44, Math.min(112, Math.ceil((event?.nativeEvent?.contentSize?.height || 34) + 4)));
-                setInputHeight(nextHeight);
-                setTimeout(() => {
-                  scrollRef.current?.scrollToEnd?.({ animated: true });
-                }, 60);
+                if (Math.abs(nextHeight - inputHeightRef.current) < 2) return;
+                inputHeightRef.current = nextHeight;
+                setInputHeight((current) => {
+                  if (Math.abs(nextHeight - current) < 2) return current;
+                  return nextHeight;
+                });
+                if (Platform.OS !== 'web') {
+                  setTimeout(() => {
+                    scrollRef.current?.scrollToEnd?.({ animated: true });
+                  }, 60);
+                }
               }}
               placeholder={aiAllowed ? '给明己AI先生发消息…' : '今日次数已用完，明天再来'}
               placeholderTextColor={'rgba(60,60,67,0.46)'}
