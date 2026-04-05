@@ -2146,6 +2146,16 @@ function AICompanionModal({
               <Text style={s.aiSendText}>{'↑'}</Text>
             </TouchableOpacity>
           </View>
+          {chatInput.trim() ? (
+            <TouchableOpacity
+              onPress={() => onSend?.()}
+              disabled={chatLoading}
+              activeOpacity={0.9}
+              style={[s.aiSendCta, chatLoading && s.aiSendCtaDisabled]}
+            >
+              <Text style={s.aiSendCtaText}>{chatLoading ? '正在发送…' : '发送给明己AI先生'}</Text>
+            </TouchableOpacity>
+          ) : null}
           <Text style={s.aiInputHint}>{voiceRecording ? '正在录音，再点一次即可转成文字。' : '可直接输入，也可点左侧语音按钮把语音转成文字。'}</Text>
         </View>
       </KeyboardAvoidingView>
@@ -4977,6 +4987,9 @@ const s = StyleSheet.create({
   aiSendButtonActive: { backgroundColor: C.logoDeep, borderWidth: 1, borderColor: 'rgba(169,222,208,0.32)', shadowColor: '#78D4BC', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
   aiSendButtonDisabled: { backgroundColor: 'rgba(60,60,67,0.15)', borderWidth: 1, borderColor: 'rgba(60,60,67,0.06)' },
   aiSendText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  aiSendCta: { marginTop: 8, minHeight: 42, borderRadius: 16, backgroundColor: C.logoDeep, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(169,222,208,0.28)', shadowColor: '#12343A', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  aiSendCtaDisabled: { opacity: 0.68 },
+  aiSendCtaText: { fontSize: 14, fontWeight: '800', color: '#F7FFFC' },
   aiInputHint: { paddingHorizontal: 8, paddingTop: 8, fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.56)' },
   structureOverviewCard: { borderRadius: 18, backgroundColor: '#FBFAF5', borderWidth: 1, borderColor: 'rgba(198,146,42,0.16)', padding: 14, marginTop: 2, marginBottom: 8 },
   structureOverviewTitle: { fontSize: 16, lineHeight: 23, fontWeight: '800', color: C.ink },
