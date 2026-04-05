@@ -49,21 +49,28 @@ if (typeof window !== 'undefined') {
 class MingMeErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { crashed: false };
+    this.state = { crashed: false, upgradeRecovery: false };
   }
 
-  componentDidCatch() {
-    this.setState({ crashed: true });
-    forcePwaRefresh().catch(() => undefined);
+  componentDidCatch(error) {
+    const upgradeRecovery = shouldTriggerPwaRecovery(error);
+    this.setState({ crashed: true, upgradeRecovery });
+    if (upgradeRecovery) {
+      forcePwaRefresh().catch(() => undefined);
+    }
   }
 
   render() {
     if (this.state.crashed) {
       return (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: '#F2F2F7' }}>
-          <Text style={{ fontSize: 20, fontWeight: '700', color: '#1C1C1E', textAlign: 'center' }}>正在更新明己AI先生</Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: '#1C1C1E', textAlign: 'center' }}>
+            {this.state.upgradeRecovery ? '正在更新明己AI先生' : '明己AI先生暂时需要缓一下'}
+          </Text>
           <Text style={{ marginTop: 10, fontSize: 14, lineHeight: 22, color: 'rgba(28,28,30,0.72)', textAlign: 'center' }}>
-            系统正在自动刷新到最新版，请稍等片刻。
+            {this.state.upgradeRecovery
+              ? '系统正在自动刷新到最新版，请稍等片刻。'
+              : '刚才那次对话触发了页面异常。请返回后再试一次，我们已经把升级刷新和普通错误分开处理了。'}
           </Text>
         </View>
       );

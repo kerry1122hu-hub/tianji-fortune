@@ -3986,6 +3986,7 @@ export function ResultV2Shell(props) {
   useEffect(() => {
     let active = true;
       (async () => {
+        try {
         const quotaArgs = { isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', chart: result, profile };
         const [remaining, allowed] = await Promise.all([
           getRemainingCount(quotaArgs),
@@ -3994,6 +3995,10 @@ export function ResultV2Shell(props) {
         if (!active) return;
         setAiRemaining(remaining);
         setAiAllowed(allowed);
+        } catch (error) {
+          if (!active) return;
+          console.warn('AI quota sync warning:', error?.message || error);
+        }
       })();
     return () => {
       active = false;
