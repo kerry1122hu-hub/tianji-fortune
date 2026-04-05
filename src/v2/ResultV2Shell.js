@@ -2102,42 +2102,45 @@ function AICompanionModal({
                 <Text style={[s.aiVoiceText, voiceRecording && s.aiVoiceTextActive]}>{voiceRecording ? '■' : '◉'}</Text>
               )}
             </TouchableOpacity>
-            <TextInput
-              value={chatInput}
-              onChangeText={onChangeInput}
-              onFocus={() => {
-                setTimeout(() => {
-                  scrollRef.current?.scrollToEnd?.({ animated: true });
-                }, 150);
-              }}
-              onContentSizeChange={(event) => {
-                const nextHeight = Math.max(44, Math.min(112, Math.ceil((event?.nativeEvent?.contentSize?.height || 34) + 4)));
-                if (Math.abs(nextHeight - inputHeightRef.current) < 2) return;
-                inputHeightRef.current = nextHeight;
-                setInputHeight((current) => {
-                  if (Math.abs(nextHeight - current) < 2) return current;
-                  return nextHeight;
-                });
-                if (Platform.OS !== 'web') {
+            <View style={s.aiInputWrap}>
+              <TextInput
+                value={chatInput}
+                onChangeText={onChangeInput}
+                onFocus={() => {
                   setTimeout(() => {
                     scrollRef.current?.scrollToEnd?.({ animated: true });
-                  }, 60);
-                }
-              }}
-              placeholder={aiAllowed ? '给明己AI先生发消息…' : '今日次数已用完，明天再来'}
-              placeholderTextColor={'rgba(60,60,67,0.46)'}
-              multiline
-              scrollEnabled
-              maxLength={500}
-              editable={aiAllowed && !chatLoading}
-               style={[s.aiInput, { height: inputHeight, minHeight: 44, maxHeight: 112 }]}
-            />
+                  }, 150);
+                }}
+                onContentSizeChange={(event) => {
+                  const nextHeight = Math.max(44, Math.min(112, Math.ceil((event?.nativeEvent?.contentSize?.height || 34) + 4)));
+                  if (Math.abs(nextHeight - inputHeightRef.current) < 2) return;
+                  inputHeightRef.current = nextHeight;
+                  setInputHeight((current) => {
+                    if (Math.abs(nextHeight - current) < 2) return current;
+                    return nextHeight;
+                  });
+                  if (Platform.OS !== 'web') {
+                    setTimeout(() => {
+                      scrollRef.current?.scrollToEnd?.({ animated: true });
+                    }, 60);
+                  }
+                }}
+                placeholder={'给明己AI先生发消息…'}
+                placeholderTextColor={'rgba(60,60,67,0.46)'}
+                multiline
+                scrollEnabled
+                maxLength={500}
+                editable={!chatLoading}
+                style={[s.aiInput, { height: inputHeight, minHeight: 44, maxHeight: 112 }]}
+              />
+            </View>
             <TouchableOpacity
-              onPress={onSend}
-              disabled={!chatInput.trim() || chatLoading || !aiAllowed}
+              onPress={() => onSend?.()}
+              disabled={!chatInput.trim() || chatLoading}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={[
                 s.aiSendButton,
-                chatInput.trim() && !chatLoading && aiAllowed ? s.aiSendButtonActive : s.aiSendButtonDisabled,
+                chatInput.trim() && !chatLoading ? s.aiSendButtonActive : s.aiSendButtonDisabled,
               ]}
             >
               <Text style={s.aiSendText}>{'↑'}</Text>
@@ -4444,6 +4447,10 @@ export function ResultV2Shell(props) {
               if (!allowed) {
                 setAiAllowed(false);
                 setAiRemaining(await getRemainingCount(quotaArgs));
+                setChatHistory((prev) => [
+                  ...prev,
+                  { role: 'assistant', content: '今日免费次数已用完，可开通会员继续使用 AI。' },
+                ]);
                 return;
               }
             } catch (error) {
@@ -4959,13 +4966,14 @@ const s = StyleSheet.create({
   aiComposerToplineDot: { width: 8, height: 8, borderRadius: 999, backgroundColor: 'rgba(198,146,42,0.84)', shadowColor: '#C6922A', shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 1 } },
   aiComposerToplineText: { fontSize: 12, lineHeight: 17, color: 'rgba(20,51,58,0.60)', fontWeight: '700' },
   aiInputDock: { flex: 1, borderRadius: 22, backgroundColor: '#FFFFFF', paddingHorizontal: 8, paddingTop: 6, paddingBottom: 6, flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1.5, borderColor: 'rgba(150,182,245,0.88)', shadowColor: '#91A8D8', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 2 } },
+  aiInputWrap: { flex: 1, minWidth: 0, alignSelf: 'stretch', position: 'relative', zIndex: 1 },
   aiVoiceButton: { width: 40, height: 40, borderRadius: 999, backgroundColor: 'rgba(245,248,252,1)', borderWidth: 1, borderColor: 'rgba(167,198,255,0.62)', alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 2 },
   aiVoiceButtonDisabled: { opacity: 0.66 },
   aiVoiceButtonActive: { backgroundColor: '#DDF4ED', borderColor: 'rgba(30,142,109,0.32)' },
   aiVoiceText: { fontSize: 17, fontWeight: '800', color: C.logoDeep },
   aiVoiceTextActive: { color: '#1E8E6D' },
-  aiInput: { flex: 1, alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 16, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 10, fontSize: 15, lineHeight: 21, color: '#1C1C1E', borderWidth: 1.5, borderColor: 'rgba(184,204,246,0.98)', textAlignVertical: 'top' },
-  aiSendButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 2 },
+  aiInput: { width: '100%', alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 16, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 10, fontSize: 15, lineHeight: 21, color: '#1C1C1E', borderWidth: 1.5, borderColor: 'rgba(184,204,246,0.98)', textAlignVertical: 'top' },
+  aiSendButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 2, position: 'relative', zIndex: 3 },
   aiSendButtonActive: { backgroundColor: C.logoDeep, borderWidth: 1, borderColor: 'rgba(169,222,208,0.32)', shadowColor: '#78D4BC', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
   aiSendButtonDisabled: { backgroundColor: 'rgba(60,60,67,0.15)', borderWidth: 1, borderColor: 'rgba(60,60,67,0.06)' },
   aiSendText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
