@@ -3910,7 +3910,7 @@ export function ResultV2Shell(props) {
     : getStructuredDetail(selectedDetail?.name) || (selectedDetail?.type === 'shenSha' ? getGenericShenShaFallback(selectedDetail?.name) : null);
 
   const refreshAIQuota = async () => {
-    const quotaArgs = { isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', chart: result, profile };
+    const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile };
     const [remaining, allowed] = await Promise.all([
       getRemainingCount(quotaArgs),
       canUseAI(quotaArgs),
@@ -3987,7 +3987,7 @@ export function ResultV2Shell(props) {
     let active = true;
       (async () => {
         try {
-        const quotaArgs = { isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', chart: result, profile };
+        const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile };
         const [remaining, allowed] = await Promise.all([
           getRemainingCount(quotaArgs),
           canUseAI(quotaArgs),
@@ -4003,7 +4003,7 @@ export function ResultV2Shell(props) {
     return () => {
       active = false;
     };
-    }, [aiPage, chatHistory.length, effectivePremium, result]);
+    }, [aiPage, chatHistory.length, isPremium, result, profile]);
 
   useEffect(() => () => {
     if (activeRecording) {
@@ -4428,7 +4428,7 @@ export function ResultV2Shell(props) {
           const userMsg = `${chatInput || ''}`.trim();
           if (!userMsg || chatLoading) return;
 
-          const quotaArgs = { isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', chart: result, profile };
+          const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile };
           try {
             try {
               const allowed = await canUseAI(quotaArgs);

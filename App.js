@@ -49,14 +49,15 @@ if (typeof window !== 'undefined') {
 class MingMeErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { crashed: false, upgradeRecovery: false, errorMessage: '' };
+    this.state = { crashed: false, upgradeRecovery: false, errorMessage: '', componentStack: '' };
   }
 
-  componentDidCatch(error) {
+  componentDidCatch(error, info) {
     const upgradeRecovery = shouldTriggerPwaRecovery(error);
     const errorMessage = `${error?.message || error || ''}`.trim();
-    this.setState({ crashed: true, upgradeRecovery, errorMessage });
-    console.error('MingMeErrorBoundary caught:', error);
+    const componentStack = `${info?.componentStack || ''}`.trim();
+    this.setState({ crashed: true, upgradeRecovery, errorMessage, componentStack });
+    console.error('MingMeErrorBoundary caught:', error, info);
     if (upgradeRecovery) {
       forcePwaRefresh().catch(() => undefined);
     }
@@ -77,6 +78,11 @@ class MingMeErrorBoundary extends React.Component {
           {!this.state.upgradeRecovery && this.state.errorMessage ? (
             <Text style={{ marginTop: 12, fontSize: 12, lineHeight: 18, color: 'rgba(28,28,30,0.55)', textAlign: 'center' }}>
               错误摘要：{this.state.errorMessage}
+            </Text>
+          ) : null}
+          {!this.state.upgradeRecovery && this.state.componentStack ? (
+            <Text style={{ marginTop: 8, fontSize: 11, lineHeight: 16, color: 'rgba(28,28,30,0.42)', textAlign: 'center' }}>
+              组件栈：{this.state.componentStack.replace(/\s+/g, ' ').slice(0, 260)}
             </Text>
           ) : null}
         </View>
