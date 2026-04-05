@@ -2,6 +2,7 @@
 import {
   Alert,
   ActivityIndicator,
+  Animated,
   Dimensions,
   KeyboardAvoidingView,
   LayoutAnimation,
@@ -18,15 +19,16 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Audio } from 'expo-av';
+import { Audio, Video } from 'expo-av';
 import * as Notifications from 'expo-notifications';
-import { aiAnalyzeEmotion, aiChat, aiDecisionSupport, canUseAI, getRemainingCount, incrementUsage, transcribeVoiceInput } from '../utils/aiService';
+import { aiAnalyzeEmotion, aiChat, aiDecisionSupport, aiMingJiDivination, canUseAI, getRemainingCount, incrementUsage, transcribeVoiceInput } from '../utils/aiService';
 import { generateFortuneCalendar } from '../utils/fortuneCalendar';
 import { detectPwaPlatform, getPwaDisplayMode, isSafariBrowser, isStandalonePwa, listenToPwaInstallability, promptPwaInstall, trackPwaEvent } from '../utils/pwaWeb';
 
 const { width: PAGE_WIDTH } = Dimensions.get('window');
 const CALENDAR_ENTRIES_STORAGE_KEY = 'mingme.v2.calendarEntries';
 const AI_INSTALL_REMINDER_SEEN_KEY = 'mingme.v2.aiInstallReminderSeen';
+const MINGJI_DIVINATION_LOADING_VIDEO = '/mingji-divination-loading.mp4';
 
 function normalizeChatMessageContent(value, fallback = '') {
   if (typeof value === 'string') return value;
@@ -37,6 +39,30 @@ function normalizeChatMessageContent(value, fallback = '') {
   } catch {
     return fallback;
   }
+}
+
+function getDivinationSceneLabel(sceneType) {
+  return DIVINATION_SCENE_OPTIONS.find((item) => item.key === sceneType)?.label || '当前这件事';
+}
+
+function buildLikelyConcernPreview(sceneType, question = '') {
+  const questionText = `${question || ''}`.trim();
+  if (questionText) {
+    if (sceneType === 'career') return '你更可能真正想问的，不只是能不能成，而是现在该不该继续推，还是先收主线。';
+    if (sceneType === 'wealth') return '你更可能真正想问的，不只是有没有财，而是这笔钱、这份约，当下到底稳不稳。';
+    if (sceneType === 'relationship') return '你更可能真正想问的，不只是对方怎么想，而是你现在该主动、该稳住，还是该先退一步。';
+    if (sceneType === 'communication') return '你更可能真正想问的，不只是要不要发，而是这次表达会不会被接住，会不会越说越乱。';
+    if (sceneType === 'travel') return '你更可能真正想问的，不只是去不去，而是这一趟值不值、顺不顺、有没有必要现在就动。';
+  }
+  return `还没正式起卦前，明己会先按“${getDivinationSceneLabel(sceneType)}”这条线替你收焦，不让问题散掉。`;
+}
+
+function formatDivinationTimeNote(engineResult) {
+  const ctx = engineResult?.eventContext || {};
+  if (!ctx.localMonth || !ctx.localDay || !ctx.timeBranch) {
+    return '这一卦会按你起卦当下的月、日、时来断，先看眼前的势，再看现在该怎么动。';
+  }
+  return `这次起卦取的是当下时点：${ctx.localMonth}月${ctx.localDay}日 · ${ctx.timeBranch}时。小六壬先看眼前这股势，再看这件事现在宜怎么动、忌怎么碰。`;
 }
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -147,6 +173,7 @@ const MOOD_OPTIONS = [
 ];
 
 const SMART_TOOL_META = {
+  divination: { label: '明己一卦', hint: '用小六壬看当前这件事的势、时机与宜忌', accent: '#7FB4FF', icon: '◈' },
   weekly: { label: '本周安排', hint: '五张行动卡集中查看', accent: '#D7B765', icon: '≋' },
   emotion: { label: '情绪洞察', hint: '记录今天的情绪并获得 AI 分析', accent: '#7FCFBD', icon: '◌' },
   decision: { label: '决策辅助', hint: '把复杂选择拆开再看', accent: '#8FB7FF', icon: '△' },
@@ -154,6 +181,15 @@ const SMART_TOOL_META = {
   reflection: { label: '自我反思', hint: '补充观察并生成新的摘要方向', accent: '#A78BFA', icon: '◐' },
   bridge: { label: '龙虾接口', hint: '预留接入口，后续可扩展', accent: '#FF9F7A', icon: '∞' },
 };
+
+const DIVINATION_SCENE_OPTIONS = [
+  { key: 'career', label: '事业' },
+  { key: 'wealth', label: '财与签约' },
+  { key: 'relationship', label: '关系' },
+  { key: 'communication', label: '沟通' },
+  { key: 'travel', label: '出行' },
+  { key: 'decision', label: '决策' },
+];
 
 const CALENDAR_NOTE_TYPES = [
   { key: 'todo', label: '待办' },
@@ -2351,10 +2387,19 @@ function SmartToolPage(props) {
   const [emotionInsight, setEmotionInsight] = useState('');
   const [decisionDraft, setDecisionDraft] = useState({ situation: '', options: '', nextStep: '' });
   const [decisionInsight, setDecisionInsight] = useState('');
+  const [divinationDraft, setDivinationDraft] = useState({ sceneType: 'decision', question: '' });
+  const [divinationInsight, setDivinationInsight] = useState(null);
+  const [divinationLoadingReady, setDivinationLoadingReady] = useState(false);
   const [growthInsight, setGrowthInsight] = useState('');
   const [reflectionInsight, setReflectionInsight] = useState('');
   const [expandedWeeklyKey, setExpandedWeeklyKey] = useState('work');
   const [toolFeedback, setToolFeedback] = useState({ tone: 'idle', text: '' });
+  const divinationVideoRef = useRef(null);
+  const divinationReadyOpacity = useRef(new Animated.Value(0)).current;
+  const divinationHeroOpacity = useRef(new Animated.Value(0)).current;
+  const divinationHeroTranslate = useRef(new Animated.Value(10)).current;
+  const divinationBodyOpacity = useRef(new Animated.Value(0)).current;
+  const divinationBodyTranslate = useRef(new Animated.Value(14)).current;
   const answered = Object.values(followUpAnswers || {}).filter((item) => `${item || ''}`.trim()).length;
   const totalQuestions = (followUpQuestions || []).length || 3;
   const activeMood = MOOD_OPTIONS.find((item) => item.key === selectedMood) || MOOD_OPTIONS[0];
@@ -2364,7 +2409,46 @@ function SmartToolPage(props) {
 
   useEffect(() => {
     setToolFeedback({ tone: 'idle', text: '' });
+    setDivinationLoadingReady(false);
+    divinationReadyOpacity.setValue(0);
   }, [toolKey]);
+
+  useEffect(() => {
+    divinationHeroOpacity.setValue(0);
+    divinationHeroTranslate.setValue(10);
+    divinationBodyOpacity.setValue(0);
+    divinationBodyTranslate.setValue(14);
+
+    if (!divinationInsight?.engineResult) return;
+
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(divinationHeroOpacity, {
+          toValue: 1,
+          duration: 320,
+          useNativeDriver: true,
+        }),
+        Animated.timing(divinationHeroTranslate, {
+          toValue: 0,
+          duration: 320,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.delay(120),
+      Animated.parallel([
+        Animated.timing(divinationBodyOpacity, {
+          toValue: 1,
+          duration: 360,
+          useNativeDriver: true,
+        }),
+        Animated.timing(divinationBodyTranslate, {
+          toValue: 0,
+          duration: 360,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, [divinationInsight, divinationBodyOpacity, divinationBodyTranslate, divinationHeroOpacity, divinationHeroTranslate]);
 
   const swipeResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
@@ -2530,6 +2614,157 @@ function SmartToolPage(props) {
               />
             ))}
           </Card>
+        ) : null}
+
+        {toolKey === 'divination' ? (
+          <>
+            <Card>
+              <SectionHeader eyebrow={'明己一卦'} title={'小六壬断事'} body={'不是看一整年，而是专断眼前这件事。先定场景，再把问题收焦，最后按起卦当下的时点断势。'} />
+              <View style={s.moodChipRow}>
+                {DIVINATION_SCENE_OPTIONS.map((item) => {
+                  const active = item.key === divinationDraft.sceneType;
+                  return (
+                    <TouchableOpacity
+                      key={item.key}
+                      onPress={() => setDivinationDraft((prev) => ({ ...prev, sceneType: item.key }))}
+                      style={[s.moodChip, active && { borderColor: meta.accent, backgroundColor: `${meta.accent}18` }]}
+                    >
+                      <Text style={[s.moodChipText, active && { color: meta.accent }]}>{item.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <View style={s.divinationPreviewCard}>
+                <Text style={s.divinationPreviewLabel}>{'你更可能真正想问的是'}</Text>
+                <Text style={s.divinationPreviewText}>{buildLikelyConcernPreview(divinationDraft.sceneType, divinationDraft.question)}</Text>
+              </View>
+              <View style={s.questionBlock}>
+                <Text style={s.questionText}>当前想问的事</Text>
+                <TextInput
+                  value={divinationDraft.question}
+                  onChangeText={(value) => setDivinationDraft((prev) => ({ ...prev, question: value }))}
+                  style={s.answerInput}
+                  multiline
+                  placeholder={'例如：这周要不要主动联系对方？这个合作现在推会不会太急？'}
+                />
+              </View>
+              <View style={s.divinationTimeCard}>
+                <Text style={s.divinationTimeLabel}>{'起卦时间说明'}</Text>
+                <Text style={s.divinationTimeText}>{'明己一卦看的是当下这口气，所以会按你此刻起卦的月、日、时来断，不拿旧时点替代现在。'}</Text>
+              </View>
+              {renderToolActionButton('起一卦，让明己断这件事', async () => {
+                setDivinationLoadingReady(false);
+                divinationReadyOpacity.setValue(0);
+                const output = await runAITool(async () => {
+                  const payload = await aiMingJiDivination(
+                    divinationDraft.question || '',
+                    divinationDraft.sceneType,
+                    result,
+                    { isPremium, memberTier: isPremium ? 'premium' : 'free', profile }
+                  );
+                  return payload;
+                });
+                if (output) setDivinationInsight(output);
+              }, '起卦中…')}
+              {toolLoading ? (
+                <View style={s.divinationLoadingCard}>
+                  <View style={s.divinationLoadingAura} />
+                  <View style={s.divinationLoadingOrbitOuter} />
+                  <View style={s.divinationLoadingOrbitInner} />
+                  <View style={s.divinationLoadingSymbolWrap}>
+                    <Video
+                      ref={divinationVideoRef}
+                      source={{ uri: MINGJI_DIVINATION_LOADING_VIDEO }}
+                      style={s.divinationLoadingVideo}
+                      resizeMode="contain"
+                      shouldPlay
+                      isLooping={false}
+                      isMuted
+                      useNativeControls={false}
+                      onPlaybackStatusUpdate={async (status) => {
+                        if (!status?.isLoaded || !status?.didJustFinish) return;
+                        setDivinationLoadingReady(true);
+                        Animated.timing(divinationReadyOpacity, {
+                          toValue: 1,
+                          duration: 420,
+                          useNativeDriver: true,
+                        }).start();
+                        try {
+                          const freezeAt = Math.max(0, Number(status.durationMillis || 0) - 80);
+                          await divinationVideoRef.current?.setPositionAsync(freezeAt);
+                          await divinationVideoRef.current?.pauseAsync();
+                        } catch {}
+                      }}
+                    />
+                    <View pointerEvents="none" style={s.divinationLoadingVideoFallback}>
+                      <View style={s.divinationLoadingSymbolBox}>
+                        <Text style={s.divinationLoadingSymbolText}>{'◈'}</Text>
+                      </View>
+                    </View>
+                  </View>
+                  {!divinationLoadingReady ? <Text style={s.divinationLoadingTitle}>{'掐指起卦中'}</Text> : null}
+                  {!divinationLoadingReady ? (
+                    <Text style={s.divinationLoadingBody}>{'明己正在按当下时点起主宫与辅宫，先定这件事眼前是稳、拖、快、争、顺还是空。'}</Text>
+                  ) : null}
+                  {divinationLoadingReady ? (
+                    <Animated.View style={[s.divinationReadyWrap, { opacity: divinationReadyOpacity }]}>
+                      <Text style={s.divinationReadyTitle}>{'卦象已成'}</Text>
+                      <Text style={s.divinationReadyText}>{'明己正在断事。请稍候片刻，这一卦马上就会落到你眼前。'}</Text>
+                    </Animated.View>
+                  ) : null}
+                </View>
+              ) : null}
+            </Card>
+            {divinationInsight?.engineResult ? (
+              <>
+                <Animated.View
+                  style={{
+                    opacity: divinationHeroOpacity,
+                    transform: [{ translateY: divinationHeroTranslate }],
+                  }}
+                >
+                  <Card style={s.divinationResultHero}>
+                  <Text style={s.divinationResultEyebrow}>{divinationInsight.engineResult.sceneName || '当前这件事'}</Text>
+                  <Text style={s.divinationResultTitle}>
+                    {`主宫 ${divinationInsight.engineResult.mainPalace?.palace_name || '--'}${divinationInsight.engineResult.secondaryPalace?.palace_name ? ` · 辅宫 ${divinationInsight.engineResult.secondaryPalace.palace_name}` : ''}`}
+                  </Text>
+                  <Text style={s.divinationResultBody}>{divinationInsight.engineResult.summary || '这一卦已起出，但短断尚未生成。'}</Text>
+                  <View style={s.divinationTagRow}>
+                    {(divinationInsight.engineResult.recommended || []).slice(0, 4).map((item, index) => (
+                      <View key={`${item}-${index}`} style={s.divinationTag}>
+                        <Text style={s.divinationTagText}>{`宜 ${item}`}</Text>
+                      </View>
+                    ))}
+                    {(divinationInsight.engineResult.avoid || []).slice(0, 3).map((item, index) => (
+                      <View key={`${item}-${index}-avoid`} style={[s.divinationTag, s.divinationTagAvoid]}>
+                        <Text style={[s.divinationTagText, s.divinationTagAvoidText]}>{`忌 ${item}`}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  </Card>
+                </Animated.View>
+                <Animated.View
+                  style={{
+                    opacity: divinationBodyOpacity,
+                    transform: [{ translateY: divinationBodyTranslate }],
+                  }}
+                >
+                  <Card>
+                    <SectionHeader eyebrow={'起卦时点'} title={'这一卦是按什么时间断的'} />
+                    <Text style={s.toolResultText}>{formatDivinationTimeNote(divinationInsight.engineResult)}</Text>
+                  </Card>
+                  <Card>
+                    <SectionHeader eyebrow={'明己先替你点题'} title={'你更可能真正卡住的是'} />
+                    <Text style={s.toolResultText}>{divinationInsight.engineResult.likelyConcern || buildLikelyConcernPreview(divinationDraft.sceneType, divinationDraft.question)}</Text>
+                  </Card>
+                  <Card>
+                    <SectionHeader eyebrow={'正式断语'} title={'明己怎么讲这件事'} />
+                    {divinationInsight.text ? <Text style={s.toolResultText}>{divinationInsight.text}</Text> : <Text style={s.toolResultText}>{'这次起卦已完成，但明己的完整断语还没有返回。'}</Text>}
+                  </Card>
+                </Animated.View>
+              </>
+            ) : null}
+          </>
         ) : null}
 
         {toolKey === 'emotion' ? (
@@ -3002,6 +3237,40 @@ function HomeTab(props) {
         <View style={s.aiEntryFooter}>
           <View style={s.aiEntryActionPill}>
             <Text style={s.aiEntryAction}>{hasRegisteredProfile ? '开始对话' : '先去建立资料'}</Text>
+            <Text style={s.aiEntryArrow}>{'→'}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => {
+          if (!hasRegisteredProfile) {
+            onRecalculate?.();
+            return;
+          }
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          setActiveToolPage('divination');
+        }}
+        style={[s.aiEntryButton, s.divinationEntryButton, !hasRegisteredProfile && s.aiEntryButtonLocked]}
+        activeOpacity={0.94}
+      >
+        <View style={[s.aiEntryAura, s.divinationEntryAura]} />
+        <View style={[s.aiEntryAuraSecondary, s.divinationEntryAuraSecondary]} />
+        <View style={[s.aiEntryOrbitLarge, s.divinationEntryOrbitLarge]} />
+        <View style={[s.aiEntryOrbitSmall, s.divinationEntryOrbitSmall]} />
+        <View style={s.aiEntryTopRow}>
+          <View style={[s.aiEntryIconWrap, s.divinationEntryIconWrap]}>
+            <Text style={s.aiEntryIcon}>{'◈'}</Text>
+          </View>
+          <View style={[s.aiEntryMetaPill, s.divinationEntryMetaPill]}>
+            <Text style={s.aiEntryMetaPillText}>{hasRegisteredProfile ? '起一卦看当下' : '需先填完整资料'}</Text>
+          </View>
+        </View>
+        <Text style={s.aiEntryText}>{'明己一卦'}</Text>
+        <Text style={s.aiEntrySubline}>{'小六壬断眼前 / 先看势 / 再看机'}</Text>
+        <Text style={s.aiEntryBody}>{hasRegisteredProfile ? '适合问当下这件事该不该动、该往哪边推、哪里最容易卡住。先起主断，再由明己把这一卦讲透。' : '一样需要先建立完整资料。这样起卦后的提醒，才会更贴着你的命盘和近期状态。'}</Text>
+        <View style={s.aiEntryFooter}>
+          <View style={[s.aiEntryActionPill, s.divinationEntryActionPill]}>
+            <Text style={s.aiEntryAction}>{hasRegisteredProfile ? '进入明己一卦' : '先去建立资料'}</Text>
             <Text style={s.aiEntryArrow}>{'→'}</Text>
           </View>
         </View>
@@ -4601,20 +4870,28 @@ const s = StyleSheet.create({
   topButtonText: { fontSize: 13, fontWeight: '700', color: C.logoDeep },
   aiEntryButton: { marginTop: 10, minHeight: 336, borderRadius: 32, backgroundColor: C.logoNight, borderWidth: 1, borderColor: 'rgba(234,245,241,0.10)', marginBottom: 12, paddingHorizontal: 22, paddingVertical: 22, overflow: 'hidden', shadowColor: '#071018', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.20, shadowRadius: 30, elevation: 7, justifyContent: 'space-between' },
   aiEntryButtonLocked: { opacity: 0.94, borderColor: 'rgba(228,211,157,0.18)' },
+  divinationEntryButton: { minHeight: 248, backgroundColor: '#10223F', borderColor: 'rgba(179,211,255,0.14)' },
   aiEntryAura: { position: 'absolute', width: 230, height: 230, borderRadius: 999, top: -92, right: -28, backgroundColor: C.logoGlow },
   aiEntryAuraSecondary: { position: 'absolute', width: 260, height: 260, borderRadius: 999, bottom: -140, left: -70, backgroundColor: 'rgba(240,230,185,0.12)' },
   aiEntryOrbitLarge: { position: 'absolute', width: 246, height: 246, borderRadius: 999, top: -84, right: -16, borderWidth: 1, borderColor: 'rgba(169,222,208,0.16)' },
   aiEntryOrbitSmall: { position: 'absolute', width: 152, height: 152, borderRadius: 999, bottom: 20, right: 18, borderWidth: 1, borderColor: 'rgba(240,230,185,0.14)' },
+  divinationEntryAura: { backgroundColor: 'rgba(127,180,255,0.20)' },
+  divinationEntryAuraSecondary: { backgroundColor: 'rgba(141,174,255,0.12)' },
+  divinationEntryOrbitLarge: { borderColor: 'rgba(170,212,255,0.18)' },
+  divinationEntryOrbitSmall: { borderColor: 'rgba(205,222,255,0.12)' },
   aiEntryTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   aiEntryIconWrap: { width: 46, height: 46, borderRadius: 17, backgroundColor: 'rgba(234,245,241,0.10)', borderWidth: 1, borderColor: 'rgba(234,245,241,0.18)', alignItems: 'center', justifyContent: 'center' },
+  divinationEntryIconWrap: { backgroundColor: 'rgba(196,222,255,0.12)', borderColor: 'rgba(196,222,255,0.22)' },
   aiEntryIcon: { fontSize: 18, color: C.logoMist },
   aiEntryMetaPill: { minHeight: 30, borderRadius: 999, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,222,208,0.12)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.18)' },
+  divinationEntryMetaPill: { backgroundColor: 'rgba(127,180,255,0.14)', borderColor: 'rgba(127,180,255,0.24)' },
   aiEntryMetaPillText: { fontSize: 11, fontWeight: '700', color: 'rgba(234,245,241,0.86)' },
   aiEntryText: { fontSize: 34, lineHeight: 40, color: C.logoMist, fontWeight: '800', marginTop: 20, letterSpacing: -0.6, maxWidth: '76%' },
   aiEntrySubline: { fontSize: 13, lineHeight: 19, color: 'rgba(240,230,185,0.74)', marginTop: 10, fontWeight: '700' },
   aiEntryBody: { fontSize: 15, lineHeight: 24, color: 'rgba(234,245,241,0.76)', marginTop: 14, maxWidth: '86%' },
   aiEntryFooter: { marginTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
   aiEntryActionPill: { minHeight: 42, borderRadius: 999, paddingHorizontal: 14, backgroundColor: 'rgba(234,245,241,0.12)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.26)', flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: '#78D4BC', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  divinationEntryActionPill: { backgroundColor: 'rgba(214,231,255,0.14)', borderColor: 'rgba(179,211,255,0.28)' },
   aiEntryAction: { fontSize: 14, fontWeight: '700', color: C.logoMint },
   aiEntryArrow: { fontSize: 18, fontWeight: '800', color: C.logoMint },
   pwaInstallCard: { borderRadius: 24, backgroundColor: 'rgba(11,16,32,0.94)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.14)', paddingHorizontal: 18, paddingVertical: 18, marginTop: -2, marginBottom: 12, shadowColor: '#08111D', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 4, gap: 14 },
@@ -4705,6 +4982,37 @@ const s = StyleSheet.create({
   toolDetailPanel: { marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.line },
   toolDetailTitle: { fontSize: 16, fontWeight: '800', color: C.ink, marginBottom: 12 },
   toolResultText: { fontSize: 14, lineHeight: 22, color: C.ink, marginTop: 12, padding: 14, borderRadius: 16, backgroundColor: 'rgba(118,118,128,0.08)' },
+  divinationSummaryCard: { marginTop: 12, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(127,180,255,0.24)', backgroundColor: 'rgba(127,180,255,0.08)', padding: 14 },
+  divinationSummaryTitle: { fontSize: 15, fontWeight: '800', color: C.ink },
+  divinationPreviewCard: { marginBottom: 12, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(127,180,255,0.20)', backgroundColor: 'rgba(127,180,255,0.08)', padding: 14 },
+  divinationPreviewLabel: { fontSize: 12, fontWeight: '800', color: '#40679E', marginBottom: 6 },
+  divinationPreviewText: { fontSize: 14, lineHeight: 22, color: C.ink, fontWeight: '600' },
+  divinationTimeCard: { marginTop: 2, marginBottom: 2, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(214,180,102,0.22)', backgroundColor: 'rgba(214,180,102,0.08)', padding: 14 },
+  divinationTimeLabel: { fontSize: 12, fontWeight: '800', color: '#8D6414', marginBottom: 6 },
+  divinationTimeText: { fontSize: 13, lineHeight: 20, color: C.soft, fontWeight: '600' },
+  divinationLoadingCard: { marginTop: 14, minHeight: 280, borderRadius: 24, backgroundColor: '#10223F', borderWidth: 1, borderColor: 'rgba(179,211,255,0.14)', padding: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  divinationLoadingAura: { position: 'absolute', width: 220, height: 220, borderRadius: 999, top: -84, right: -26, backgroundColor: 'rgba(127,180,255,0.16)' },
+  divinationLoadingOrbitOuter: { position: 'absolute', width: 190, height: 190, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(196,222,255,0.18)' },
+  divinationLoadingOrbitInner: { position: 'absolute', width: 138, height: 138, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(234,245,241,0.18)' },
+  divinationLoadingSymbolWrap: { width: 148, height: 148, borderRadius: 28, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(234,245,241,0.18)', backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
+  divinationLoadingVideo: { width: 132, height: 132, borderRadius: 24 },
+  divinationLoadingVideoFallback: { position: 'absolute', width: 132, height: 132, alignItems: 'center', justifyContent: 'center', opacity: 0.16 },
+  divinationLoadingSymbolBox: { width: 62, height: 62, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(234,245,241,0.18)', backgroundColor: 'rgba(234,245,241,0.08)', alignItems: 'center', justifyContent: 'center' },
+  divinationLoadingSymbolText: { fontSize: 28, fontWeight: '800', color: '#EAF5F1' },
+  divinationLoadingTitle: { fontSize: 22, lineHeight: 28, fontWeight: '800', color: '#F1F7FF' },
+  divinationLoadingBody: { fontSize: 13, lineHeight: 20, color: 'rgba(241,247,255,0.74)', textAlign: 'center', marginTop: 10, maxWidth: 280 },
+  divinationReadyWrap: { marginTop: 12, alignItems: 'center' },
+  divinationReadyTitle: { fontSize: 18, lineHeight: 24, fontWeight: '800', color: '#F5E9BC' },
+  divinationReadyText: { fontSize: 13, lineHeight: 20, color: 'rgba(241,247,255,0.78)', textAlign: 'center', marginTop: 8, maxWidth: 280 },
+  divinationResultHero: { backgroundColor: '#0F213D', borderColor: 'rgba(179,211,255,0.14)', padding: 18, overflow: 'hidden' },
+  divinationResultEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(214,230,255,0.72)' },
+  divinationResultTitle: { fontSize: 28, lineHeight: 34, color: '#F1F7FF', fontWeight: '800', marginTop: 10, maxWidth: '84%' },
+  divinationResultBody: { fontSize: 15, lineHeight: 24, color: 'rgba(241,247,255,0.80)', marginTop: 12, fontWeight: '600' },
+  divinationTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  divinationTag: { minHeight: 30, paddingHorizontal: 10, borderRadius: 999, backgroundColor: 'rgba(82,183,136,0.12)', borderWidth: 1, borderColor: 'rgba(82,183,136,0.20)', justifyContent: 'center' },
+  divinationTagText: { fontSize: 12, fontWeight: '700', color: '#198754' },
+  divinationTagAvoid: { backgroundColor: 'rgba(255,159,10,0.12)', borderColor: 'rgba(255,159,10,0.20)' },
+  divinationTagAvoidText: { color: '#B06B00' },
   moodChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   moodChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: C.line, backgroundColor: '#FFF' },
   moodChipText: { fontSize: 13, fontWeight: '700', color: C.ink },

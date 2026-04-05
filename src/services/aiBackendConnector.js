@@ -157,6 +157,41 @@ export async function requestAIReadingFromBackend({
   return requestWithRetry(endpoint, requestBody, { authToken, signingSecret, retryCount, retryDelayMs });
 }
 
+export async function requestXiaoLiuRenFromBackend({
+  question,
+  chart,
+  profile,
+  userKey,
+  sceneType,
+  mode = 'current',
+  eventDateTime,
+  timezoneOffsetMinutes,
+  engineVersion = 'v1.1',
+  model = 'gpt-4o-mini',
+  memberTier = 'free',
+}) {
+  const { baseUrl, authToken, signingSecret, retryCount, retryDelayMs } = getAIBackendConfig();
+  if (!baseUrl) {
+    throw new Error('Missing backend URL. Fill expo.extra.aiBackendUrl in app.json.');
+  }
+
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/api/ai/xiao-liu-ren`;
+  const requestBody = JSON.stringify({
+    question,
+    chart,
+    profile,
+    userKey,
+    sceneType,
+    mode,
+    eventDateTime,
+    timezoneOffsetMinutes,
+    engineVersion,
+    model,
+    memberTier,
+  });
+  return requestWithRetry(endpoint, requestBody, { authToken, signingSecret, retryCount, retryDelayMs });
+}
+
 export async function requestAIQuotaStatusFromBackend({ chart, profile, userKey }) {
   const { baseUrl, authToken } = getAIBackendConfig();
   if (!baseUrl) {

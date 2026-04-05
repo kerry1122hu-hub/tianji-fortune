@@ -3,6 +3,7 @@ import {
   hasAIBackendConfig,
   requestAIChatFromBackend,
   requestAIReadingFromBackend,
+  requestXiaoLiuRenFromBackend,
   requestAITranscriptionFromBackend,
   requestAIQuotaStatusFromBackend,
 } from '../services/aiBackendConnector';
@@ -2014,6 +2015,29 @@ export async function aiRelationshipInsight(situation, baziResult, options = {})
     memberTier: resolveMemberTier(options),
     userKey: options.userKey,
   });
+}
+
+export async function aiMingJiDivination(question, sceneType, baziResult, options = {}) {
+  const structuredProfile = buildStructuredProfile(baziResult, options.profile);
+
+  if (hasAIBackendConfig()) {
+    const payload = await requestXiaoLiuRenFromBackend({
+      question,
+      chart: baziResult,
+      profile: structuredProfile,
+      userKey: options.userKey,
+      sceneType,
+      mode: options.mode || 'current',
+      eventDateTime: options.eventDateTime || new Date().toISOString(),
+      timezoneOffsetMinutes: options.timezoneOffsetMinutes ?? -new Date().getTimezoneOffset(),
+      engineVersion: options.engineVersion || 'v1.1',
+      model: options.model || DEFAULT_MODEL,
+      memberTier: resolveMemberTier(options),
+    });
+    return payload?.data || payload || {};
+  }
+
+  throw new Error('明己一卦需要连接后端服务后才能使用。');
 }
 
 export async function transcribeVoiceInput(uri, options = {}) {
