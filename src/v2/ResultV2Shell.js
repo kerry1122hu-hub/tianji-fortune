@@ -48,13 +48,74 @@ function getDivinationSceneLabel(sceneType) {
 function buildLikelyConcernPreview(sceneType, question = '') {
   const questionText = `${question || ''}`.trim();
   if (questionText) {
-    if (sceneType === 'career') return '你更可能真正想问的，不只是能不能成，而是现在该不该继续推，还是先收主线。';
-    if (sceneType === 'wealth') return '你更可能真正想问的，不只是有没有财，而是这笔钱、这份约，当下到底稳不稳。';
-    if (sceneType === 'relationship') return '你更可能真正想问的，不只是对方怎么想，而是你现在该主动、该稳住，还是该先退一步。';
-    if (sceneType === 'communication') return '你更可能真正想问的，不只是要不要发，而是这次表达会不会被接住，会不会越说越乱。';
-    if (sceneType === 'travel') return '你更可能真正想问的，不只是去不去，而是这一趟值不值、顺不顺、有没有必要现在就动。';
+    if (sceneType === 'career') return '你更可能真正想问的，不只是这条职业路能不能走，而是现在该不该继续推，还是先稳住主线。';
+    if (sceneType === 'wealth') return '你更可能真正想问的，不只是有没有财，而是这笔交易、这份往来，当下到底稳不稳。';
+    if (sceneType === 'relationship') return '你更可能真正想问的，不只是对方怎么想，而是这段关系里你现在该主动、该稳住，还是该先退一步。';
+    if (sceneType === 'communication') return '你更可能真正想问的，不只是能不能找到，而是线索够不够、方向对不对、现在该往哪里追。';
+    if (sceneType === 'travel') return '你更可能真正想问的，不只是去不去，而是身体状态和这趟行程眼下顺不顺、值不值得现在动。';
   }
   return `还没正式起卦前，明己会先按“${getDivinationSceneLabel(sceneType)}”这条线替你收焦，不让问题散掉。`;
+}
+
+function getDivinationQuestionPlaceholder(sceneType) {
+  if (sceneType === 'wealth') return '例如：这笔交易现在谈合适吗？这笔钱能不能顺利回款？';
+  if (sceneType === 'career') return '例如：这个岗位要不要接？这个项目这周该不该继续推进？';
+  if (sceneType === 'relationship') return '例如：我要不要主动联系他？这段关系现在该推进还是先缓一缓？';
+  if (sceneType === 'travel') return '例如：我这两天适不适合出门办事？这趟行程会不会白跑？';
+  if (sceneType === 'communication') return '例如：这个人现在找不找得到？这件东西还能不能寻回来？';
+  return '例如：把眼前最想问的这件事写清楚，让明己先替你断一卦。';
+}
+
+function getDivinationComposerHint(sceneType) {
+  if (sceneType === 'wealth') return '把交易、付款、回款或合作收焦到一件事上，明己会先断这笔财眼前是稳、拖、快还是空。';
+  if (sceneType === 'career') return '把职业、项目或工作节点收焦到一件事上，明己会先断这一步该推、该守，还是该先缓。';
+  if (sceneType === 'relationship') return '把关系里最卡的一点写清楚，明己会先断这段人际眼前是顺、争、拖，还是空。';
+  if (sceneType === 'travel') return '把身体状态或这趟出行收焦到一个问题上，明己会先断现在动身是顺、阻，还是容易白跑。';
+  if (sceneType === 'communication') return '把要寻的人或物写具体一点，明己会先断线索眼前是有回音、拖着找，还是容易扑空。';
+  return '把问题收焦到眼前这件事，明己会按起卦当下的时点替你先断势，再讲该怎么动。';
+}
+
+function getDivinationResultTitle(sceneType, engineResult) {
+  const mainPalace = engineResult?.mainPalace?.palace_name || '--';
+  const secondaryPalace = engineResult?.secondaryPalace?.palace_name;
+  const palaceLine = secondaryPalace ? `主宫 ${mainPalace} · 辅宫 ${secondaryPalace}` : `主宫 ${mainPalace}`;
+
+  if (sceneType === 'wealth') return `${palaceLine} · 财路眼前怎么走`;
+  if (sceneType === 'career') return `${palaceLine} · 这步职业路怎么推`;
+  if (sceneType === 'relationship') return `${palaceLine} · 这段关系眼前怎么动`;
+  if (sceneType === 'travel') return `${palaceLine} · 这趟出行与状态怎么看`;
+  if (sceneType === 'communication') return `${palaceLine} · 线索眼前往哪边追`;
+  return palaceLine;
+}
+
+function getDivinationResultLead(sceneType, engineResult) {
+  const summary = engineResult?.summary || '这一卦已起出，但短断尚未生成。';
+  if (sceneType === 'wealth') return `这一卦先看财势与交易气口：${summary}`;
+  if (sceneType === 'career') return `这一卦先看事业与职业节奏：${summary}`;
+  if (sceneType === 'relationship') return `这一卦先看关系里的顺、拖、争、空：${summary}`;
+  if (sceneType === 'travel') return `这一卦先看身体状态与这趟行程值不值得动：${summary}`;
+  if (sceneType === 'communication') return `这一卦先看寻人寻物的线索有没有回音：${summary}`;
+  return summary;
+}
+
+function getDivinationFormalTitle(sceneType) {
+  if (sceneType === 'wealth') return '明己怎么断这笔财与这桩交易';
+  if (sceneType === 'career') return '明己怎么断这步事业与职业变化';
+  if (sceneType === 'relationship') return '明己怎么断这段关系的推进与分寸';
+  if (sceneType === 'travel') return '明己怎么断这趟出行与身体状态';
+  if (sceneType === 'communication') return '明己怎么断这次寻人寻物的线索';
+  return '明己怎么讲这件事';
+}
+
+function buildDivinationFormalLead(sceneType, text = '') {
+  const normalized = `${text || ''}`.trim();
+  if (!normalized) return '';
+  if (sceneType === 'wealth') return `先从财路与交易气口看，这一卦更像是：${normalized}`;
+  if (sceneType === 'career') return `先从职业走势与这一步该不该推看，这一卦更像是：${normalized}`;
+  if (sceneType === 'relationship') return `先从关系分寸与眼前推进方式看，这一卦更像是：${normalized}`;
+  if (sceneType === 'travel') return `先从出行顺逆与身体承受度看，这一卦更像是：${normalized}`;
+  if (sceneType === 'communication') return `先从线索、方向与回音快慢看，这一卦更像是：${normalized}`;
+  return normalized;
 }
 
 function formatDivinationTimeNote(engineResult) {
@@ -183,12 +244,11 @@ const SMART_TOOL_META = {
 };
 
 const DIVINATION_SCENE_OPTIONS = [
-  { key: 'career', label: '事业' },
-  { key: 'wealth', label: '财与签约' },
-  { key: 'relationship', label: '关系' },
-  { key: 'communication', label: '沟通' },
-  { key: 'travel', label: '出行' },
-  { key: 'decision', label: '决策' },
+  { key: 'wealth', label: '财运/交易' },
+  { key: 'career', label: '事业/职业' },
+  { key: 'relationship', label: '感情/人际' },
+  { key: 'travel', label: '健康/出行' },
+  { key: 'communication', label: '寻人/寻物' },
 ];
 
 const CALENDAR_NOTE_TYPES = [
@@ -2387,7 +2447,7 @@ function SmartToolPage(props) {
   const [emotionInsight, setEmotionInsight] = useState('');
   const [decisionDraft, setDecisionDraft] = useState({ situation: '', options: '', nextStep: '' });
   const [decisionInsight, setDecisionInsight] = useState('');
-  const [divinationDraft, setDivinationDraft] = useState({ sceneType: 'decision', question: '' });
+  const [divinationDraft, setDivinationDraft] = useState({ sceneType: 'wealth', question: '' });
   const [divinationInsight, setDivinationInsight] = useState(null);
   const [divinationLoadingReady, setDivinationLoadingReady] = useState(false);
   const [growthInsight, setGrowthInsight] = useState('');
@@ -2472,32 +2532,42 @@ function SmartToolPage(props) {
     },
   }), [onBack]);
 
-    const runAITool = async (runner) => {
+    const runAITool = async (runner, options = {}) => {
+      const {
+        bypassQuota = false,
+        loadingText = '正在生成更贴合你的内容…',
+        successText = '已生成新的智能反馈，可继续调整内容再试一次。',
+        exhaustedText = '今日免费次数已用完，可开通会员继续使用 AI。',
+      } = options;
       const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile };
-      try {
-        const allowed = await canUseAI(quotaArgs);
-        if (!allowed) {
-          setToolFeedback({ tone: 'warning', text: `今日免费次数已用完${isPremium ? '' : '，可开通会员继续使用 AI。'}` });
-          await onRefreshAIQuota?.();
-          return null;
+      if (!bypassQuota) {
+        try {
+          const allowed = await canUseAI(quotaArgs);
+          if (!allowed) {
+            setToolFeedback({ tone: 'warning', text: exhaustedText });
+            await onRefreshAIQuota?.();
+            return null;
+          }
+        } catch (error) {
+          console.warn('AI quota precheck warning:', error?.message || error);
         }
-      } catch (error) {
-        console.warn('AI quota precheck warning:', error?.message || error);
       }
-    setToolFeedback({ tone: 'loading', text: '正在生成更贴合你的内容…' });
+    setToolFeedback({ tone: 'loading', text: loadingText });
     setToolLoading(true);
     try {
-      await incrementUsage(quotaArgs);
+      if (!bypassQuota) {
+        await incrementUsage(quotaArgs);
+      }
       const output = await runner();
       await onRefreshAIQuota?.();
-      setToolFeedback({ tone: 'success', text: '已生成新的智能反馈，可继续调整内容再试一次。' });
+      setToolFeedback({ tone: 'success', text: successText });
       return output;
     } catch (error) {
       try {
         await onRefreshAIQuota?.();
       } catch {}
-      if (error?.code === 'AI_QUOTA_EXCEEDED') {
-        setToolFeedback({ tone: 'warning', text: '今日免费次数已用完，可开通会员继续使用 AI。' });
+      if (!bypassQuota && error?.code === 'AI_QUOTA_EXCEEDED') {
+        setToolFeedback({ tone: 'warning', text: exhaustedText });
         return null;
       }
       setToolFeedback({ tone: 'warning', text: '这次生成没有成功，请检查网络后再试。' });
@@ -2507,10 +2577,12 @@ function SmartToolPage(props) {
     }
   };
 
-  const renderToolActionButton = (label, onPress, loadingLabel) => (
+  const renderToolActionButton = (label, onPress, loadingLabel, options = {}) => {
+    const quotaLocked = !options.ignoreQuotaLock && !isPremium && !aiAllowed;
+    return (
     <>
       <TouchableOpacity
-        style={[s.primaryButton, s.toolActionButton, (!aiAllowed || toolLoading) && { opacity: 0.6 }]}
+        style={[s.primaryButton, s.toolActionButton, (quotaLocked || toolLoading) && { opacity: 0.6 }]}
         onPress={onPress}
         activeOpacity={0.92}
       >
@@ -2525,13 +2597,14 @@ function SmartToolPage(props) {
             <Text style={[s.toolFeedbackText, { color: feedbackToneColor }]}>{toolFeedback.text}</Text>
           </View>
         ) : null}
-        {!isPremium && !aiAllowed ? (
+        {quotaLocked ? (
           <TouchableOpacity style={s.toolQuotaButton} onPress={onOpenPaywall}>
             <Text style={s.toolQuotaButtonText}>{'开通会员继续使用 AI'}</Text>
           </TouchableOpacity>
         ) : null}
       </>
     );
+  };
 
   if (!hasRegisteredProfile && toolKey !== 'bridge') {
     return (
@@ -2581,22 +2654,24 @@ function SmartToolPage(props) {
         <View style={s.toolTopSpacer} />
       </View>
       <ScrollView contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
-        <Card style={s.toolPageHero}>
-          <View style={[s.toolHeroAura, { backgroundColor: `${meta.accent}16` }]} />
-          <View style={[s.toolHeroArc, { borderColor: `${meta.accent}24` }]} />
-          <View style={[s.toolHeroArcSmall, { borderColor: `${meta.accent}20` }]} />
-          <View style={s.toolHeroHeader}>
-            <View style={[s.toolPageBadge, { backgroundColor: `${meta.accent}18`, borderColor: `${meta.accent}55` }]}>
-              <Text style={[s.toolPageBadgeText, { color: meta.accent }]}>{meta.icon}</Text>
+        {toolKey !== 'divination' ? (
+          <Card style={s.toolPageHero}>
+            <View style={[s.toolHeroAura, { backgroundColor: `${meta.accent}16` }]} />
+            <View style={[s.toolHeroArc, { borderColor: `${meta.accent}24` }]} />
+            <View style={[s.toolHeroArcSmall, { borderColor: `${meta.accent}20` }]} />
+            <View style={s.toolHeroHeader}>
+              <View style={[s.toolPageBadge, { backgroundColor: `${meta.accent}18`, borderColor: `${meta.accent}55` }]}>
+                <Text style={[s.toolPageBadgeText, { color: meta.accent }]}>{meta.icon}</Text>
+              </View>
+              <View style={[s.toolHeroAccentBand, { backgroundColor: `${meta.accent}16`, borderColor: `${meta.accent}30` }]}>
+                <View style={[s.toolHeroAccentFill, { backgroundColor: meta.accent }]} />
+                <Text style={[s.toolHeroAccentText, { color: meta.accent }]}>当前工具</Text>
+              </View>
             </View>
-            <View style={[s.toolHeroAccentBand, { backgroundColor: `${meta.accent}16`, borderColor: `${meta.accent}30` }]}>
-              <View style={[s.toolHeroAccentFill, { backgroundColor: meta.accent }]} />
-              <Text style={[s.toolHeroAccentText, { color: meta.accent }]}>当前工具</Text>
-            </View>
-          </View>
-          <Text style={s.toolPageTitle}>{meta.label}</Text>
-          <Text style={s.toolPageBody}>{meta.hint}{!isPremium ? ` 当前剩余 ${aiRemaining} 次。` : ''}</Text>
-        </Card>
+            <Text style={s.toolPageTitle}>{meta.label}</Text>
+            <Text style={s.toolPageBody}>{meta.hint}{!isPremium ? ` 当前剩余 ${aiRemaining} 次。` : ''}</Text>
+          </Card>
+        ) : null}
 
         {toolKey === 'weekly' ? (
           <Card>
@@ -2619,7 +2694,6 @@ function SmartToolPage(props) {
         {toolKey === 'divination' ? (
           <>
             <Card>
-              <SectionHeader eyebrow={'明己一卦'} title={'小六壬断事'} body={'不是看一整年，而是专断眼前这件事。先定场景，再把问题收焦，最后按起卦当下的时点断势。'} />
               <View style={s.moodChipRow}>
                 {DIVINATION_SCENE_OPTIONS.map((item) => {
                   const active = item.key === divinationDraft.sceneType;
@@ -2634,38 +2708,47 @@ function SmartToolPage(props) {
                   );
                 })}
               </View>
-              <View style={s.divinationPreviewCard}>
-                <Text style={s.divinationPreviewLabel}>{'你更可能真正想问的是'}</Text>
-                <Text style={s.divinationPreviewText}>{buildLikelyConcernPreview(divinationDraft.sceneType, divinationDraft.question)}</Text>
-              </View>
               <View style={s.questionBlock}>
                 <Text style={s.questionText}>当前想问的事</Text>
-                <TextInput
-                  value={divinationDraft.question}
-                  onChangeText={(value) => setDivinationDraft((prev) => ({ ...prev, question: value }))}
-                  style={s.answerInput}
-                  multiline
-                  placeholder={'例如：这周要不要主动联系对方？这个合作现在推会不会太急？'}
-                />
+                <View style={s.divinationComposer}>
+                  <TextInput
+                    value={divinationDraft.question}
+                    onChangeText={(value) => setDivinationDraft((prev) => ({ ...prev, question: value }))}
+                    style={s.divinationComposerInput}
+                    multiline
+                    placeholder={getDivinationQuestionPlaceholder(divinationDraft.sceneType)}
+                    placeholderTextColor={'rgba(20,51,58,0.42)'}
+                  />
+                  <Text style={s.divinationComposerHint}>{getDivinationComposerHint(divinationDraft.sceneType)}</Text>
+                </View>
               </View>
-              <View style={s.divinationTimeCard}>
-                <Text style={s.divinationTimeLabel}>{'起卦时间说明'}</Text>
-                <Text style={s.divinationTimeText}>{'明己一卦看的是当下这口气，所以会按你此刻起卦的月、日、时来断，不拿旧时点替代现在。'}</Text>
-              </View>
-              {renderToolActionButton('起一卦，让明己断这件事', async () => {
+              {renderToolActionButton('起一卦，让明己断此事', async () => {
                 setDivinationLoadingReady(false);
                 divinationReadyOpacity.setValue(0);
+                setDivinationInsight(null);
                 const output = await runAITool(async () => {
                   const payload = await aiMingJiDivination(
-                    divinationDraft.question || '',
+                    divinationDraft.question.trim(),
                     divinationDraft.sceneType,
                     result,
                     { isPremium, memberTier: isPremium ? 'premium' : 'free', profile }
                   );
                   return payload;
+                }, {
+                  bypassQuota: true,
+                  loadingText: '起卦中，明己正在按当下时点断这件事…',
+                  successText: '卦象已成，明己已经把这一断落下来了。',
                 });
                 if (output) setDivinationInsight(output);
-              }, '起卦中…')}
+              }, '起卦中…', { ignoreQuotaLock: true })}
+              <View style={s.divinationTimeHintRow}>
+                <View style={s.divinationTimeHintDot} />
+                <Text style={s.divinationTimeHintText}>{'按你此刻起卦的月、日、时来断，不拿旧时点替代现在。'}</Text>
+              </View>
+              <View style={s.divinationPreviewCard}>
+                <Text style={s.divinationPreviewLabel}>{'你更可能真正想问的是'}</Text>
+                <Text style={s.divinationPreviewText}>{buildLikelyConcernPreview(divinationDraft.sceneType, divinationDraft.question)}</Text>
+              </View>
               {toolLoading ? (
                 <View style={s.divinationLoadingCard}>
                   <View style={s.divinationLoadingAura} />
@@ -2724,11 +2807,11 @@ function SmartToolPage(props) {
                   }}
                 >
                   <Card style={s.divinationResultHero}>
-                  <Text style={s.divinationResultEyebrow}>{divinationInsight.engineResult.sceneName || '当前这件事'}</Text>
+                  <Text style={s.divinationResultEyebrow}>{getDivinationSceneLabel(divinationDraft.sceneType)}</Text>
                   <Text style={s.divinationResultTitle}>
-                    {`主宫 ${divinationInsight.engineResult.mainPalace?.palace_name || '--'}${divinationInsight.engineResult.secondaryPalace?.palace_name ? ` · 辅宫 ${divinationInsight.engineResult.secondaryPalace.palace_name}` : ''}`}
+                    {getDivinationResultTitle(divinationDraft.sceneType, divinationInsight.engineResult)}
                   </Text>
-                  <Text style={s.divinationResultBody}>{divinationInsight.engineResult.summary || '这一卦已起出，但短断尚未生成。'}</Text>
+                  <Text style={s.divinationResultBody}>{getDivinationResultLead(divinationDraft.sceneType, divinationInsight.engineResult)}</Text>
                   <View style={s.divinationTagRow}>
                     {(divinationInsight.engineResult.recommended || []).slice(0, 4).map((item, index) => (
                       <View key={`${item}-${index}`} style={s.divinationTag}>
@@ -2758,8 +2841,8 @@ function SmartToolPage(props) {
                     <Text style={s.toolResultText}>{divinationInsight.engineResult.likelyConcern || buildLikelyConcernPreview(divinationDraft.sceneType, divinationDraft.question)}</Text>
                   </Card>
                   <Card>
-                    <SectionHeader eyebrow={'正式断语'} title={'明己怎么讲这件事'} />
-                    {divinationInsight.text ? <Text style={s.toolResultText}>{divinationInsight.text}</Text> : <Text style={s.toolResultText}>{'这次起卦已完成，但明己的完整断语还没有返回。'}</Text>}
+                    <SectionHeader eyebrow={'正式断语'} title={getDivinationFormalTitle(divinationDraft.sceneType)} />
+                    {divinationInsight.text ? <Text style={s.toolResultText}>{buildDivinationFormalLead(divinationDraft.sceneType, divinationInsight.text)}</Text> : <Text style={s.toolResultText}>{'这次起卦已完成，但明己的完整断语还没有返回。'}</Text>}
                   </Card>
                 </Animated.View>
               </>
@@ -4987,9 +5070,63 @@ const s = StyleSheet.create({
   divinationPreviewCard: { marginBottom: 12, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(127,180,255,0.20)', backgroundColor: 'rgba(127,180,255,0.08)', padding: 14 },
   divinationPreviewLabel: { fontSize: 12, fontWeight: '800', color: '#40679E', marginBottom: 6 },
   divinationPreviewText: { fontSize: 14, lineHeight: 22, color: C.ink, fontWeight: '600' },
-  divinationTimeCard: { marginTop: 2, marginBottom: 2, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(214,180,102,0.22)', backgroundColor: 'rgba(214,180,102,0.08)', padding: 14 },
-  divinationTimeLabel: { fontSize: 12, fontWeight: '800', color: '#8D6414', marginBottom: 6 },
-  divinationTimeText: { fontSize: 13, lineHeight: 20, color: C.soft, fontWeight: '600' },
+  divinationComposer: {
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(160,189,246,0.92)',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 10,
+    shadowColor: '#12343A',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  divinationComposerInput: {
+    minHeight: 92,
+    borderRadius: 18,
+    backgroundColor: 'rgba(246,249,255,0.96)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(187,207,247,0.98)',
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
+    textAlignVertical: 'top',
+    color: C.ink,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  divinationComposerHint: {
+    marginTop: 8,
+    fontSize: 12,
+    lineHeight: 18,
+    color: 'rgba(20,51,58,0.58)',
+    fontWeight: '600',
+    paddingHorizontal: 4,
+  },
+  divinationTimeHintRow: {
+    marginTop: 2,
+    marginBottom: 8,
+    paddingHorizontal: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  divinationTimeHintDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: '#C6922A',
+  },
+  divinationTimeHintText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 18,
+    color: 'rgba(20,51,58,0.62)',
+    fontWeight: '700',
+  },
   divinationLoadingCard: { marginTop: 14, minHeight: 280, borderRadius: 24, backgroundColor: '#10223F', borderWidth: 1, borderColor: 'rgba(179,211,255,0.14)', padding: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   divinationLoadingAura: { position: 'absolute', width: 220, height: 220, borderRadius: 999, top: -84, right: -26, backgroundColor: 'rgba(127,180,255,0.16)' },
   divinationLoadingOrbitOuter: { position: 'absolute', width: 190, height: 190, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(196,222,255,0.18)' },
