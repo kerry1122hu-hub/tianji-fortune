@@ -2549,6 +2549,8 @@ function SmartToolPage(props) {
   const divinationHeroTranslate = useRef(new Animated.Value(10)).current;
   const divinationBodyOpacity = useRef(new Animated.Value(0)).current;
   const divinationBodyTranslate = useRef(new Animated.Value(14)).current;
+  const toolFeedbackScale = useRef(new Animated.Value(1)).current;
+  const toolFeedbackOpacity = useRef(new Animated.Value(0)).current;
   const [divinationBodyY, setDivinationBodyY] = useState(0);
   const [divinationFormalY, setDivinationFormalY] = useState(0);
   const [divinationVideoLoaded, setDivinationVideoLoaded] = useState(false);
@@ -2562,6 +2564,7 @@ function SmartToolPage(props) {
   const weekly = getResolvedWeeklyActions(weeklyActions);
   const meta = SMART_TOOL_META[toolKey] || SMART_TOOL_META.emotion;
   const feedbackToneColor = toolFeedback.tone === 'success' ? C.success : toolFeedback.tone === 'loading' ? meta.accent : toolFeedback.tone === 'warning' ? C.warn : C.soft;
+  const feedbackIsWarning = toolFeedback.tone === 'warning';
 
   useEffect(() => {
     setToolFeedback({ tone: 'idle', text: '' });
@@ -2606,6 +2609,55 @@ function SmartToolPage(props) {
       ]),
     ]).start();
   }, [normalizedDivinationInsight, divinationBodyOpacity, divinationBodyTranslate, divinationHeroOpacity, divinationHeroTranslate]);
+
+  useEffect(() => {
+    if (!toolFeedback.text) {
+      toolFeedbackOpacity.setValue(0);
+      toolFeedbackScale.setValue(1);
+      return;
+    }
+
+    toolFeedbackOpacity.setValue(0);
+    toolFeedbackScale.setValue(toolFeedback.tone === 'warning' ? 0.9 : 0.98);
+
+    if (toolFeedback.tone === 'warning') {
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(toolFeedbackOpacity, {
+            toValue: 1,
+            duration: 180,
+            useNativeDriver: true,
+          }),
+          Animated.spring(toolFeedbackScale, {
+            toValue: 1.06,
+            friction: 6,
+            tension: 120,
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.spring(toolFeedbackScale, {
+          toValue: 1,
+          friction: 7,
+          tension: 120,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(toolFeedbackOpacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(toolFeedbackScale, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [toolFeedback, toolFeedbackOpacity, toolFeedbackScale]);
 
   const jumpToDivinationFormal = useCallback(() => {
     const targetY = Math.max(0, Number(divinationBodyY || 0) + Number(divinationFormalY || 0) - 18);
@@ -2724,10 +2776,21 @@ function SmartToolPage(props) {
         </View>
       </TouchableOpacity>
         {!!toolFeedback.text ? (
-          <View style={[s.toolFeedbackBar, { borderColor: `${feedbackToneColor}30`, backgroundColor: `${feedbackToneColor}12` }]}>
+          <Animated.View
+            style={[
+              s.toolFeedbackBar,
+              feedbackIsWarning && s.toolFeedbackBarWarning,
+              {
+                borderColor: `${feedbackToneColor}30`,
+                backgroundColor: `${feedbackToneColor}12`,
+                opacity: toolFeedbackOpacity,
+                transform: [{ scale: toolFeedbackScale }],
+              },
+            ]}
+          >
             <View style={[s.toolFeedbackDot, { backgroundColor: feedbackToneColor }]} />
-            <Text style={[s.toolFeedbackText, { color: feedbackToneColor }]}>{toolFeedback.text}</Text>
-          </View>
+            <Text style={[s.toolFeedbackText, feedbackIsWarning && s.toolFeedbackTextWarning, { color: feedbackToneColor }]}>{toolFeedback.text}</Text>
+          </Animated.View>
         ) : null}
         {quotaLocked ? (
           <TouchableOpacity style={s.toolQuotaButton} onPress={onOpenPaywall}>
@@ -5279,21 +5342,21 @@ const s = StyleSheet.create({
     color: 'rgba(20,51,58,0.62)',
     fontWeight: '700',
   },
-  divinationLoadingCard: { marginTop: 14, minHeight: 280, borderRadius: 24, backgroundColor: '#10223F', borderWidth: 1, borderColor: 'rgba(179,211,255,0.14)', padding: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  divinationLoadingAura: { position: 'absolute', width: 220, height: 220, borderRadius: 999, top: -84, right: -26, backgroundColor: 'rgba(127,180,255,0.16)' },
-  divinationLoadingOrbitOuter: { position: 'absolute', width: 190, height: 190, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(196,222,255,0.18)' },
-  divinationLoadingOrbitInner: { position: 'absolute', width: 138, height: 138, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(234,245,241,0.18)' },
-  divinationLoadingSymbolWrap: { width: 148, height: 148, borderRadius: 28, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(234,245,241,0.18)', backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
-  divinationLoadingVideo: { width: 132, height: 132, borderRadius: 24 },
-  divinationLoadingVideoFallback: { position: 'absolute', width: 132, height: 132, alignItems: 'center', justifyContent: 'center', opacity: 0.16 },
+  divinationLoadingCard: { marginTop: 14, minHeight: 420, borderRadius: 26, backgroundColor: '#10223F', borderWidth: 1, borderColor: 'rgba(179,211,255,0.14)', paddingHorizontal: 18, paddingVertical: 20, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  divinationLoadingAura: { position: 'absolute', width: 360, height: 360, borderRadius: 999, top: -120, right: -40, backgroundColor: 'rgba(127,180,255,0.18)' },
+  divinationLoadingOrbitOuter: { position: 'absolute', width: 300, height: 300, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(196,222,255,0.18)' },
+  divinationLoadingOrbitInner: { position: 'absolute', width: 220, height: 220, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(234,245,241,0.18)' },
+  divinationLoadingSymbolWrap: { width: '100%', maxWidth: 420, height: 300, borderRadius: 32, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(234,245,241,0.18)', backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center', marginBottom: 18, overflow: 'hidden' },
+  divinationLoadingVideo: { width: '100%', height: '100%', borderRadius: 30 },
+  divinationLoadingVideoFallback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', opacity: 0.14 },
   divinationLoadingVideoFallbackHidden: { opacity: 0 },
-  divinationLoadingSymbolBox: { width: 62, height: 62, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(234,245,241,0.18)', backgroundColor: 'rgba(234,245,241,0.08)', alignItems: 'center', justifyContent: 'center' },
-  divinationLoadingSymbolText: { fontSize: 28, fontWeight: '800', color: '#EAF5F1' },
-  divinationLoadingTitle: { fontSize: 22, lineHeight: 28, fontWeight: '800', color: '#F1F7FF' },
-  divinationLoadingBody: { fontSize: 13, lineHeight: 20, color: 'rgba(241,247,255,0.74)', textAlign: 'center', marginTop: 10, maxWidth: 280 },
+  divinationLoadingSymbolBox: { width: 84, height: 84, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(234,245,241,0.18)', backgroundColor: 'rgba(234,245,241,0.08)', alignItems: 'center', justifyContent: 'center' },
+  divinationLoadingSymbolText: { fontSize: 34, fontWeight: '800', color: '#EAF5F1' },
+  divinationLoadingTitle: { fontSize: 26, lineHeight: 32, fontWeight: '800', color: '#F1F7FF' },
+  divinationLoadingBody: { fontSize: 14, lineHeight: 22, color: 'rgba(241,247,255,0.74)', textAlign: 'center', marginTop: 10, maxWidth: 320 },
   divinationReadyWrap: { marginTop: 12, alignItems: 'center' },
-  divinationReadyTitle: { fontSize: 18, lineHeight: 24, fontWeight: '800', color: '#F5E9BC' },
-  divinationReadyText: { fontSize: 13, lineHeight: 20, color: 'rgba(241,247,255,0.78)', textAlign: 'center', marginTop: 8, maxWidth: 280 },
+  divinationReadyTitle: { fontSize: 22, lineHeight: 28, fontWeight: '800', color: '#F5E9BC' },
+  divinationReadyText: { fontSize: 14, lineHeight: 22, color: 'rgba(241,247,255,0.78)', textAlign: 'center', marginTop: 8, maxWidth: 320 },
   divinationResultHero: { backgroundColor: '#0F213D', borderColor: 'rgba(179,211,255,0.14)', padding: 18, overflow: 'hidden' },
   divinationResultEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(214,230,255,0.72)' },
   divinationResultTitle: { fontSize: 28, lineHeight: 34, color: '#F1F7FF', fontWeight: '800', marginTop: 10, maxWidth: '84%' },
@@ -5350,9 +5413,11 @@ const s = StyleSheet.create({
   toolActionButton: { marginTop: 12 },
   toolActionButtonInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   toolActionSpinner: { marginRight: 8 },
-  toolFeedbackBar: { minHeight: 40, marginTop: 10, borderRadius: 14, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  toolFeedbackDot: { width: 8, height: 8, borderRadius: 999 },
+  toolFeedbackBar: { minHeight: 44, marginTop: 10, borderRadius: 16, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  toolFeedbackBarWarning: { minHeight: 72, borderRadius: 18, paddingHorizontal: 16, paddingVertical: 14, shadowColor: '#FF9F0A', shadowOpacity: 0.16, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
+  toolFeedbackDot: { width: 10, height: 10, borderRadius: 999 },
   toolFeedbackText: { flex: 1, fontSize: 12, lineHeight: 18, fontWeight: '600' },
+  toolFeedbackTextWarning: { fontSize: 16, lineHeight: 24, fontWeight: '800' },
   toolQuotaButton: { height: 44, borderRadius: 999, marginTop: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: C.logoDeep, shadowColor: '#78D4BC', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   toolQuotaButtonText: { fontSize: 14, fontWeight: '800', color: '#F7FFFC' },
   secondaryGhostButton: { height: 46, borderRadius: 999, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center', marginTop: 12, backgroundColor: 'rgba(118,118,128,0.06)' },
