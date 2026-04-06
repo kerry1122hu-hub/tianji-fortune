@@ -2516,6 +2516,7 @@ function SmartToolPage(props) {
   const divinationBodyTranslate = useRef(new Animated.Value(14)).current;
   const [divinationBodyY, setDivinationBodyY] = useState(0);
   const [divinationFormalY, setDivinationFormalY] = useState(0);
+  const [divinationVideoLoaded, setDivinationVideoLoaded] = useState(false);
   const normalizedDivinationInsight = useMemo(
     () => normalizeDivinationInsightPayload(divinationInsight, divinationDraft.sceneType),
     [divinationInsight, divinationDraft.sceneType]
@@ -2530,6 +2531,7 @@ function SmartToolPage(props) {
   useEffect(() => {
     setToolFeedback({ tone: 'idle', text: '' });
     setDivinationLoadingReady(false);
+    setDivinationVideoLoaded(false);
     divinationReadyOpacity.setValue(0);
   }, [toolKey]);
 
@@ -2574,6 +2576,32 @@ function SmartToolPage(props) {
     const targetY = Math.max(0, Number(divinationBodyY || 0) + Number(divinationFormalY || 0) - 18);
     toolScrollRef.current?.scrollTo?.({ y: targetY, animated: true });
   }, [divinationBodyY, divinationFormalY]);
+
+  const handleDivinationVideoFinished = useCallback(async () => {
+    setDivinationLoadingReady(true);
+    Animated.timing(divinationReadyOpacity, {
+      toValue: 1,
+      duration: 420,
+      useNativeDriver: true,
+    }).start();
+    if (Platform.OS === 'web') {
+      try {
+        const node = divinationVideoRef.current;
+        if (node && typeof node.pause === 'function') {
+          const duration = Number(node.duration || 0);
+          if (duration > 0) node.currentTime = Math.max(0, duration - 0.08);
+          node.pause();
+        }
+      } catch {}
+      return;
+    }
+    try {
+      const status = await divinationVideoRef.current?.getStatusAsync?.();
+      const freezeAt = Math.max(0, Number(status?.durationMillis || 0) - 80);
+      await divinationVideoRef.current?.setPositionAsync?.(freezeAt);
+      await divinationVideoRef.current?.pauseAsync?.();
+    } catch {}
+  }, [divinationReadyOpacity]);
 
   const swipeResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
@@ -2820,31 +2848,38 @@ function SmartToolPage(props) {
                   <View style={s.divinationLoadingOrbitOuter} />
                   <View style={s.divinationLoadingOrbitInner} />
                   <View style={s.divinationLoadingSymbolWrap}>
-                    <Video
-                      ref={divinationVideoRef}
-                      source={{ uri: MINGJI_DIVINATION_LOADING_VIDEO }}
-                      style={s.divinationLoadingVideo}
-                      resizeMode="contain"
-                      shouldPlay
-                      isLooping={false}
-                      isMuted
-                      useNativeControls={false}
-                      onPlaybackStatusUpdate={async (status) => {
-                        if (!status?.isLoaded || !status?.didJustFinish) return;
-                        setDivinationLoadingReady(true);
-                        Animated.timing(divinationReadyOpacity, {
-                          toValue: 1,
-                          duration: 420,
-                          useNativeDriver: true,
-                        }).start();
-                        try {
-                          const freezeAt = Math.max(0, Number(status.durationMillis || 0) - 80);
-                          await divinationVideoRef.current?.setPositionAsync(freezeAt);
-                          await divinationVideoRef.current?.pauseAsync();
-                        } catch {}
-                      }}
-                    />
-                    <View pointerEvents="none" style={s.divinationLoadingVideoFallback}>
+                    {Platform.OS === 'web' ? (
+                      <video
+                        ref={divinationVideoRef}
+                        src={MINGJI_DIVINATION_LOADING_VIDEO}
+                        autoPlay
+                        muted
+                        playsInline
+                        preload="auto"
+                        onLoadedData={() => setDivinationVideoLoaded(true)}
+                        onEnded={handleDivinationVideoFinished}
+                        style={s.divinationLoadingVideo}
+                      />
+                    ) : (
+                      <Video
+                        ref={divinationVideoRef}
+                        source={{ uri: MINGJI_DIVINATION_LOADING_VIDEO }}
+                        style={s.divinationLoadingVideo}
+                        resizeMode="contain"
+                        shouldPlay
+                        isLooping={false}
+                        isMuted
+                        useNativeControls={false}
+                        onPlaybackStatusUpdate={(status) => {
+                          if (!status?.isLoaded) return;
+                          if (!divinationVideoLoaded) setDivinationVideoLoaded(true);
+                          if (status?.didJustFinish) {
+                            handleDivinationVideoFinished();
+                          }
+                        }}
+                      />
+                    )}
+                    <View pointerEvents="none" style={[s.divinationLoadingVideoFallback, divinationVideoLoaded && s.divinationLoadingVideoFallbackHidden]}>
                       <View style={s.divinationLoadingSymbolBox}>
                         <Text style={s.divinationLoadingSymbolText}>{'◈'}</Text>
                       </View>
@@ -5205,6 +5240,7 @@ const s = StyleSheet.create({
   divinationLoadingSymbolWrap: { width: 148, height: 148, borderRadius: 28, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(234,245,241,0.18)', backgroundColor: 'rgba(255,255,255,0.04)', alignItems: 'center', justifyContent: 'center', marginBottom: 14 },
   divinationLoadingVideo: { width: 132, height: 132, borderRadius: 24 },
   divinationLoadingVideoFallback: { position: 'absolute', width: 132, height: 132, alignItems: 'center', justifyContent: 'center', opacity: 0.16 },
+  divinationLoadingVideoFallbackHidden: { opacity: 0 },
   divinationLoadingSymbolBox: { width: 62, height: 62, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(234,245,241,0.18)', backgroundColor: 'rgba(234,245,241,0.08)', alignItems: 'center', justifyContent: 'center' },
   divinationLoadingSymbolText: { fontSize: 28, fontWeight: '800', color: '#EAF5F1' },
   divinationLoadingTitle: { fontSize: 22, lineHeight: 28, fontWeight: '800', color: '#F1F7FF' },
