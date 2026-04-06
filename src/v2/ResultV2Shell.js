@@ -2514,6 +2514,7 @@ function SmartToolPage(props) {
   const divinationHeroTranslate = useRef(new Animated.Value(10)).current;
   const divinationBodyOpacity = useRef(new Animated.Value(0)).current;
   const divinationBodyTranslate = useRef(new Animated.Value(14)).current;
+  const [divinationBodyY, setDivinationBodyY] = useState(0);
   const [divinationFormalY, setDivinationFormalY] = useState(0);
   const normalizedDivinationInsight = useMemo(
     () => normalizeDivinationInsightPayload(divinationInsight, divinationDraft.sceneType),
@@ -2570,9 +2571,9 @@ function SmartToolPage(props) {
   }, [normalizedDivinationInsight, divinationBodyOpacity, divinationBodyTranslate, divinationHeroOpacity, divinationHeroTranslate]);
 
   const jumpToDivinationFormal = useCallback(() => {
-    const targetY = Math.max(0, Number(divinationFormalY || 0) - 18);
+    const targetY = Math.max(0, Number(divinationBodyY || 0) + Number(divinationFormalY || 0) - 18);
     toolScrollRef.current?.scrollTo?.({ y: targetY, animated: true });
-  }, [divinationFormalY]);
+  }, [divinationBodyY, divinationFormalY]);
 
   const swipeResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
@@ -2896,6 +2897,7 @@ function SmartToolPage(props) {
                   </Card>
                 </Animated.View>
                 <Animated.View
+                  onLayout={(event) => setDivinationBodyY(event?.nativeEvent?.layout?.y || 0)}
                   style={{
                     opacity: divinationBodyOpacity,
                     transform: [{ translateY: divinationBodyTranslate }],
