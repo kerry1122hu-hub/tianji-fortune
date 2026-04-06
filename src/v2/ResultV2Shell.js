@@ -2973,6 +2973,10 @@ function SmartToolPage(props) {
                     transform: [{ translateY: divinationBodyTranslate }],
                   }}
                 >
+                  <Card onLayout={(event) => setDivinationFormalY(event?.nativeEvent?.layout?.y || 0)}>
+                    <SectionHeader eyebrow={'正式断语'} title={getDivinationFormalTitle(divinationDraft.sceneType)} />
+                    {normalizedDivinationInsight.text ? <Text style={s.toolResultText}>{buildDivinationFormalLead(divinationDraft.sceneType, normalizedDivinationInsight.text)}</Text> : <Text style={s.toolResultText}>{'这次起卦已完成，但明己的完整断语还没有返回。'}</Text>}
+                  </Card>
                   <Card>
                     <SectionHeader eyebrow={'起卦时点'} title={'这一卦是按什么时间断的'} />
                     <Text style={s.toolResultText}>{formatDivinationTimeNote(normalizedDivinationInsight.engineResult)}</Text>
@@ -2980,10 +2984,6 @@ function SmartToolPage(props) {
                   <Card>
                     <SectionHeader eyebrow={'明己先替你点题'} title={'你更可能真正卡住的是'} />
                     <Text style={s.toolResultText}>{normalizedDivinationInsight.engineResult.likelyConcern || buildLikelyConcernPreview(divinationDraft.sceneType, divinationDraft.question)}</Text>
-                  </Card>
-                  <Card onLayout={(event) => setDivinationFormalY(event?.nativeEvent?.layout?.y || 0)}>
-                    <SectionHeader eyebrow={'正式断语'} title={getDivinationFormalTitle(divinationDraft.sceneType)} />
-                    {normalizedDivinationInsight.text ? <Text style={s.toolResultText}>{buildDivinationFormalLead(divinationDraft.sceneType, normalizedDivinationInsight.text)}</Text> : <Text style={s.toolResultText}>{'这次起卦已完成，但明己的完整断语还没有返回。'}</Text>}
                   </Card>
                 </Animated.View>
               </>
