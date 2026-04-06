@@ -247,11 +247,46 @@ const S = {
 
 const TAB_KEYS = ['home', 'profile', 'stage', 'premium', 'me'];
 const TAB_META = {
-  home: { icon: '⌂', label: S.home, accent: '#9BDACC', glow: 'rgba(155,218,204,0.18)' },
-  profile: { icon: '▦', label: S.profile, accent: '#DCEDE8', glow: 'rgba(220,237,232,0.18)' },
-  stage: { icon: '◔', label: S.stage, accent: '#A8D7E2', glow: 'rgba(168,215,226,0.18)' },
-  premium: { icon: '✦', label: S.premium, accent: '#E4D39D', glow: 'rgba(228,211,157,0.18)' },
-  me: { icon: '◡', label: S.me, accent: '#8FCDBF', glow: 'rgba(143,205,191,0.18)' },
+  home: {
+    icon: '⌂',
+    label: S.home,
+    accent: '#2F9E67',
+    glow: 'rgba(47,158,103,0.20)',
+    plate: 'rgba(47,158,103,0.12)',
+    border: 'rgba(47,158,103,0.24)',
+  },
+  profile: {
+    icon: '▦',
+    label: S.profile,
+    accent: '#A97A2B',
+    glow: 'rgba(169,122,43,0.18)',
+    plate: 'rgba(207,177,111,0.14)',
+    border: 'rgba(169,122,43,0.24)',
+  },
+  stage: {
+    icon: '◔',
+    label: S.stage,
+    accent: '#3A7BD5',
+    glow: 'rgba(58,123,213,0.18)',
+    plate: 'rgba(58,123,213,0.13)',
+    border: 'rgba(58,123,213,0.24)',
+  },
+  premium: {
+    icon: '✦',
+    label: S.premium,
+    accent: '#C65B4B',
+    glow: 'rgba(198,91,75,0.18)',
+    plate: 'rgba(198,91,75,0.12)',
+    border: 'rgba(198,91,75,0.24)',
+  },
+  me: {
+    icon: '◡',
+    label: S.me,
+    accent: '#7D5CD6',
+    glow: 'rgba(125,92,214,0.18)',
+    plate: 'rgba(125,92,214,0.12)',
+    border: 'rgba(125,92,214,0.24)',
+  },
 };
 
 function getTabMeta(tab, reviewMode) {
@@ -4830,13 +4865,18 @@ export function ResultV2Shell(props) {
               goToTab(tab);
             }}>
               <View style={[
+                s.tabButtonSurface,
+                active && { backgroundColor: meta.plate, borderColor: meta.border, shadowColor: meta.accent, shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+              ]}>
+              <View style={[
                 s.tabIconWrap,
-                active && { backgroundColor: meta.glow, borderColor: meta.accent, shadowColor: meta.accent, shadowOpacity: 0.24, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
+                active && { backgroundColor: meta.glow, borderColor: meta.border, shadowColor: meta.accent, shadowOpacity: 0.24, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
               ]}>
                 <Text style={[s.tabIcon, { color: active ? meta.accent : 'rgba(20,51,58,0.42)' }]}>{meta.icon}</Text>
               </View>
               <Text style={[s.tabText, { color: active ? meta.accent : 'rgba(20,51,58,0.44)' }, active && s.tabTextActive]}>{meta.label}</Text>
               <View style={[s.tabIndicator, active && { backgroundColor: meta.accent, opacity: 1 }]} />
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -5597,13 +5637,14 @@ const s = StyleSheet.create({
   comboPillars: { fontSize: 12, color: C.faint, marginBottom: 4 },
   comboDesc: { fontSize: 13, lineHeight: 20, color: C.soft },
   comboAdvice: { fontSize: 12, lineHeight: 19, color: C.ink, marginTop: 8, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.line },
-  tabBar: { position: 'absolute', left: 12, right: 12, bottom: 12, flexDirection: 'row', backgroundColor: 'rgba(244,251,248,0.98)', borderRadius: 30, paddingVertical: 10, borderWidth: 1, borderColor: 'rgba(169,222,208,0.24)', shadowColor: '#102733', shadowOpacity: 0.10, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, elevation: 5 },
-  tabButton: { flex: 1, alignItems: 'center', gap: 5, paddingHorizontal: 2 },
-  tabIconWrap: { width: 42, height: 42, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(20,51,58,0.04)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.18)' },
-  tabIcon: { fontSize: 18, fontWeight: '700' },
-  tabText: { fontSize: 11, fontWeight: '600', color: 'rgba(20,51,58,0.44)' },
+  tabBar: { position: 'absolute', left: 10, right: 10, bottom: 10, flexDirection: 'row', backgroundColor: 'rgba(246,250,248,0.98)', borderRadius: 32, paddingHorizontal: 6, paddingVertical: 8, borderWidth: 1, borderColor: 'rgba(150,184,176,0.20)', shadowColor: '#0F2430', shadowOpacity: 0.12, shadowRadius: 20, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  tabButton: { flex: 1, paddingHorizontal: 3 },
+  tabButtonSurface: { minHeight: 68, borderRadius: 24, borderWidth: 1, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 2, paddingTop: 6, paddingBottom: 5 },
+  tabIconWrap: { width: 40, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(20,51,58,0.045)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.16)' },
+  tabIcon: { fontSize: 18, fontWeight: '800' },
+  tabText: { fontSize: 11, fontWeight: '700', color: 'rgba(20,51,58,0.50)', letterSpacing: 0.1 },
   tabTextActive: { fontWeight: '800' },
-  tabIndicator: { width: 20, height: 3, borderRadius: 999, backgroundColor: 'transparent', opacity: 0, marginTop: 1 },
+  tabIndicator: { width: 22, height: 3, borderRadius: 999, backgroundColor: 'transparent', opacity: 0, marginTop: 1 },
   sheetMask: { flex: 1, justifyContent: 'flex-end' },
   sheetScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.28)' },
   sheetCard: { maxHeight: '86%', backgroundColor: '#FFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 16, paddingBottom: 24 },
