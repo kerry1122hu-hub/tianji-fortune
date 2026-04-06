@@ -75,6 +75,59 @@ function getDivinationComposerHint(sceneType) {
   return '把问题收焦到眼前这件事，明己会按起卦当下的时点替你先断势，再讲该怎么动。';
 }
 
+function normalizeDivinationInsightPayload(payload, sceneType) {
+  if (!payload) return null;
+  const source = payload?.data || payload;
+  const normalized = source?.normalizedPayload || null;
+  const normalizedDouble = normalized?.double_palace_result || null;
+  const normalizedResult = normalized?.result || null;
+  const engineResult = source?.engineResult || null;
+
+  const fallbackEngineResult = normalized
+    ? {
+        sceneName: getDivinationSceneLabel(sceneType),
+        likelyConcern: source?.likelyConcern || buildLikelyConcernPreview(sceneType, ''),
+        eventContext: {
+          localMonth: normalized?.calc_context?.lunar_month,
+          localDay: normalized?.calc_context?.lunar_day,
+          timeBranch: normalized?.calc_context?.time_branch_name,
+        },
+        mainPalace: normalizedDouble?.main_palace
+          ? {
+              palace_name: normalizedDouble.main_palace.palace_name,
+              palace_code: normalizedDouble.main_palace.palace_code,
+              fortune_level: normalizedDouble.main_palace.fortune_level,
+            }
+          : normalizedResult?.palace_name
+            ? {
+                palace_name: normalizedResult.palace_name,
+                palace_code: normalizedResult.palace_code,
+                fortune_level: normalizedResult.fortune_level,
+              }
+            : null,
+        secondaryPalace: normalizedDouble?.secondary_palace
+          ? {
+              palace_name: normalizedDouble.secondary_palace.palace_name,
+              palace_code: normalizedDouble.secondary_palace.palace_code,
+              fortune_level: normalizedDouble.secondary_palace.fortune_level,
+            }
+          : null,
+        summary: normalizedDouble?.short_output || normalizedResult?.short_output || '',
+        recommended: normalizedResult?.recommended || normalizedDouble?.recommended || [],
+        avoid: normalizedResult?.avoid || normalizedDouble?.avoid || [],
+      }
+    : null;
+
+  return {
+    ...source,
+    text: normalizeChatMessageContent(
+      source?.text,
+      normalizedDouble?.short_output || normalizedResult?.short_output || ''
+    ),
+    engineResult: engineResult || fallbackEngineResult,
+  };
+}
+
 function getDivinationResultTitle(sceneType, engineResult) {
   const mainPalace = engineResult?.mainPalace?.palace_name || '--';
   const secondaryPalace = engineResult?.secondaryPalace?.palace_name;
@@ -2455,11 +2508,17 @@ function SmartToolPage(props) {
   const [expandedWeeklyKey, setExpandedWeeklyKey] = useState('work');
   const [toolFeedback, setToolFeedback] = useState({ tone: 'idle', text: '' });
   const divinationVideoRef = useRef(null);
+  const toolScrollRef = useRef(null);
   const divinationReadyOpacity = useRef(new Animated.Value(0)).current;
   const divinationHeroOpacity = useRef(new Animated.Value(0)).current;
   const divinationHeroTranslate = useRef(new Animated.Value(10)).current;
   const divinationBodyOpacity = useRef(new Animated.Value(0)).current;
   const divinationBodyTranslate = useRef(new Animated.Value(14)).current;
+  const [divinationFormalY, setDivinationFormalY] = useState(0);
+  const normalizedDivinationInsight = useMemo(
+    () => normalizeDivinationInsightPayload(divinationInsight, divinationDraft.sceneType),
+    [divinationInsight, divinationDraft.sceneType]
+  );
   const answered = Object.values(followUpAnswers || {}).filter((item) => `${item || ''}`.trim()).length;
   const totalQuestions = (followUpQuestions || []).length || 3;
   const activeMood = MOOD_OPTIONS.find((item) => item.key === selectedMood) || MOOD_OPTIONS[0];
@@ -2479,7 +2538,7 @@ function SmartToolPage(props) {
     divinationBodyOpacity.setValue(0);
     divinationBodyTranslate.setValue(14);
 
-    if (!divinationInsight?.engineResult) return;
+    if (!normalizedDivinationInsight?.engineResult) return;
 
     Animated.sequence([
       Animated.parallel([
@@ -2508,7 +2567,12 @@ function SmartToolPage(props) {
         }),
       ]),
     ]).start();
-  }, [divinationInsight, divinationBodyOpacity, divinationBodyTranslate, divinationHeroOpacity, divinationHeroTranslate]);
+  }, [normalizedDivinationInsight, divinationBodyOpacity, divinationBodyTranslate, divinationHeroOpacity, divinationHeroTranslate]);
+
+  const jumpToDivinationFormal = useCallback(() => {
+    const targetY = Math.max(0, Number(divinationFormalY || 0) - 18);
+    toolScrollRef.current?.scrollTo?.({ y: targetY, animated: true });
+  }, [divinationFormalY]);
 
   const swipeResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
@@ -2653,7 +2717,7 @@ function SmartToolPage(props) {
         <Text style={s.toolTopTitle}>{meta.label}</Text>
         <View style={s.toolTopSpacer} />
       </View>
-      <ScrollView contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
+      <ScrollView ref={toolScrollRef} contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
         {toolKey !== 'divination' ? (
           <Card style={s.toolPageHero}>
             <View style={[s.toolHeroAura, { backgroundColor: `${meta.accent}16` }]} />
@@ -2798,7 +2862,7 @@ function SmartToolPage(props) {
                 </View>
               ) : null}
             </Card>
-            {divinationInsight?.engineResult ? (
+            {normalizedDivinationInsight?.engineResult ? (
               <>
                 <Animated.View
                   style={{
@@ -2809,21 +2873,26 @@ function SmartToolPage(props) {
                   <Card style={s.divinationResultHero}>
                   <Text style={s.divinationResultEyebrow}>{getDivinationSceneLabel(divinationDraft.sceneType)}</Text>
                   <Text style={s.divinationResultTitle}>
-                    {getDivinationResultTitle(divinationDraft.sceneType, divinationInsight.engineResult)}
+                    {getDivinationResultTitle(divinationDraft.sceneType, normalizedDivinationInsight.engineResult)}
                   </Text>
-                  <Text style={s.divinationResultBody}>{getDivinationResultLead(divinationDraft.sceneType, divinationInsight.engineResult)}</Text>
+                  <Text style={s.divinationResultBody}>{getDivinationResultLead(divinationDraft.sceneType, normalizedDivinationInsight.engineResult)}</Text>
                   <View style={s.divinationTagRow}>
-                    {(divinationInsight.engineResult.recommended || []).slice(0, 4).map((item, index) => (
+                    {(normalizedDivinationInsight.engineResult.recommended || []).slice(0, 4).map((item, index) => (
                       <View key={`${item}-${index}`} style={s.divinationTag}>
                         <Text style={s.divinationTagText}>{`宜 ${item}`}</Text>
                       </View>
                     ))}
-                    {(divinationInsight.engineResult.avoid || []).slice(0, 3).map((item, index) => (
+                    {(normalizedDivinationInsight.engineResult.avoid || []).slice(0, 3).map((item, index) => (
                       <View key={`${item}-${index}-avoid`} style={[s.divinationTag, s.divinationTagAvoid]}>
                         <Text style={[s.divinationTagText, s.divinationTagAvoidText]}>{`忌 ${item}`}</Text>
                       </View>
                     ))}
                   </View>
+                  <TouchableOpacity style={s.divinationGuideButton} onPress={jumpToDivinationFormal} activeOpacity={0.92}>
+                    <Text style={s.divinationGuideButtonEyebrow}>{'继续往下看'}</Text>
+                    <Text style={s.divinationGuideButtonTitle}>{'明己解卦'}</Text>
+                    <Text style={s.divinationGuideButtonBody}>{'下面还有这一卦的起卦时点、真正卡点和正式断语。点这里直接带你过去。'}</Text>
+                  </TouchableOpacity>
                   </Card>
                 </Animated.View>
                 <Animated.View
@@ -2834,15 +2903,15 @@ function SmartToolPage(props) {
                 >
                   <Card>
                     <SectionHeader eyebrow={'起卦时点'} title={'这一卦是按什么时间断的'} />
-                    <Text style={s.toolResultText}>{formatDivinationTimeNote(divinationInsight.engineResult)}</Text>
+                    <Text style={s.toolResultText}>{formatDivinationTimeNote(normalizedDivinationInsight.engineResult)}</Text>
                   </Card>
                   <Card>
                     <SectionHeader eyebrow={'明己先替你点题'} title={'你更可能真正卡住的是'} />
-                    <Text style={s.toolResultText}>{divinationInsight.engineResult.likelyConcern || buildLikelyConcernPreview(divinationDraft.sceneType, divinationDraft.question)}</Text>
+                    <Text style={s.toolResultText}>{normalizedDivinationInsight.engineResult.likelyConcern || buildLikelyConcernPreview(divinationDraft.sceneType, divinationDraft.question)}</Text>
                   </Card>
-                  <Card>
+                  <Card onLayout={(event) => setDivinationFormalY(event?.nativeEvent?.layout?.y || 0)}>
                     <SectionHeader eyebrow={'正式断语'} title={getDivinationFormalTitle(divinationDraft.sceneType)} />
-                    {divinationInsight.text ? <Text style={s.toolResultText}>{buildDivinationFormalLead(divinationDraft.sceneType, divinationInsight.text)}</Text> : <Text style={s.toolResultText}>{'这次起卦已完成，但明己的完整断语还没有返回。'}</Text>}
+                    {normalizedDivinationInsight.text ? <Text style={s.toolResultText}>{buildDivinationFormalLead(divinationDraft.sceneType, normalizedDivinationInsight.text)}</Text> : <Text style={s.toolResultText}>{'这次起卦已完成，但明己的完整断语还没有返回。'}</Text>}
                   </Card>
                 </Animated.View>
               </>
@@ -5150,6 +5219,37 @@ const s = StyleSheet.create({
   divinationTagText: { fontSize: 12, fontWeight: '700', color: '#198754' },
   divinationTagAvoid: { backgroundColor: 'rgba(255,159,10,0.12)', borderColor: 'rgba(255,159,10,0.20)' },
   divinationTagAvoidText: { color: '#B06B00' },
+  divinationGuideButton: {
+    marginTop: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(214,230,255,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  divinationGuideButtonEyebrow: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: 'rgba(214,230,255,0.72)',
+  },
+  divinationGuideButtonTitle: {
+    marginTop: 4,
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '800',
+    color: '#F1F7FF',
+  },
+  divinationGuideButtonBody: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 20,
+    color: 'rgba(241,247,255,0.76)',
+    fontWeight: '600',
+  },
   moodChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   moodChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: C.line, backgroundColor: '#FFF' },
   moodChipText: { fontSize: 13, fontWeight: '700', color: C.ink },
