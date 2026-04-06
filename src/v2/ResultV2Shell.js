@@ -4866,15 +4866,17 @@ export function ResultV2Shell(props) {
             }}>
               <View style={[
                 s.tabButtonSurface,
+                { backgroundColor: active ? meta.plate : meta.glow, borderColor: active ? meta.border : meta.border },
                 active && { backgroundColor: meta.plate, borderColor: meta.border, shadowColor: meta.accent, shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
               ]}>
               <View style={[
                 s.tabIconWrap,
-                active && { backgroundColor: meta.glow, borderColor: meta.border, shadowColor: meta.accent, shadowOpacity: 0.24, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
+                { backgroundColor: active ? meta.glow : 'rgba(255,255,255,0.72)', borderColor: meta.border },
+                active && { shadowColor: meta.accent, shadowOpacity: 0.24, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
               ]}>
-                <Text style={[s.tabIcon, { color: active ? meta.accent : 'rgba(20,51,58,0.42)' }]}>{meta.icon}</Text>
+                <Text style={[s.tabIcon, { color: active ? meta.accent : meta.accent }]}>{meta.icon}</Text>
               </View>
-              <Text style={[s.tabText, { color: active ? meta.accent : 'rgba(20,51,58,0.44)' }, active && s.tabTextActive]}>{meta.label}</Text>
+              <Text style={[s.tabText, { color: active ? meta.accent : meta.accent }, active && s.tabTextActive]}>{meta.label}</Text>
               <View style={[s.tabIndicator, active && { backgroundColor: meta.accent, opacity: 1 }]} />
               </View>
             </TouchableOpacity>
