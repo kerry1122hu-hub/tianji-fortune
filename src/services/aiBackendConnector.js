@@ -95,13 +95,14 @@ async function requestWithRetry(endpoint, requestBody, { authToken, signingSecre
         error.status = response.status;
         error.code = payload?.code || 'BACKEND_ERROR';
         error.quota = payload?.quota || payload?.data?.quota || null;
+        error.riskControl = payload?.riskControl || payload?.data?.riskControl || null;
         throw error;
       }
 
       return payload;
     } catch (error) {
       lastError = error;
-      const retryable = !error?.status || error.status === 408 || error.status === 429 || error.status >= 500;
+      const retryable = !error?.status || error.status === 408 || error.status >= 500;
       if (!retryable || attempt === retryCount) break;
       await sleep(retryDelayMs * (attempt + 1));
     }
