@@ -2583,6 +2583,7 @@ function SmartToolPage(props) {
   const activeMood = MOOD_OPTIONS.find((item) => item.key === selectedMood) || MOOD_OPTIONS[0];
   const weekly = getResolvedWeeklyActions(weeklyActions);
   const meta = SMART_TOOL_META[toolKey] || SMART_TOOL_META.emotion;
+  const stableToolUserKey = useMemo(() => buildStableUserKey(result, profile, {}), [result, profile]);
   const feedbackToneColor = toolFeedback.tone === 'success' ? C.success : toolFeedback.tone === 'loading' ? meta.accent : toolFeedback.tone === 'warning' ? C.warn : C.soft;
   const feedbackIsWarning = toolFeedback.tone === 'warning';
 
@@ -2729,7 +2730,7 @@ function SmartToolPage(props) {
         question,
         divinationDraft.sceneType,
         result,
-        { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableUserKey }
+        { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableToolUserKey }
       );
       if (payload) {
         setDivinationInsight(payload);
@@ -2753,7 +2754,7 @@ function SmartToolPage(props) {
     isPremium,
     profile,
     result,
-    stableUserKey,
+    stableToolUserKey,
     toolLoading,
   ]);
 
@@ -2786,7 +2787,7 @@ function SmartToolPage(props) {
         successText = '已生成新的智能反馈，可继续调整内容再试一次。',
         exhaustedText = '今日免费次数已用完，可开通会员继续使用 AI。',
       } = options;
-      const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile, userKey: stableUserKey };
+      const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile, userKey: stableToolUserKey };
       if (!bypassQuota) {
         try {
           const allowed = await canUseAI(quotaArgs);
@@ -3138,7 +3139,7 @@ function SmartToolPage(props) {
             </View>
             <TextInput value={emotionNote} onChangeText={setEmotionNote} style={s.answerInput} multiline placeholder={'写下今天最明显的一种情绪，以及它是被什么事情触发的'} />
             {renderToolActionButton('生成 AI 情绪分析', async () => {
-                const output = await runAITool(() => aiAnalyzeEmotion(`情绪：${activeMood.label}\n记录：${emotionNote || '今天先做一条简短记录。'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableUserKey }));
+                const output = await runAITool(() => aiAnalyzeEmotion(`情绪：${activeMood.label}\n记录：${emotionNote || '今天先做一条简短记录。'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableToolUserKey }));
               if (output) setEmotionInsight(output);
             }, '分析中…')}
             {emotionInsight ? <Text style={s.toolResultText}>{emotionInsight}</Text> : null}
@@ -3160,7 +3161,7 @@ function SmartToolPage(props) {
             <TextInput value={decisionDraft.nextStep} onChangeText={(value) => setDecisionDraft((prev) => ({ ...prev, nextStep: value }))} style={s.answerInput} multiline placeholder={'例如：先问一个人、先查一份信息、先等一天'} />
           </View>
           {renderToolActionButton('生成 AI 决策建议', async () => {
-              const output = await runAITool(() => aiDecisionSupport(decisionDraft.situation || '我需要理清一个重要决定。', `${decisionDraft.options || '尚未列出选项'}\n最小下一步：${decisionDraft.nextStep || '还没想清楚'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableUserKey }));
+              const output = await runAITool(() => aiDecisionSupport(decisionDraft.situation || '我需要理清一个重要决定。', `${decisionDraft.options || '尚未列出选项'}\n最小下一步：${decisionDraft.nextStep || '还没想清楚'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableToolUserKey }));
             if (output) setDecisionInsight(output);
           }, '分析中…')}
           {decisionInsight ? <Text style={s.toolResultText}>{decisionInsight}</Text> : null}
@@ -3181,7 +3182,7 @@ function SmartToolPage(props) {
           </View>
           {renderToolActionButton('生成 AI 成长总结', async () => {
             const mergedAnswers = Object.entries(followUpAnswers || {}).map(([key, value]) => `${key}：${value}`).join('\n');
-              const output = await runAITool(() => aiChat(`请根据我的当前摘要和已完成观察，给我一段成长追踪建议。\n当前摘要：${oneLineSummary || '暂未生成'}\n已完成观察：${mergedAnswers || '暂未填写'}\n请聚焦：我最近正在形成什么稳定模式，下一步该如何调整。`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableUserKey }));
+              const output = await runAITool(() => aiChat(`请根据我的当前摘要和已完成观察，给我一段成长追踪建议。\n当前摘要：${oneLineSummary || '暂未生成'}\n已完成观察：${mergedAnswers || '暂未填写'}\n请聚焦：我最近正在形成什么稳定模式，下一步该如何调整。`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableToolUserKey }));
             if (output) setGrowthInsight(output);
           }, '生成中…')}
           {growthInsight ? <Text style={s.toolResultText}>{growthInsight}</Text> : null}
@@ -3199,7 +3200,7 @@ function SmartToolPage(props) {
           {renderToolActionButton('生成 AI 反思反馈', async () => {
             await onGenerateCompanion?.();
             const mergedAnswers = Object.values(followUpAnswers || {}).filter(Boolean).join('\n');
-              const output = await runAITool(() => aiChat(`请根据我的这些反思回答，给我一段简洁但具体的自我反思反馈，并指出接下来最值得继续观察的一点。\n${mergedAnswers || '我还没有写下太多内容。'}`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableUserKey }));
+              const output = await runAITool(() => aiChat(`请根据我的这些反思回答，给我一段简洁但具体的自我反思反馈，并指出接下来最值得继续观察的一点。\n${mergedAnswers || '我还没有写下太多内容。'}`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableToolUserKey }));
             if (output) setReflectionInsight(output);
           }, companionLoading ? '更新中…' : '生成中…')}
           {reflectionInsight ? <Text style={s.toolResultText}>{reflectionInsight}</Text> : null}
