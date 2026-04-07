@@ -2773,7 +2773,10 @@ function SmartToolPage(props) {
         setToolFeedback({ tone: 'warning', text: error?.message || '这次起卦需要稍后再试。' });
         return null;
       }
-      setToolFeedback({ tone: 'warning', text: '这次生成没有成功，请检查网络后再试。' });
+      const fallbackMessage = toolKey === 'divination'
+        ? (error?.message || '这次起卦没有成功，请稍后再试。')
+        : '这次生成没有成功，请检查网络后再试。';
+      setToolFeedback({ tone: 'warning', text: fallbackMessage });
       return `暂时无法生成内容：${error?.message || '请稍后再试。'}`;
     } finally {
       setToolLoading(false);

@@ -1490,6 +1490,34 @@ export function buildStructuredProfile(result, profile = {}) {
   };
 }
 
+function buildDivinationChartPayload(result, profile = {}) {
+  const birthInfo = result?.birthInfo || result?.inputBirthInfo || result?.solarBirthInfo || {};
+  return {
+    userKey: textOf(result?.userKey || result?.profile?.userKey || profile?.userKey),
+    gender: textOf(result?.gender || birthInfo?.gender || profile?.gender),
+    birthCity: textOf(result?.birthCity || result?.city || result?.profile?.city || profile?.city),
+    birthInfo: {
+      year: birthInfo?.year ?? profile?.year ?? null,
+      month: birthInfo?.month ?? profile?.month ?? null,
+      day: birthInfo?.day ?? profile?.day ?? null,
+      hour: birthInfo?.hour ?? profile?.hour ?? null,
+      minute: birthInfo?.minute ?? profile?.minute ?? null,
+      gender: textOf(birthInfo?.gender || profile?.gender),
+      city: textOf(birthInfo?.city || result?.birthCity || result?.city || profile?.city),
+    },
+    pillars: result?.pillars
+      ? {
+          year: result.pillars?.year || null,
+          month: result.pillars?.month || null,
+          day: result.pillars?.day || null,
+          hour: result.pillars?.hour || null,
+        }
+      : undefined,
+    dayMaster: textOf(result?.dayMaster),
+    dayWuXing: textOf(result?.dayWuXing),
+  };
+}
+
 function getDayStrengthScore(dayStrength) {
   if (typeof dayStrength === 'number') return dayStrength;
   const candidates = [dayStrength?.score, dayStrength?.value, dayStrength?.rawScore];
@@ -2019,11 +2047,12 @@ export async function aiRelationshipInsight(situation, baziResult, options = {})
 
 export async function aiMingJiDivination(question, sceneType, baziResult, options = {}) {
   const structuredProfile = buildStructuredProfile(baziResult, options.profile);
+  const chartPayload = buildDivinationChartPayload(baziResult, options.profile);
 
   if (hasAIBackendConfig()) {
     const payload = await requestXiaoLiuRenFromBackend({
       question,
-      chart: baziResult,
+      chart: chartPayload,
       profile: structuredProfile,
       userKey: options.userKey,
       sceneType,
