@@ -9,6 +9,7 @@ import {
   Modal,
   PanResponder,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -2709,6 +2710,53 @@ function SmartToolPage(props) {
     } catch {}
   }, [divinationReadyOpacity]);
 
+  const handleDivinationSubmit = useCallback(async () => {
+    if (toolLoading) return;
+    const question = `${divinationDraft.question || ''}`.trim();
+    if (!question) {
+      setToolFeedback({ tone: 'warning', text: '先写下你现在真正想问的这件事，再让明己起卦。' });
+      return;
+    }
+
+    setDivinationLoadingReady(false);
+    divinationReadyOpacity.setValue(0);
+    setDivinationInsight(null);
+    setToolFeedback({ tone: 'loading', text: '起卦中，明己正在按当下时点断这件事…' });
+    setToolLoading(true);
+
+    try {
+      const payload = await aiMingJiDivination(
+        question,
+        divinationDraft.sceneType,
+        result,
+        { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableUserKey }
+      );
+      if (payload) {
+        setDivinationInsight(payload);
+        setToolFeedback({ tone: 'success', text: '卦象已成，明己已经把这一断落下来了。' });
+      } else {
+        setToolFeedback({ tone: 'warning', text: '这次起卦没有成功，请稍后再试。' });
+      }
+    } catch (error) {
+      if (error?.code === 'DIVINATION_COOLDOWN' || error?.code === 'DIVINATION_DAILY_LIMIT') {
+        setToolFeedback({ tone: 'warning', text: error?.message || '这次起卦需要稍后再试。' });
+      } else {
+        setToolFeedback({ tone: 'warning', text: error?.message || '这次起卦没有成功，请稍后再试。' });
+      }
+    } finally {
+      setToolLoading(false);
+    }
+  }, [
+    divinationDraft.question,
+    divinationDraft.sceneType,
+    divinationReadyOpacity,
+    isPremium,
+    profile,
+    result,
+    stableUserKey,
+    toolLoading,
+  ]);
+
   const swipeResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
     onMoveShouldSetPanResponder: (_, gestureState) => {
@@ -2939,25 +2987,21 @@ function SmartToolPage(props) {
                   <Text style={s.divinationComposerHint}>{getDivinationComposerHint(divinationDraft.sceneType)}</Text>
                 </View>
               </View>
-              {renderToolActionButton('起一卦，让明己断此事', async () => {
-                setDivinationLoadingReady(false);
-                divinationReadyOpacity.setValue(0);
-                setDivinationInsight(null);
-                const output = await runAITool(async () => {
-                  const payload = await aiMingJiDivination(
-                    divinationDraft.question.trim(),
-                    divinationDraft.sceneType,
-                    result,
-                    { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableUserKey }
-                  );
-                  return payload;
-                }, {
-                  bypassQuota: true,
-                  loadingText: '起卦中，明己正在按当下时点断这件事…',
-                  successText: '卦象已成，明己已经把这一断落下来了。',
-                });
-                if (output) setDivinationInsight(output);
-              }, '起卦中…', { ignoreQuotaLock: true })}
+              <Pressable
+                style={({ pressed }) => [
+                  s.primaryButton,
+                  s.toolActionButton,
+                  s.divinationActionButton,
+                  (toolLoading || pressed) && s.divinationActionButtonPressed,
+                ]}
+                onPress={handleDivinationSubmit}
+                disabled={toolLoading}
+              >
+                <View style={s.toolActionButtonInner}>
+                  {toolLoading ? <ActivityIndicator size="small" color="#FFF" style={s.toolActionSpinner} /> : null}
+                  <Text style={s.primaryButtonText}>{toolLoading ? '起卦中…' : '起一卦，让明己断此事'}</Text>
+                </View>
+              </Pressable>
               <View style={s.divinationTimeHintRow}>
                 <View style={s.divinationTimeHintDot} />
                 <Text style={s.divinationTimeHintText}>{'按你此刻起卦的月、日、时来断，不拿旧时点替代现在。'}</Text>
@@ -5437,6 +5481,8 @@ const s = StyleSheet.create({
   primaryButton: { height: 50, borderRadius: 999, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center', marginTop: 8 },
   primaryButtonText: { fontSize: 15, fontWeight: '700', color: '#FFF' },
   toolActionButton: { marginTop: 12 },
+  divinationActionButton: { shadowColor: '#12343A', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  divinationActionButtonPressed: { opacity: 0.88, transform: [{ scale: 0.995 }] },
   toolActionButtonInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   toolActionSpinner: { marginRight: 8 },
   toolFeedbackBar: { minHeight: 44, marginTop: 10, borderRadius: 16, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', gap: 10 },
