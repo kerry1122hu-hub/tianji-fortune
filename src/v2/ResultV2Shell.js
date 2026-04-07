@@ -30,6 +30,25 @@ const CALENDAR_ENTRIES_STORAGE_KEY = 'mingme.v2.calendarEntries';
 const AI_INSTALL_REMINDER_SEEN_KEY = 'mingme.v2.aiInstallReminderSeen';
 const MINGJI_DIVINATION_LOADING_VIDEO = '/mingji-divination-loading.mp4';
 
+function padUserKeyPart(value) {
+  return `${value ?? '00'}`.padStart(2, '0');
+}
+
+function buildStableUserKey(chart = {}, profile = {}, memberRegistration = {}) {
+  const explicit = `${memberRegistration?.userKey || profile?.userKey || chart?.userKey || chart?.profile?.userKey || ''}`.trim();
+  if (explicit) return explicit;
+
+  const birth = chart?.birthInfo || chart?.inputBirthInfo || chart?.solarBirthInfo || {};
+  const year = `${birth?.year || profile?.year || '0000'}`.trim();
+  const month = padUserKeyPart(birth?.month || profile?.month || '00');
+  const day = padUserKeyPart(birth?.day || profile?.day || '00');
+  const hour = padUserKeyPart(birth?.hour ?? profile?.hour ?? '00');
+  const minute = padUserKeyPart(birth?.minute ?? profile?.minute ?? '00');
+  const gender = `${chart?.gender || birth?.gender || profile?.gender || memberRegistration?.gender || 'unknown'}`.trim() || 'unknown';
+
+  return `chart:${[year, month, day, hour, minute, gender].join('-')}`;
+}
+
 function normalizeChatMessageContent(value, fallback = '') {
   if (typeof value === 'string') return value;
   if (value === undefined || value === null) return fallback;
@@ -2719,7 +2738,7 @@ function SmartToolPage(props) {
         successText = '已生成新的智能反馈，可继续调整内容再试一次。',
         exhaustedText = '今日免费次数已用完，可开通会员继续使用 AI。',
       } = options;
-      const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile };
+      const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile, userKey: stableUserKey };
       if (!bypassQuota) {
         try {
           const allowed = await canUseAI(quotaArgs);
@@ -2926,7 +2945,7 @@ function SmartToolPage(props) {
                     divinationDraft.question.trim(),
                     divinationDraft.sceneType,
                     result,
-                    { isPremium, memberTier: isPremium ? 'premium' : 'free', profile }
+                    { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableUserKey }
                   );
                   return payload;
                 }, {
@@ -3072,7 +3091,7 @@ function SmartToolPage(props) {
             </View>
             <TextInput value={emotionNote} onChangeText={setEmotionNote} style={s.answerInput} multiline placeholder={'写下今天最明显的一种情绪，以及它是被什么事情触发的'} />
             {renderToolActionButton('生成 AI 情绪分析', async () => {
-                const output = await runAITool(() => aiAnalyzeEmotion(`情绪：${activeMood.label}\n记录：${emotionNote || '今天先做一条简短记录。'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile }));
+                const output = await runAITool(() => aiAnalyzeEmotion(`情绪：${activeMood.label}\n记录：${emotionNote || '今天先做一条简短记录。'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableUserKey }));
               if (output) setEmotionInsight(output);
             }, '分析中…')}
             {emotionInsight ? <Text style={s.toolResultText}>{emotionInsight}</Text> : null}
@@ -3094,7 +3113,7 @@ function SmartToolPage(props) {
             <TextInput value={decisionDraft.nextStep} onChangeText={(value) => setDecisionDraft((prev) => ({ ...prev, nextStep: value }))} style={s.answerInput} multiline placeholder={'例如：先问一个人、先查一份信息、先等一天'} />
           </View>
           {renderToolActionButton('生成 AI 决策建议', async () => {
-              const output = await runAITool(() => aiDecisionSupport(decisionDraft.situation || '我需要理清一个重要决定。', `${decisionDraft.options || '尚未列出选项'}\n最小下一步：${decisionDraft.nextStep || '还没想清楚'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile }));
+              const output = await runAITool(() => aiDecisionSupport(decisionDraft.situation || '我需要理清一个重要决定。', `${decisionDraft.options || '尚未列出选项'}\n最小下一步：${decisionDraft.nextStep || '还没想清楚'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableUserKey }));
             if (output) setDecisionInsight(output);
           }, '分析中…')}
           {decisionInsight ? <Text style={s.toolResultText}>{decisionInsight}</Text> : null}
@@ -3115,7 +3134,7 @@ function SmartToolPage(props) {
           </View>
           {renderToolActionButton('生成 AI 成长总结', async () => {
             const mergedAnswers = Object.entries(followUpAnswers || {}).map(([key, value]) => `${key}：${value}`).join('\n');
-              const output = await runAITool(() => aiChat(`请根据我的当前摘要和已完成观察，给我一段成长追踪建议。\n当前摘要：${oneLineSummary || '暂未生成'}\n已完成观察：${mergedAnswers || '暂未填写'}\n请聚焦：我最近正在形成什么稳定模式，下一步该如何调整。`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile }));
+              const output = await runAITool(() => aiChat(`请根据我的当前摘要和已完成观察，给我一段成长追踪建议。\n当前摘要：${oneLineSummary || '暂未生成'}\n已完成观察：${mergedAnswers || '暂未填写'}\n请聚焦：我最近正在形成什么稳定模式，下一步该如何调整。`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableUserKey }));
             if (output) setGrowthInsight(output);
           }, '生成中…')}
           {growthInsight ? <Text style={s.toolResultText}>{growthInsight}</Text> : null}
@@ -3133,7 +3152,7 @@ function SmartToolPage(props) {
           {renderToolActionButton('生成 AI 反思反馈', async () => {
             await onGenerateCompanion?.();
             const mergedAnswers = Object.values(followUpAnswers || {}).filter(Boolean).join('\n');
-              const output = await runAITool(() => aiChat(`请根据我的这些反思回答，给我一段简洁但具体的自我反思反馈，并指出接下来最值得继续观察的一点。\n${mergedAnswers || '我还没有写下太多内容。'}`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile }));
+              const output = await runAITool(() => aiChat(`请根据我的这些反思回答，给我一段简洁但具体的自我反思反馈，并指出接下来最值得继续观察的一点。\n${mergedAnswers || '我还没有写下太多内容。'}`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableUserKey }));
             if (output) setReflectionInsight(output);
           }, companionLoading ? '更新中…' : '生成中…')}
           {reflectionInsight ? <Text style={s.toolResultText}>{reflectionInsight}</Text> : null}
@@ -4487,12 +4506,16 @@ export function ResultV2Shell(props) {
   const [aiAllowed, setAiAllowed] = useState(true);
   const isPremium = !!(memberTier && memberTier !== 'free');
   const effectivePremium = isPremium || aiRemaining >= 999;
+  const stableUserKey = useMemo(
+    () => buildStableUserKey(result, profile, memberRegistration),
+    [result, profile, memberRegistration]
+  );
   const selectedStructuredDetail = selectedDetail?.type === 'custom'
     ? selectedDetail?.content
     : getStructuredDetail(selectedDetail?.name) || (selectedDetail?.type === 'shenSha' ? getGenericShenShaFallback(selectedDetail?.name) : null);
 
   const refreshAIQuota = async () => {
-    const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile };
+    const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile, userKey: stableUserKey };
     const [remaining, allowed] = await Promise.all([
       getRemainingCount(quotaArgs),
       canUseAI(quotaArgs),
@@ -4569,7 +4592,7 @@ export function ResultV2Shell(props) {
     let active = true;
       (async () => {
         try {
-        const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile };
+        const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile, userKey: stableUserKey };
         const [remaining, allowed] = await Promise.all([
           getRemainingCount(quotaArgs),
           canUseAI(quotaArgs),
@@ -4585,7 +4608,7 @@ export function ResultV2Shell(props) {
     return () => {
       active = false;
     };
-    }, [aiPage, chatHistory.length, isPremium, result, profile]);
+    }, [aiPage, chatHistory.length, isPremium, result, profile, stableUserKey]);
 
   useEffect(() => () => {
     if (activeRecording) {
@@ -4877,12 +4900,12 @@ export function ResultV2Shell(props) {
     });
 
     try {
-      await incrementUsage({ isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', chart: result, profile });
+      await incrementUsage({ isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', chart: result, profile, userKey: stableUserKey });
       const aiReply = await aiChat(
         '请基于我的个人画像、今天的状态、今日宜忌、今日色彩和环境提示，生成一段“正觉正念”式的安抚与行动引导。要求：温柔、具体、不玄学，分成三部分：1. 先安抚我的情绪 2. 提醒我今天最该稳住什么 3. 给我一个马上能做的小动作。总字数控制在220字以内。',
         result,
         [],
-        { isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', profile }
+        { isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', profile, userKey: stableUserKey }
       );
       await refreshAIQuota();
       setSelectedDetail({
@@ -5017,7 +5040,7 @@ export function ResultV2Shell(props) {
           const userMsg = `${chatInput || ''}`.trim();
           if (!userMsg || chatLoading) return;
 
-          const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile };
+          const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile, userKey: stableUserKey };
           try {
             try {
               const allowed = await canUseAI(quotaArgs);
