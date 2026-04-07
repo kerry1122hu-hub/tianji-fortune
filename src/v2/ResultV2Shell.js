@@ -2600,6 +2600,9 @@ function SmartToolPage(props) {
   const currentDivinationCooldownUntil = useMemo(() => getDivinationCooldownUntil(divinationInsight), [divinationInsight]);
   const feedbackToneColor = toolFeedback.tone === 'success' ? C.success : toolFeedback.tone === 'loading' ? meta.accent : toolFeedback.tone === 'warning' ? C.warn : C.soft;
   const feedbackIsWarning = toolFeedback.tone === 'warning';
+  const divinationWarningText = toolKey === 'divination' && feedbackIsWarning ? `${toolFeedback.text || ''}`.trim() : '';
+  const showDivinationWarningCard = !!divinationWarningText;
+  const divinationWarningNeedsPaywall = /注册会员|开通会员|解锁更多功能/.test(divinationWarningText);
 
   useEffect(() => {
     setToolFeedback({ tone: 'idle', text: '' });
@@ -2869,7 +2872,7 @@ function SmartToolPage(props) {
           <Text style={s.primaryButtonText}>{toolLoading ? loadingLabel : label}</Text>
         </View>
       </TouchableOpacity>
-        {!!toolFeedback.text ? (
+        {!!toolFeedback.text && !(toolKey === 'divination' && feedbackIsWarning) ? (
           <Animated.View
             style={[
               s.toolFeedbackBar,
@@ -3034,6 +3037,32 @@ function SmartToolPage(props) {
                 <View style={s.divinationTimeHintDot} />
                 <Text style={s.divinationTimeHintText}>{'按你此刻起卦的月、日、时来断，不拿旧时点替代现在。'}</Text>
               </View>
+              {showDivinationWarningCard ? (
+                <Animated.View
+                  style={[
+                    s.divinationWarningCard,
+                    {
+                      opacity: toolFeedbackOpacity,
+                      transform: [{ scale: toolFeedbackScale }],
+                    },
+                  ]}
+                >
+                  <View style={s.divinationWarningBadge}>
+                    <Text style={s.divinationWarningBadgeText}>
+                      {divinationWarningNeedsPaywall ? '今日已满' : '卦有定时'}
+                    </Text>
+                  </View>
+                  <Text style={s.divinationWarningTitle}>
+                    {divinationWarningNeedsPaywall ? '今日这一卦已经用完' : '此刻不宜再起新卦'}
+                  </Text>
+                  <Text style={s.divinationWarningBody}>{divinationWarningText}</Text>
+                  {divinationWarningNeedsPaywall ? (
+                    <TouchableOpacity style={s.divinationWarningButton} onPress={onOpenPaywall} activeOpacity={0.9}>
+                      <Text style={s.divinationWarningButtonText}>{'开通会员，解锁更多功能'}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </Animated.View>
+              ) : null}
               {toolLoading ? (
                 <View style={s.divinationLoadingCard}>
                   <View style={s.divinationLoadingAura} />
@@ -5516,6 +5545,48 @@ const s = StyleSheet.create({
   toolFeedbackTextWarning: { fontSize: 16, lineHeight: 24, fontWeight: '800' },
   toolQuotaButton: { height: 44, borderRadius: 999, marginTop: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: C.logoDeep, shadowColor: '#78D4BC', shadowOpacity: 0.18, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   toolQuotaButtonText: { fontSize: 14, fontWeight: '800', color: '#F7FFFC' },
+  divinationWarningCard: {
+    marginTop: 12,
+    borderRadius: 24,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    backgroundColor: '#FFF8EE',
+    borderWidth: 1,
+    borderColor: 'rgba(240,158,55,0.30)',
+    shadowColor: '#D08A1A',
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+  divinationWarningBadge: {
+    alignSelf: 'flex-start',
+    minHeight: 28,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: 'rgba(233,168,68,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(233,168,68,0.24)',
+    marginBottom: 10,
+  },
+  divinationWarningBadgeText: { fontSize: 12, fontWeight: '800', color: '#A66400' },
+  divinationWarningTitle: { fontSize: 20, lineHeight: 28, fontWeight: '900', color: '#7E4A00' },
+  divinationWarningBody: { marginTop: 8, fontSize: 15, lineHeight: 24, color: '#8E5A17', fontWeight: '600' },
+  divinationWarningButton: {
+    marginTop: 16,
+    minHeight: 48,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#12343A',
+    shadowColor: '#12343A',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  divinationWarningButtonText: { fontSize: 15, fontWeight: '800', color: '#F7FFFC' },
   secondaryGhostButton: { height: 46, borderRadius: 999, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center', marginTop: 12, backgroundColor: 'rgba(118,118,128,0.06)' },
   secondaryGhostButtonText: { fontSize: 14, fontWeight: '700', color: C.soft },
   pillarHeroRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 12 },
