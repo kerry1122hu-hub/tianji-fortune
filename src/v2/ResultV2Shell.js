@@ -148,6 +148,19 @@ function normalizeDivinationInsightPayload(payload, sceneType) {
   };
 }
 
+function getDivinationCooldownUntil(payload) {
+  const source = payload?.data || payload || {};
+  return `${(
+    source?.riskControl?.cooldownUntil ||
+    source?.riskControl?.cooldown_until ||
+    source?.engineResult?.riskControl?.cooldownUntil ||
+    source?.engineResult?.riskControl?.cooldown_until ||
+    source?.engineResult?.normalizedPayload?.risk_control?.cooldown_until ||
+    source?.normalizedPayload?.risk_control?.cooldown_until ||
+    ''
+  )}`.trim();
+}
+
 function getDivinationResultTitle(sceneType, engineResult) {
   const mainPalace = engineResult?.mainPalace?.palace_name || '--';
   const secondaryPalace = engineResult?.secondaryPalace?.palace_name;
@@ -2584,6 +2597,7 @@ function SmartToolPage(props) {
   const weekly = getResolvedWeeklyActions(weeklyActions);
   const meta = SMART_TOOL_META[toolKey] || SMART_TOOL_META.emotion;
   const stableToolUserKey = useMemo(() => buildStableUserKey(result, profile, {}), [result, profile]);
+  const currentDivinationCooldownUntil = useMemo(() => getDivinationCooldownUntil(divinationInsight), [divinationInsight]);
   const feedbackToneColor = toolFeedback.tone === 'success' ? C.success : toolFeedback.tone === 'loading' ? meta.accent : toolFeedback.tone === 'warning' ? C.warn : C.soft;
   const feedbackIsWarning = toolFeedback.tone === 'warning';
 
@@ -2719,6 +2733,14 @@ function SmartToolPage(props) {
       return;
     }
 
+    if (currentDivinationCooldownUntil) {
+      const cooldownAt = Date.parse(currentDivinationCooldownUntil);
+      if (Number.isFinite(cooldownAt) && cooldownAt > Date.now()) {
+        setToolFeedback({ tone: 'warning', text: '卦不轻起，请贰个时辰后再起' });
+        return;
+      }
+    }
+
     setDivinationLoadingReady(false);
     divinationReadyOpacity.setValue(0);
     setDivinationInsight(null);
@@ -2754,6 +2776,7 @@ function SmartToolPage(props) {
     isPremium,
     profile,
     result,
+    currentDivinationCooldownUntil,
     stableToolUserKey,
     toolLoading,
   ]);
@@ -2985,7 +3008,11 @@ function SmartToolPage(props) {
                     placeholder={getDivinationQuestionPlaceholder(divinationDraft.sceneType)}
                     placeholderTextColor={'rgba(20,51,58,0.42)'}
                   />
-                  <Text style={s.divinationComposerHint}>{getDivinationComposerHint(divinationDraft.sceneType)}</Text>
+                  <Text style={s.divinationComposerHint}>
+                    {`${divinationDraft.question || ''}`.trim()
+                      ? getDivinationComposerHint(divinationDraft.sceneType)
+                      : `你更可能真正想问的是：${buildLikelyConcernPreview(divinationDraft.sceneType, divinationDraft.question)}`}
+                  </Text>
                 </View>
               </View>
               <Pressable
@@ -3006,10 +3033,6 @@ function SmartToolPage(props) {
               <View style={s.divinationTimeHintRow}>
                 <View style={s.divinationTimeHintDot} />
                 <Text style={s.divinationTimeHintText}>{'按你此刻起卦的月、日、时来断，不拿旧时点替代现在。'}</Text>
-              </View>
-              <View style={s.divinationPreviewCard}>
-                <Text style={s.divinationPreviewLabel}>{'你更可能真正想问的是'}</Text>
-                <Text style={s.divinationPreviewText}>{buildLikelyConcernPreview(divinationDraft.sceneType, divinationDraft.question)}</Text>
               </View>
               {toolLoading ? (
                 <View style={s.divinationLoadingCard}>
