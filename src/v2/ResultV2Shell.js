@@ -382,7 +382,6 @@ const MOOD_OPTIONS = [
 const SMART_TOOL_META = {
   divination: { label: '明己一卦', hint: '用小六壬看当前这件事的势、时机与宜忌', accent: '#7FB4FF', icon: '◈' },
   dream: { label: '明己解梦', hint: '把梦里的象与现实心事一起拆开来看', accent: '#B69BFF', icon: '☾' },
-  weekly: { label: '本周安排', hint: '五张行动卡集中查看', accent: '#D7B765', icon: '≋' },
   emotion: { label: '情绪洞察', hint: '记录今天的情绪并获得 AI 分析', accent: '#7FCFBD', icon: '◌' },
   decision: { label: '决策辅助', hint: '把复杂选择拆开再看', accent: '#8FB7FF', icon: '△' },
   growth: { label: '成长追踪', hint: '把阶段变化总结成一段建议', accent: '#D7B765', icon: '◎' },
@@ -2572,6 +2571,8 @@ function SmartToolPage(props) {
     onBack,
     result,
     profile,
+    accountProfile,
+    accountResult,
     weeklyActions,
     oneLineSummary,
     followUpQuestions,
@@ -2625,7 +2626,9 @@ function SmartToolPage(props) {
   const activeMood = MOOD_OPTIONS.find((item) => item.key === selectedMood) || MOOD_OPTIONS[0];
   const weekly = getResolvedWeeklyActions(weeklyActions);
   const meta = SMART_TOOL_META[toolKey] || SMART_TOOL_META.emotion;
-  const stableToolUserKey = useMemo(() => buildStableUserKey(result, profile, {}), [result, profile]);
+  const toolIdentityChart = accountResult || result;
+  const toolIdentityProfile = accountProfile || profile;
+  const stableToolUserKey = useMemo(() => buildStableUserKey(toolIdentityChart, toolIdentityProfile, {}), [toolIdentityChart, toolIdentityProfile]);
   const currentDivinationCooldownUntil = useMemo(() => getDivinationCooldownUntil(divinationInsight), [divinationInsight]);
   const feedbackToneColor = toolFeedback.tone === 'success' ? C.success : toolFeedback.tone === 'loading' ? meta.accent : toolFeedback.tone === 'warning' ? C.warn : C.soft;
   const feedbackIsWarning = toolFeedback.tone === 'warning';
@@ -2799,7 +2802,7 @@ function SmartToolPage(props) {
         question,
         divinationDraft.sceneType,
         result,
-        { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableToolUserKey }
+        { isPremium, memberTier: isPremium ? 'premium' : 'free', profile: toolIdentityProfile, userKey: stableToolUserKey }
       );
       if (payload) {
         setDivinationInsight(payload);
@@ -2821,12 +2824,13 @@ function SmartToolPage(props) {
     divinationDraft.sceneType,
     divinationReadyOpacity,
     isPremium,
-    profile,
-    result,
-    currentDivinationCooldownUntil,
-    stableToolUserKey,
-    toolLoading,
-  ]);
+      profile,
+      result,
+      currentDivinationCooldownUntil,
+      toolIdentityProfile,
+      stableToolUserKey,
+      toolLoading,
+    ]);
 
   const swipeResponder = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => false,
@@ -2857,7 +2861,7 @@ function SmartToolPage(props) {
         successText = '已生成新的智能反馈，可继续调整内容再试一次。',
         exhaustedText = '今日免费次数已用完，可开通会员继续使用 AI。',
       } = options;
-      const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile, userKey: stableToolUserKey };
+      const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: toolIdentityChart, profile: toolIdentityProfile, userKey: stableToolUserKey };
       if (!bypassQuota) {
         try {
           const allowed = await canUseAI(quotaArgs);
@@ -3235,7 +3239,7 @@ function SmartToolPage(props) {
             </View>
             <TextInput value={emotionNote} onChangeText={setEmotionNote} style={s.answerInput} multiline placeholder={'写下今天最明显的一种情绪，以及它是被什么事情触发的'} />
             {renderToolActionButton('生成 AI 情绪分析', async () => {
-                const output = await runAITool(() => aiAnalyzeEmotion(`情绪：${activeMood.label}\n记录：${emotionNote || '今天先做一条简短记录。'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableToolUserKey }));
+                const output = await runAITool(() => aiAnalyzeEmotion(`情绪：${activeMood.label}\n记录：${emotionNote || '今天先做一条简短记录。'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile: toolIdentityProfile, userKey: stableToolUserKey }));
               if (output) setEmotionInsight(output);
             }, '分析中…')}
             {emotionInsight ? <Text style={s.toolResultText}>{emotionInsight}</Text> : null}
@@ -3307,7 +3311,7 @@ function SmartToolPage(props) {
             <TextInput value={decisionDraft.nextStep} onChangeText={(value) => setDecisionDraft((prev) => ({ ...prev, nextStep: value }))} style={s.answerInput} multiline placeholder={'例如：先问一个人、先查一份信息、先等一天'} />
           </View>
           {renderToolActionButton('生成 AI 决策建议', async () => {
-              const output = await runAITool(() => aiDecisionSupport(decisionDraft.situation || '我需要理清一个重要决定。', `${decisionDraft.options || '尚未列出选项'}\n最小下一步：${decisionDraft.nextStep || '还没想清楚'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableToolUserKey }));
+              const output = await runAITool(() => aiDecisionSupport(decisionDraft.situation || '我需要理清一个重要决定。', `${decisionDraft.options || '尚未列出选项'}\n最小下一步：${decisionDraft.nextStep || '还没想清楚'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile: toolIdentityProfile, userKey: stableToolUserKey }));
             if (output) setDecisionInsight(output);
           }, '分析中…')}
           {decisionInsight ? <Text style={s.toolResultText}>{decisionInsight}</Text> : null}
@@ -3328,7 +3332,7 @@ function SmartToolPage(props) {
           </View>
           {renderToolActionButton('生成 AI 成长总结', async () => {
             const mergedAnswers = Object.entries(followUpAnswers || {}).map(([key, value]) => `${key}：${value}`).join('\n');
-              const output = await runAITool(() => aiChat(`请根据我的当前摘要和已完成观察，给我一段成长追踪建议。\n当前摘要：${oneLineSummary || '暂未生成'}\n已完成观察：${mergedAnswers || '暂未填写'}\n请聚焦：我最近正在形成什么稳定模式，下一步该如何调整。`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableToolUserKey }));
+              const output = await runAITool(() => aiChat(`请根据我的当前摘要和已完成观察，给我一段成长追踪建议。\n当前摘要：${oneLineSummary || '暂未生成'}\n已完成观察：${mergedAnswers || '暂未填写'}\n请聚焦：我最近正在形成什么稳定模式，下一步该如何调整。`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile: toolIdentityProfile, userKey: stableToolUserKey }));
             if (output) setGrowthInsight(output);
           }, '生成中…')}
           {growthInsight ? <Text style={s.toolResultText}>{growthInsight}</Text> : null}
@@ -3346,7 +3350,7 @@ function SmartToolPage(props) {
           {renderToolActionButton('生成 AI 反思反馈', async () => {
             await onGenerateCompanion?.();
             const mergedAnswers = Object.values(followUpAnswers || {}).filter(Boolean).join('\n');
-              const output = await runAITool(() => aiChat(`请根据我的这些反思回答，给我一段简洁但具体的自我反思反馈，并指出接下来最值得继续观察的一点。\n${mergedAnswers || '我还没有写下太多内容。'}`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile, userKey: stableToolUserKey }));
+              const output = await runAITool(() => aiChat(`请根据我的这些反思回答，给我一段简洁但具体的自我反思反馈，并指出接下来最值得继续观察的一点。\n${mergedAnswers || '我还没有写下太多内容。'}`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile: toolIdentityProfile, userKey: stableToolUserKey }));
             if (output) setReflectionInsight(output);
           }, companionLoading ? '更新中…' : '生成中…')}
           {reflectionInsight ? <Text style={s.toolResultText}>{reflectionInsight}</Text> : null}
@@ -3597,6 +3601,9 @@ function HomeTab(props) {
   const [pwaInstallState, setPwaInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
   const [pwaInstallDismissed, setPwaInstallDismissed] = useState(false);
   const [pwaInstallSheetVisible, setPwaInstallSheetVisible] = useState(false);
+  const homeDeckBreath = useRef(new Animated.Value(0)).current;
+  const homePrimaryBreath = useRef(new Animated.Value(0)).current;
+  const homeSecondaryBreath = useRef(new Animated.Value(0)).current;
   const weekly = getResolvedWeeklyActions(weeklyActions);
   const hasRegisteredProfile = Boolean(
     result &&
@@ -3643,6 +3650,7 @@ function HomeTab(props) {
     toText(today?.luckyDirection || result?.luckyDirection),
     toText(today?.luckyColor || result?.luckyColor),
   ].filter((item) => item && item !== '--');
+  const isCompactHomeCards = PAGE_WIDTH < 392;
   const showInstallGuide = Platform.OS === 'web' && !pwaInstallDismissed && !pwaInstallState.standalone && (pwaInstallState.platform === 'ios' || pwaInstallState.platform === 'android');
 
   useEffect(() => {
@@ -3665,6 +3673,40 @@ function HomeTab(props) {
     if (!showInstallGuide) return;
     trackPwaEvent('install_prompt_view', { platform: pwaInstallState.platform, surface: 'home_ai_entry' });
   }, [showInstallGuide, pwaInstallState.platform]);
+
+  useEffect(() => {
+    const deckLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(homeDeckBreath, { toValue: 1, duration: 2800, useNativeDriver: true }),
+        Animated.timing(homeDeckBreath, { toValue: 0, duration: 2800, useNativeDriver: true }),
+      ])
+    );
+    const primaryLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(homePrimaryBreath, { toValue: 1, duration: 3200, useNativeDriver: true }),
+        Animated.timing(homePrimaryBreath, { toValue: 0, duration: 3200, useNativeDriver: true }),
+      ])
+    );
+    const secondaryLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(homeSecondaryBreath, { toValue: 1, duration: 3600, useNativeDriver: true }),
+        Animated.timing(homeSecondaryBreath, { toValue: 0, duration: 3600, useNativeDriver: true }),
+      ])
+    );
+
+    deckLoop.start();
+    primaryLoop.start();
+    secondaryLoop.start();
+
+    return () => {
+      deckLoop.stop();
+      primaryLoop.stop();
+      secondaryLoop.stop();
+      homeDeckBreath.stopAnimation();
+      homePrimaryBreath.stopAnimation();
+      homeSecondaryBreath.stopAnimation();
+    };
+  }, [homeDeckBreath, homePrimaryBreath, homeSecondaryBreath]);
 
   const handleAiEntryPress = () => {
     trackPwaEvent('cta_start_click', { page: 'home', position: 'hero_ai_entry' });
@@ -3694,6 +3736,8 @@ function HomeTab(props) {
         onBack={() => setActiveToolPage(null)}
         result={result}
         profile={profile}
+        accountProfile={accountProfile}
+        accountResult={accountResult}
         weeklyActions={weeklyActions}
         oneLineSummary={oneLineSummary}
         followUpQuestions={followUpQuestions}
@@ -3714,63 +3758,170 @@ function HomeTab(props) {
 
   return (
     <ScrollView contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
-      <TouchableOpacity onPress={handleAiEntryPress} style={[s.aiEntryButton, !hasRegisteredProfile && s.aiEntryButtonLocked]} activeOpacity={0.94}>
-        <View style={s.aiEntryAura} />
-        <View style={s.aiEntryAuraSecondary} />
-        <View style={s.aiEntryOrbitLarge} />
-        <View style={s.aiEntryOrbitSmall} />
-        <View style={s.aiEntryTopRow}>
-          <View style={s.aiEntryIconWrap}>
-            <Text style={s.aiEntryIcon}>{'✦'}</Text>
-          </View>
-          <View style={s.aiEntryMetaPill}>
-            <Text style={s.aiEntryMetaPillText}>{hasRegisteredProfile ? (isPremium ? '无限使用' : `今日剩余 ${aiRemaining} 次`) : '需先填完整资料'}</Text>
-          </View>
-        </View>
-        <Text style={s.aiEntryText}>{'明己AI先生'}</Text>
-        <Text style={s.aiEntrySubline}>{'明己者明 / 知时者智 / 行动者胜'}</Text>
-        <Text style={s.aiEntryBody}>{hasRegisteredProfile ? '结合你的个人画像、当前状态和正在思考的话题，给出更贴身的回应与建议。' : '需要先填写姓名、出生日期、时分、性别与出生地，系统才能生成可用的个人画像，再开启 AI 陪伴。'}</Text>
-        <View style={s.aiEntryFooter}>
-          <View style={s.aiEntryActionPill}>
-            <Text style={s.aiEntryAction}>{hasRegisteredProfile ? '开始对话' : '先去建立资料'}</Text>
-            <Text style={s.aiEntryArrow}>{'→'}</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-      <TouchableOpacity
-        onPress={() => {
-          if (!hasRegisteredProfile) {
-            onRecalculate?.();
-            return;
-          }
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          setActiveToolPage('divination');
-        }}
-        style={[s.aiEntryButton, s.divinationEntryButton, !hasRegisteredProfile && s.aiEntryButtonLocked]}
-        activeOpacity={0.94}
+      <Animated.View
+        style={[
+          s.homeEntryDeck,
+          {
+            transform: [{ translateY: homeDeckBreath.interpolate({ inputRange: [0, 1], outputRange: [0, -2] }) }],
+          },
+        ]}
       >
-        <View style={[s.aiEntryAura, s.divinationEntryAura]} />
-        <View style={[s.aiEntryAuraSecondary, s.divinationEntryAuraSecondary]} />
-        <View style={[s.aiEntryOrbitLarge, s.divinationEntryOrbitLarge]} />
-        <View style={[s.aiEntryOrbitSmall, s.divinationEntryOrbitSmall]} />
-        <View style={s.aiEntryTopRow}>
-          <View style={[s.aiEntryIconWrap, s.divinationEntryIconWrap]}>
-            <Text style={s.aiEntryIcon}>{'◈'}</Text>
-          </View>
-          <View style={[s.aiEntryMetaPill, s.divinationEntryMetaPill]}>
-            <Text style={s.aiEntryMetaPillText}>{hasRegisteredProfile ? '起一卦看当下' : '需先填完整资料'}</Text>
-          </View>
+        <Animated.View
+          style={[
+            s.homeEntryDeckGlow,
+            {
+              opacity: homeDeckBreath.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1] }),
+              transform: [{ scale: homeDeckBreath.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.03] }) }],
+            },
+          ]}
+        />
+        <View style={s.homeEntryDeckHeader}>
+          <Text style={s.homeEntryDeckEyebrow}>{'明己入口'}</Text>
+          <Text style={s.homeEntryDeckTitle}>{'先选你现在最需要的那一条线'}</Text>
+          <Text style={s.homeEntryDeckBody}>{'上面适合深聊，下面两张适合快速切进当下问题。主次清楚一点，首页会更像正式产品页。'}</Text>
         </View>
-        <Text style={s.aiEntryText}>{'明己一卦'}</Text>
-        <Text style={s.aiEntrySubline}>{'小六壬断眼前 / 先看势 / 再看机'}</Text>
-        <Text style={s.aiEntryBody}>{hasRegisteredProfile ? '适合问当下这件事该不该动、该往哪边推、哪里最容易卡住。先起主断，再由明己把这一卦讲透。' : '一样需要先建立完整资料。这样起卦后的提醒，才会更贴着你的命盘和近期状态。'}</Text>
-        <View style={s.aiEntryFooter}>
-          <View style={[s.aiEntryActionPill, s.divinationEntryActionPill]}>
-            <Text style={s.aiEntryAction}>{hasRegisteredProfile ? '进入明己一卦' : '先去建立资料'}</Text>
-            <Text style={s.aiEntryArrow}>{'→'}</Text>
-          </View>
+        <Animated.View
+          style={{
+            transform: [{ translateY: homePrimaryBreath.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }],
+          }}
+        >
+          <TouchableOpacity onPress={handleAiEntryPress} style={[s.aiEntryButton, s.aiEntryPrimaryButton, !hasRegisteredProfile && s.aiEntryButtonLocked]} activeOpacity={0.94}>
+            <Animated.View
+              style={[
+                s.aiEntryJadeGlow,
+                {
+                  opacity: homePrimaryBreath.interpolate({ inputRange: [0, 1], outputRange: [0.34, 0.62] }),
+                  transform: [{ scale: homePrimaryBreath.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1.04] }) }],
+                },
+              ]}
+            />
+            <Animated.View
+              style={[
+                s.aiEntryJadeGlowSoft,
+                {
+                  opacity: homePrimaryBreath.interpolate({ inputRange: [0, 1], outputRange: [0.24, 0.46] }),
+                  transform: [{ scale: homePrimaryBreath.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.06] }) }],
+                },
+              ]}
+            />
+            <View style={s.aiEntryAura} />
+            <View style={s.aiEntryAuraSecondary} />
+            <View style={s.aiEntryOrbitLarge} />
+            <View style={s.aiEntryOrbitSmall} />
+            <View style={s.aiEntryTopRow}>
+              <View style={s.aiEntryIconWrap}>
+                <Text style={s.aiEntryIcon}>{'✦'}</Text>
+              </View>
+              <View style={s.aiEntryMetaPill}>
+                <Text style={s.aiEntryMetaPillText}>{hasRegisteredProfile ? (isPremium ? '无限使用' : `今日剩余 ${aiRemaining} 次`) : '需先填完整资料'}</Text>
+              </View>
+            </View>
+            <Text style={s.aiEntryText}>{'明己AI先生'}</Text>
+            <Text style={s.aiEntrySubline}>{'明己者明 / 知时者智 / 行动者胜'}</Text>
+            <Text style={s.aiEntryBody}>{hasRegisteredProfile ? '结合你的个人画像、当前状态和正在思考的话题，给出更贴身的回应与建议。' : '需要先填写姓名、出生日期、时分、性别与出生地，系统才能生成可用的个人画像，再开启 AI 陪伴。'}</Text>
+            <View style={s.aiEntryFooter}>
+              <View style={s.aiEntryActionPill}>
+                <Text style={s.aiEntryAction}>{hasRegisteredProfile ? '开始对话' : '先去建立资料'}</Text>
+                <Text style={s.aiEntryArrow}>{'→'}</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+        <View style={[s.homeEntrySecondaryRow, isCompactHomeCards && s.homeEntrySecondaryRowCompact]}>
+          <Animated.View
+            style={[
+              s.homeEntrySecondaryAnimated,
+              isCompactHomeCards && s.homeEntrySecondaryAnimatedCompact,
+              {
+                transform: [{ translateY: homeSecondaryBreath.interpolate({ inputRange: [0, 1], outputRange: [0, -2] }) }],
+              },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={() => {
+                if (!hasRegisteredProfile) {
+                  onRecalculate?.();
+                  return;
+                }
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                setActiveToolPage('divination');
+              }}
+              style={[s.aiEntryButton, s.homeEntrySecondaryCard, isCompactHomeCards && s.homeEntrySecondaryCardCompact, s.divinationEntryButton, !hasRegisteredProfile && s.aiEntryButtonLocked]}
+              activeOpacity={0.94}
+            >
+              <View style={[s.aiEntryAura, s.divinationEntryAura]} />
+              <View style={[s.aiEntryAuraSecondary, s.divinationEntryAuraSecondary]} />
+              <View style={[s.aiEntryOrbitLarge, s.divinationEntryOrbitLarge]} />
+              <View style={[s.aiEntryOrbitSmall, s.divinationEntryOrbitSmall]} />
+              <View style={s.aiEntryTopRow}>
+                <View style={[s.aiEntryIconWrap, s.divinationEntryIconWrap]}>
+                  <Text style={s.aiEntryIcon}>{'◈'}</Text>
+                </View>
+                <View style={[s.aiEntryMetaPill, s.divinationEntryMetaPill]}>
+                  <Text style={s.aiEntryMetaPillText}>{hasRegisteredProfile ? '起一卦看当下' : '需先填完整资料'}</Text>
+                </View>
+              </View>
+              <Text style={[s.aiEntryText, s.homeEntrySecondaryTitle, isCompactHomeCards && s.homeEntrySecondaryTitleCompact]}>{'明己一卦'}</Text>
+              <Text style={[s.aiEntrySubline, s.homeEntrySecondarySubline]}>{'小六壬断眼前 / 先看势 / 再看机'}</Text>
+              <Text style={[s.aiEntryBody, s.homeEntrySecondaryBody]}>{hasRegisteredProfile ? '适合问眼前这件事该不该动、卡点在哪、这一手该往哪边推。' : '先建立完整资料，再让这一卦真正贴着你的命盘与状态落下来。'}</Text>
+              <View style={[s.aiEntryFooter, s.homeEntrySecondaryFooter]}>
+                <View style={[s.aiEntryActionPill, s.divinationEntryActionPill]}>
+                  <Text style={s.aiEntryAction}>{hasRegisteredProfile ? '进入明己一卦' : '先去建立资料'}</Text>
+                  <Text style={s.aiEntryArrow}>{'→'}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+          <Animated.View
+            style={[
+              s.homeEntrySecondaryAnimated,
+              isCompactHomeCards && s.homeEntrySecondaryAnimatedCompact,
+              {
+                transform: [{ translateY: homeSecondaryBreath.interpolate({ inputRange: [0, 1], outputRange: [-1, 2] }) }],
+              },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={() => {
+                if (!hasRegisteredProfile) {
+                  onRecalculate?.();
+                  return;
+                }
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                setActiveToolPage('dream');
+              }}
+              style={[s.aiEntryButton, s.homeEntrySecondaryCard, isCompactHomeCards && s.homeEntrySecondaryCardCompact, s.dreamEntryButton, !hasRegisteredProfile && s.aiEntryButtonLocked]}
+              activeOpacity={0.94}
+            >
+              <View style={[s.aiEntryAura, s.dreamEntryAura]} />
+              <View style={[s.aiEntryAuraSecondary, s.dreamEntryAuraSecondary]} />
+              <View style={[s.aiEntryOrbitLarge, s.dreamEntryOrbitLarge]} />
+              <View style={[s.aiEntryOrbitSmall, s.dreamEntryOrbitSmall]} />
+              <View style={s.aiEntryTopRow}>
+                <View style={[s.aiEntryIconWrap, s.dreamEntryIconWrap]}>
+                  <Text style={s.aiEntryIcon}>{'☾'}</Text>
+                </View>
+                <View style={[s.aiEntryMetaPill, s.dreamEntryMetaPill]}>
+                  <Text style={s.aiEntryMetaPillText}>{hasRegisteredProfile ? '拆梦里的象' : '需先填完整资料'}</Text>
+                </View>
+              </View>
+              <Text style={[s.aiEntryText, s.homeEntrySecondaryTitle, isCompactHomeCards && s.homeEntrySecondaryTitleCompact]}>{'明己解梦'}</Text>
+              <Text style={[s.aiEntrySubline, s.homeEntrySecondarySubline]}>{'周公取象 / 心理照见 / 回到现实'}</Text>
+              <Text style={[s.aiEntryBody, s.homeEntrySecondaryBody]}>
+                {hasRegisteredProfile
+                  ? '把梦里的水、火、人、物与现实心事一起拆开，先看象，再回到你眼下的情绪与处境。'
+                  : '先建立完整资料，这样解梦时，判断会更贴着你的个人状态与近期心绪。'}
+              </Text>
+              <View style={[s.aiEntryFooter, s.homeEntrySecondaryFooter]}>
+                <View style={[s.aiEntryActionPill, s.dreamEntryActionPill]}>
+                  <Text style={s.aiEntryAction}>{hasRegisteredProfile ? '进入明己解梦' : '先去建立资料'}</Text>
+                  <Text style={s.aiEntryArrow}>{'→'}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
-      </TouchableOpacity>
+      </Animated.View>
       {showInstallGuide ? (
         <View style={s.pwaInstallCard}>
           <View style={s.pwaInstallCopy}>
@@ -4448,6 +4599,7 @@ function FamilyProfilesCard({
   onCreateFamilyProfile,
   onSaveCurrentToFamilyProfile,
   onSwitchFamilyProfile,
+  onSwitchToPrimaryAccount,
   onDeleteFamilyProfile,
 }) {
   const isMember = memberTier && memberTier !== 'free';
@@ -4472,8 +4624,13 @@ function FamilyProfilesCard({
         <>
           <View style={s.familySummaryRow}>
             <View style={s.familyCountPill}><Text style={s.familyCountText}>{`${count} / 5 组`}</Text></View>
-            <Text style={s.familySummaryText}>{'建议先保存当前档案，再为新的家人重新排盘。'}</Text>
+            <Text style={s.familySummaryText}>{activeFamilyProfileId ? '当前正在查看家人档案，主账号身份与会员权限不会被改动。' : '建议先保存当前档案，再为新的家人重新排盘。'}</Text>
           </View>
+          {activeFamilyProfileId ? (
+            <TouchableOpacity onPress={onSwitchToPrimaryAccount} style={s.secondaryButton}>
+              <Text style={s.secondaryButtonText}>{'返回主账号'}</Text>
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity onPress={onSaveCurrentToFamilyProfile} style={s.secondaryButton}><Text style={s.secondaryButtonText}>{'保存当前档案到家人列表'}</Text></TouchableOpacity>
           <TouchableOpacity onPress={onCreateFamilyProfile} style={[s.secondaryButton, s.familyCreateButton]}><Text style={s.secondaryButtonText}>{'新建家人档案'}</Text></TouchableOpacity>
           {count ? (
@@ -4539,20 +4696,23 @@ function formatProfileBirthText(profile) {
   return `${year}年${month}月${day}日 ${hour}时${minute}分`;
 }
 
-function MeTab({ profile, locale, supportedLocales, onLocaleChange, onEditProfile, onResetAIReading, onResetData, notificationPrefs, onNotificationPrefsChange, memberRegistration, onOpenPaywall, memberTier, familyProfiles, activeFamilyProfileId, onCreateFamilyProfile, onSaveCurrentToFamilyProfile, onSwitchFamilyProfile, onDeleteFamilyProfile, hideMembership }) {
-  const profileTitle = hideMembership ? '个人资料概览' : (profile?.nickname || '\u672a\u547d\u540d\u6863\u6848');
+function MeTab({ profile, accountProfile, locale, supportedLocales, onLocaleChange, onEditProfile, onResetAIReading, onResetData, notificationPrefs, onNotificationPrefsChange, memberRegistration, onOpenPaywall, memberTier, familyProfiles, activeFamilyProfileId, onCreateFamilyProfile, onSaveCurrentToFamilyProfile, onSwitchFamilyProfile, onSwitchToPrimaryAccount, onDeleteFamilyProfile, hideMembership }) {
+  const displayProfile = accountProfile || profile;
+  const profileTitle = hideMembership ? '个人资料概览' : (displayProfile?.nickname || '\u672a\u547d\u540d\u6863\u6848');
   const profileBody = hideMembership
     ? '用于查看当前资料、调整提醒方式与管理本地记录。'
-    : `${profile?.city || '--'} / ${profile?.focus || '--'} / ${profile?.role || '--'}`;
+    : activeFamilyProfileId
+      ? '这里固定显示主账号资料。家人档案只是在下方随时调取查看，不会覆盖会员主身份。'
+      : `${displayProfile?.city || '--'} / ${displayProfile?.focus || '--'} / ${displayProfile?.role || '--'}`;
   const editLabel = hideMembership ? '更新资料' : '\u7f16\u8f91\u6863\u6848 / \u91cd\u65b0\u6392\u76d8';
-  const profileName = profile?.nickname || '未命名档案';
-  const profileBirth = formatProfileBirthText(profile);
+  const profileName = displayProfile?.nickname || '未命名档案';
+  const profileBirth = formatProfileBirthText(displayProfile);
   const profileItems = [
-    { label: '昵称', value: profile?.nickname || '--' },
-    { label: '出生日期', value: formatProfileBirthText(profile) },
-    { label: '出生地', value: profile?.city || '--' },
-    { label: '关注主题', value: profile?.focus || '--' },
-    { label: '当前角色', value: profile?.role || '--' },
+    { label: '昵称', value: displayProfile?.nickname || '--' },
+    { label: '出生日期', value: formatProfileBirthText(displayProfile) },
+    { label: '出生地', value: displayProfile?.city || '--' },
+    { label: '关注主题', value: displayProfile?.focus || '--' },
+    { label: '当前角色', value: displayProfile?.role || '--' },
   ];
   return (
     <ScrollView contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
@@ -4567,11 +4727,11 @@ function MeTab({ profile, locale, supportedLocales, onLocaleChange, onEditProfil
           <View style={s.profileOverviewMetaRow}>
             <View style={s.profileOverviewMetaPill}>
               <Text style={s.profileOverviewMetaLabel}>{'出生地'}</Text>
-              <Text style={s.profileOverviewMetaValue}>{toText(profile?.city || '--')}</Text>
+              <Text style={s.profileOverviewMetaValue}>{toText(displayProfile?.city || '--')}</Text>
             </View>
             <View style={s.profileOverviewMetaPill}>
               <Text style={s.profileOverviewMetaLabel}>{'关注主题'}</Text>
-              <Text style={s.profileOverviewMetaValue}>{toText(profile?.focus || '--')}</Text>
+              <Text style={s.profileOverviewMetaValue}>{toText(displayProfile?.focus || '--')}</Text>
             </View>
           </View>
         </View>
@@ -4593,6 +4753,7 @@ function MeTab({ profile, locale, supportedLocales, onLocaleChange, onEditProfil
           onCreateFamilyProfile={onCreateFamilyProfile}
           onSaveCurrentToFamilyProfile={onSaveCurrentToFamilyProfile}
           onSwitchFamilyProfile={onSwitchFamilyProfile}
+          onSwitchToPrimaryAccount={onSwitchToPrimaryAccount}
           onDeleteFamilyProfile={onDeleteFamilyProfile}
         />
       ) : null}
@@ -4660,6 +4821,8 @@ export function ResultV2Shell(props) {
     memberTier,
     memberRegistration,
     hideMembership,
+    accountProfile,
+    accountResult,
     familyProfiles,
     activeFamilyProfileId,
     profileReadyVisible,
@@ -4667,6 +4830,7 @@ export function ResultV2Shell(props) {
     onCreateFamilyProfile,
     onSaveCurrentToFamilyProfile,
     onSwitchFamilyProfile,
+    onSwitchToPrimaryAccount,
     onDeleteFamilyProfile,
   } = props;
   const pagerRef = useRef(null);
@@ -4692,16 +4856,18 @@ export function ResultV2Shell(props) {
   const [aiAllowed, setAiAllowed] = useState(true);
   const isPremium = !!(memberTier && memberTier !== 'free');
   const effectivePremium = isPremium || aiRemaining >= 999;
+  const identityChart = accountResult || result;
+  const identityProfile = accountProfile || profile;
   const stableUserKey = useMemo(
-    () => buildStableUserKey(result, profile, memberRegistration),
-    [result, profile, memberRegistration]
+    () => buildStableUserKey(identityChart, identityProfile, memberRegistration),
+    [identityChart, identityProfile, memberRegistration]
   );
   const selectedStructuredDetail = selectedDetail?.type === 'custom'
     ? selectedDetail?.content
     : getStructuredDetail(selectedDetail?.name) || (selectedDetail?.type === 'shenSha' ? getGenericShenShaFallback(selectedDetail?.name) : null);
 
   const refreshAIQuota = async () => {
-    const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile, userKey: stableUserKey };
+    const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: identityChart, profile: identityProfile, userKey: stableUserKey };
     const [remaining, allowed] = await Promise.all([
       getRemainingCount(quotaArgs),
       canUseAI(quotaArgs),
@@ -4778,7 +4944,7 @@ export function ResultV2Shell(props) {
     let active = true;
       (async () => {
         try {
-        const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile, userKey: stableUserKey };
+        const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: identityChart, profile: identityProfile, userKey: stableUserKey };
         const [remaining, allowed] = await Promise.all([
           getRemainingCount(quotaArgs),
           canUseAI(quotaArgs),
@@ -5086,12 +5252,12 @@ export function ResultV2Shell(props) {
     });
 
     try {
-      await incrementUsage({ isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', chart: result, profile, userKey: stableUserKey });
+      await incrementUsage({ isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', chart: identityChart, profile: identityProfile, userKey: stableUserKey });
       const aiReply = await aiChat(
         '请基于我的个人画像、今天的状态、今日宜忌、今日色彩和环境提示，生成一段“正觉正念”式的安抚与行动引导。要求：温柔、具体、不玄学，分成三部分：1. 先安抚我的情绪 2. 提醒我今天最该稳住什么 3. 给我一个马上能做的小动作。总字数控制在220字以内。',
         result,
         [],
-        { isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', profile, userKey: stableUserKey }
+        { isPremium: effectivePremium, memberTier: effectivePremium ? 'premium' : 'free', profile: identityProfile, userKey: stableUserKey }
       );
       await refreshAIQuota();
       setSelectedDetail({
@@ -5122,7 +5288,7 @@ export function ResultV2Shell(props) {
     !hideMembership ? <ProfileTab key="profile" profile={profile} result={result} aiText={aiText} aiLoading={aiLoading} onGenerateAI={onGenerateAI} onPressTenGod={(name) => setSelectedDetail(name ? { type: 'tenGod', name } : null)} onPressShenShaItem={(name) => setSelectedDetail(name ? { type: 'shenSha', name } : null)} onPressShenShaList={(pillar, items) => setSelectedShenShaList({ pillar, items })} /> : null,
     <StageTab key="stage" result={result} fortuneCalendar={fortuneCalendar} calSummary={calSummary} profile={profile} reviewMode={hideMembership} weeklyActions={weeklyActions} selectedDay={selectedCalendarDay} onSelectDay={(day, options) => { setSelectedCalendarDay(day); setCalendarQuickAddMode(!!options?.quickAdd); }} onCloseDayDetail={() => { setSelectedCalendarDay(null); setCalendarQuickAddMode(false); }} oneLineSummary={oneLineSummary} calendarEntries={calendarEntries} notificationPrefs={notificationPrefs} onSaveCalendarNote={handleSaveCalendarNote} onToggleCalendarReminder={handleToggleCalendarReminder} onUpdateCalendarReminderTime={handleUpdateCalendarReminderTime} onToggleCalendarNoteDone={handleToggleCalendarNoteDone} quickAddMode={calendarQuickAddMode} onClearQuickAddMode={() => setCalendarQuickAddMode(false)} />,
     !hideMembership ? <PremiumTab key="premium" memberTier={memberTier} onOpenPaywall={onOpenPaywall} result={result} profile={profile} calSummary={calSummary} fortuneCalendar={fortuneCalendar} weeklyActions={weeklyActions} memberRegistration={memberRegistration} /> : null,
-    <MeTab key="me" profile={profile} locale={locale} supportedLocales={supportedLocales} onLocaleChange={onLocaleChange} onEditProfile={onEditProfile} onResetAIReading={onResetAIReading} onResetData={onResetData} notificationPrefs={notificationPrefs} onNotificationPrefsChange={onNotificationPrefsChange} memberRegistration={memberRegistration} onOpenPaywall={onOpenPaywall} memberTier={memberTier} familyProfiles={familyProfiles} activeFamilyProfileId={activeFamilyProfileId} onCreateFamilyProfile={onCreateFamilyProfile} onSaveCurrentToFamilyProfile={onSaveCurrentToFamilyProfile} onSwitchFamilyProfile={onSwitchFamilyProfile} onDeleteFamilyProfile={onDeleteFamilyProfile} hideMembership={hideMembership} />,
+    <MeTab key="me" profile={profile} accountProfile={accountProfile} locale={locale} supportedLocales={supportedLocales} onLocaleChange={onLocaleChange} onEditProfile={onEditProfile} onResetAIReading={onResetAIReading} onResetData={onResetData} notificationPrefs={notificationPrefs} onNotificationPrefsChange={onNotificationPrefsChange} memberRegistration={memberRegistration} onOpenPaywall={onOpenPaywall} memberTier={memberTier} familyProfiles={familyProfiles} activeFamilyProfileId={activeFamilyProfileId} onCreateFamilyProfile={onCreateFamilyProfile} onSaveCurrentToFamilyProfile={onSaveCurrentToFamilyProfile} onSwitchFamilyProfile={onSwitchFamilyProfile} onSwitchToPrimaryAccount={onSwitchToPrimaryAccount} onDeleteFamilyProfile={onDeleteFamilyProfile} hideMembership={hideMembership} />,
   ].filter(Boolean);
   return (
     <View style={s.root}>
@@ -5226,7 +5392,7 @@ export function ResultV2Shell(props) {
           const userMsg = `${chatInput || ''}`.trim();
           if (!userMsg || chatLoading) return;
 
-          const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: result, profile, userKey: stableUserKey };
+          const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: identityChart, profile: identityProfile, userKey: stableUserKey };
           try {
             try {
               const allowed = await canUseAI(quotaArgs);
@@ -5375,9 +5541,25 @@ const s = StyleSheet.create({
   heroDecisionText: { fontSize: 13, lineHeight: 20, color: 'rgba(20,51,58,0.74)', marginTop: 8, fontWeight: '600' },
   topButton: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.84)', alignSelf: 'flex-start', borderWidth: 1, borderColor: 'rgba(169,222,208,0.24)' },
   topButtonText: { fontSize: 13, fontWeight: '700', color: C.logoDeep },
-  aiEntryButton: { marginTop: 10, minHeight: 336, borderRadius: 32, backgroundColor: C.logoNight, borderWidth: 1, borderColor: 'rgba(234,245,241,0.10)', marginBottom: 12, paddingHorizontal: 22, paddingVertical: 22, overflow: 'hidden', shadowColor: '#071018', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.20, shadowRadius: 30, elevation: 7, justifyContent: 'space-between' },
+  homeEntryDeck: { position: 'relative', borderRadius: 30, padding: 14, backgroundColor: '#F2F8F6', borderWidth: 1, borderColor: 'rgba(169,222,208,0.18)', overflow: 'hidden', gap: 12, shadowColor: '#12343A', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 2 },
+  homeEntryDeckGlow: { position: 'absolute', width: 320, height: 320, borderRadius: 999, top: -180, right: -120, backgroundColor: 'rgba(169,222,208,0.12)' },
+  homeEntryDeckHeader: { paddingHorizontal: 2, gap: 4 },
+  homeEntryDeckEyebrow: { fontSize: 11, fontWeight: '800', color: '#2D7E69', textTransform: 'uppercase', letterSpacing: 1 },
+  homeEntryDeckTitle: { fontSize: 22, lineHeight: 28, fontWeight: '800', color: C.logoDeep },
+  homeEntryDeckBody: { fontSize: 13, lineHeight: 20, color: 'rgba(20,51,58,0.62)', fontWeight: '600', maxWidth: '92%' },
+  homeEntrySecondaryRow: { flexDirection: 'row', gap: 12 },
+  homeEntrySecondaryRowCompact: { flexDirection: 'column' },
+  homeEntrySecondaryAnimated: { flex: 1 },
+  homeEntrySecondaryAnimatedCompact: { flex: 0 },
+  aiEntryButton: { marginTop: 0, minHeight: 304, borderRadius: 32, backgroundColor: C.logoNight, borderWidth: 1, borderColor: 'rgba(234,245,241,0.10)', marginBottom: 0, paddingHorizontal: 22, paddingVertical: 22, overflow: 'hidden', shadowColor: '#071018', shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.20, shadowRadius: 30, elevation: 7, justifyContent: 'space-between' },
+  aiEntryPrimaryButton: { minHeight: 292 },
   aiEntryButtonLocked: { opacity: 0.94, borderColor: 'rgba(228,211,157,0.18)' },
-  divinationEntryButton: { minHeight: 248, backgroundColor: '#10223F', borderColor: 'rgba(179,211,255,0.14)' },
+  divinationEntryButton: { minHeight: 228, backgroundColor: '#10223F', borderColor: 'rgba(179,211,255,0.14)' },
+  dreamEntryButton: { minHeight: 228, backgroundColor: '#241B3F', borderColor: 'rgba(205,188,255,0.16)' },
+  homeEntrySecondaryCard: { flex: 1, minWidth: 0, borderRadius: 28, paddingHorizontal: 18, paddingVertical: 18 },
+  homeEntrySecondaryCardCompact: { minHeight: 212 },
+  aiEntryJadeGlow: { position: 'absolute', width: 236, height: 236, borderRadius: 999, top: -86, left: -26, backgroundColor: 'rgba(133,217,195,0.18)' },
+  aiEntryJadeGlowSoft: { position: 'absolute', width: 188, height: 188, borderRadius: 999, bottom: -74, right: 10, backgroundColor: 'rgba(194,245,227,0.12)' },
   aiEntryAura: { position: 'absolute', width: 230, height: 230, borderRadius: 999, top: -92, right: -28, backgroundColor: C.logoGlow },
   aiEntryAuraSecondary: { position: 'absolute', width: 260, height: 260, borderRadius: 999, bottom: -140, left: -70, backgroundColor: 'rgba(240,230,185,0.12)' },
   aiEntryOrbitLarge: { position: 'absolute', width: 246, height: 246, borderRadius: 999, top: -84, right: -16, borderWidth: 1, borderColor: 'rgba(169,222,208,0.16)' },
@@ -5386,19 +5568,31 @@ const s = StyleSheet.create({
   divinationEntryAuraSecondary: { backgroundColor: 'rgba(141,174,255,0.12)' },
   divinationEntryOrbitLarge: { borderColor: 'rgba(170,212,255,0.18)' },
   divinationEntryOrbitSmall: { borderColor: 'rgba(205,222,255,0.12)' },
+  dreamEntryAura: { backgroundColor: 'rgba(182,155,255,0.22)' },
+  dreamEntryAuraSecondary: { backgroundColor: 'rgba(255,214,230,0.10)' },
+  dreamEntryOrbitLarge: { borderColor: 'rgba(205,188,255,0.18)' },
+  dreamEntryOrbitSmall: { borderColor: 'rgba(255,214,230,0.12)' },
   aiEntryTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   aiEntryIconWrap: { width: 46, height: 46, borderRadius: 17, backgroundColor: 'rgba(234,245,241,0.10)', borderWidth: 1, borderColor: 'rgba(234,245,241,0.18)', alignItems: 'center', justifyContent: 'center' },
   divinationEntryIconWrap: { backgroundColor: 'rgba(196,222,255,0.12)', borderColor: 'rgba(196,222,255,0.22)' },
+  dreamEntryIconWrap: { backgroundColor: 'rgba(205,188,255,0.12)', borderColor: 'rgba(205,188,255,0.24)' },
   aiEntryIcon: { fontSize: 18, color: C.logoMist },
   aiEntryMetaPill: { minHeight: 30, borderRadius: 999, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,222,208,0.12)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.18)' },
   divinationEntryMetaPill: { backgroundColor: 'rgba(127,180,255,0.14)', borderColor: 'rgba(127,180,255,0.24)' },
+  dreamEntryMetaPill: { backgroundColor: 'rgba(182,155,255,0.15)', borderColor: 'rgba(182,155,255,0.26)' },
   aiEntryMetaPillText: { fontSize: 11, fontWeight: '700', color: 'rgba(234,245,241,0.86)' },
-  aiEntryText: { fontSize: 34, lineHeight: 40, color: C.logoMist, fontWeight: '800', marginTop: 20, letterSpacing: -0.6, maxWidth: '76%' },
+  aiEntryText: { fontSize: 32, lineHeight: 38, color: C.logoMist, fontWeight: '800', marginTop: 18, letterSpacing: -0.6, maxWidth: '76%' },
+  homeEntrySecondaryTitle: { fontSize: 24, lineHeight: 30, marginTop: 16, maxWidth: '100%' },
+  homeEntrySecondaryTitleCompact: { fontSize: 22, lineHeight: 28 },
   aiEntrySubline: { fontSize: 13, lineHeight: 19, color: 'rgba(240,230,185,0.74)', marginTop: 10, fontWeight: '700' },
+  homeEntrySecondarySubline: { fontSize: 12, lineHeight: 18, marginTop: 8 },
   aiEntryBody: { fontSize: 15, lineHeight: 24, color: 'rgba(234,245,241,0.76)', marginTop: 14, maxWidth: '86%' },
+  homeEntrySecondaryBody: { fontSize: 13, lineHeight: 21, marginTop: 12, maxWidth: '100%' },
   aiEntryFooter: { marginTop: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' },
+  homeEntrySecondaryFooter: { marginTop: 16, justifyContent: 'flex-start' },
   aiEntryActionPill: { minHeight: 42, borderRadius: 999, paddingHorizontal: 14, backgroundColor: 'rgba(234,245,241,0.12)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.26)', flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: '#78D4BC', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   divinationEntryActionPill: { backgroundColor: 'rgba(214,231,255,0.14)', borderColor: 'rgba(179,211,255,0.28)' },
+  dreamEntryActionPill: { backgroundColor: 'rgba(205,188,255,0.14)', borderColor: 'rgba(205,188,255,0.28)' },
   aiEntryAction: { fontSize: 14, fontWeight: '700', color: C.logoMint },
   aiEntryArrow: { fontSize: 18, fontWeight: '800', color: C.logoMint },
   pwaInstallCard: { borderRadius: 24, backgroundColor: 'rgba(11,16,32,0.94)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.14)', paddingHorizontal: 18, paddingVertical: 18, marginTop: -2, marginBottom: 12, shadowColor: '#08111D', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 4, gap: 14 },
