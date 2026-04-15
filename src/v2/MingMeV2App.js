@@ -57,6 +57,7 @@ const STORAGE_KEYS = {
   profile: 'mingme.v2.profile',
   memberTier: 'mingme.v2.memberTier',
   memberRegistration: 'mingme.v2.memberRegistration',
+  primaryAccountArchive: 'mingme.v2.primaryAccountArchive',
   familyProfiles: 'mingme.v2.familyProfiles',
   activeFamilyProfileId: 'mingme.v2.activeFamilyProfileId',
   moodJournal: 'mingme.v2.moodJournal',
@@ -131,6 +132,7 @@ const DEFAULT_NOTIFICATION_PREFS = {
 };
 
 const DEFAULT_MEMBER_REGISTRATION = {
+  userKey: '',
   nickname: '',
   city: '',
   focus: '',
@@ -164,6 +166,31 @@ function buildFamilyProfileEntry({
   return {
     id: id || `family-${Date.now()}`,
     createdAt: createdAt || new Date().toISOString(),
+    savedAt: new Date().toISOString(),
+    profile: { ...DEFAULT_PROFILE, ...(profile || {}) },
+    chartResult: chartResult || null,
+    fortuneCalendar: Array.isArray(fortuneCalendar) ? fortuneCalendar : [],
+    calSummary: calSummary || null,
+    aiText: aiText || null,
+    oneLineSummary: oneLineSummary || '',
+    weeklyActions: weeklyActions || null,
+    followUpQuestions: Array.isArray(followUpQuestions) ? followUpQuestions : [],
+    followUpAnswers: followUpAnswers && typeof followUpAnswers === 'object' ? followUpAnswers : {},
+  };
+}
+
+function buildPrimaryAccountArchive({
+  profile,
+  chartResult,
+  fortuneCalendar,
+  calSummary,
+  aiText,
+  oneLineSummary,
+  weeklyActions,
+  followUpQuestions,
+  followUpAnswers,
+}) {
+  return {
     savedAt: new Date().toISOString(),
     profile: { ...DEFAULT_PROFILE, ...(profile || {}) },
     chartResult: chartResult || null,
@@ -1202,6 +1229,7 @@ export default function MingMeV2App() {
   const [profile, setProfile] = useState(DEFAULT_PROFILE);
   const [memberTier, setMemberTier] = useState('free');
   const [memberRegistration, setMemberRegistration] = useState(DEFAULT_MEMBER_REGISTRATION);
+  const [primaryAccountArchive, setPrimaryAccountArchive] = useState(null);
   const [familyProfiles, setFamilyProfiles] = useState([]);
   const [activeFamilyProfileId, setActiveFamilyProfileId] = useState(null);
   const [chartResult, setChartResult] = useState(null);
@@ -1219,6 +1247,16 @@ export default function MingMeV2App() {
   const [generatingStatus, setGeneratingStatus] = useState(hideMembership ? '正在生成你的个人洞察' : '正在为你生成专属档案');
   const [profileReadyVisible, setProfileReadyVisible] = useState(false);
   const timersRef = useRef([]);
+
+  const primaryProfile = primaryAccountArchive?.profile || profile;
+  const primaryChartResult = primaryAccountArchive?.chartResult || chartResult;
+  const primaryFortuneCalendar = primaryAccountArchive?.fortuneCalendar || [];
+  const primaryCalSummary = primaryAccountArchive?.calSummary || null;
+  const primaryAiText = primaryAccountArchive?.aiText || null;
+  const primaryOneLineSummary = primaryAccountArchive?.oneLineSummary || '';
+  const primaryWeeklyActions = primaryAccountArchive?.weeklyActions || null;
+  const primaryFollowUpQuestions = primaryAccountArchive?.followUpQuestions || [];
+  const primaryFollowUpAnswers = primaryAccountArchive?.followUpAnswers || {};
 
   const supportedLocales = useMemo(() => getSupportedLocales(), []);
 
@@ -1255,6 +1293,15 @@ export default function MingMeV2App() {
             ...DEFAULT_MEMBER_REGISTRATION,
             ...JSON.parse(map[STORAGE_KEYS.memberRegistration]),
           });
+        }
+        if (map[STORAGE_KEYS.primaryAccountArchive]) {
+          const savedPrimaryArchive = JSON.parse(map[STORAGE_KEYS.primaryAccountArchive]);
+          if (savedPrimaryArchive && typeof savedPrimaryArchive === 'object') {
+            setPrimaryAccountArchive({
+              ...savedPrimaryArchive,
+              profile: { ...DEFAULT_PROFILE, ...(savedPrimaryArchive.profile || {}) },
+            });
+          }
         }
         if (map[STORAGE_KEYS.familyProfiles]) {
           const savedProfiles = JSON.parse(map[STORAGE_KEYS.familyProfiles]);
@@ -1294,6 +1341,20 @@ export default function MingMeV2App() {
           });
         }
 
+        if (!map[STORAGE_KEYS.primaryAccountArchive] && map[STORAGE_KEYS.profile]) {
+          setPrimaryAccountArchive(buildPrimaryAccountArchive({
+            profile: { ...DEFAULT_PROFILE, ...JSON.parse(map[STORAGE_KEYS.profile]) },
+            chartResult: map[STORAGE_KEYS.result] ? JSON.parse(map[STORAGE_KEYS.result]) : null,
+            fortuneCalendar: map[STORAGE_KEYS.fortuneCalendar] ? JSON.parse(map[STORAGE_KEYS.fortuneCalendar]) : [],
+            calSummary: map[STORAGE_KEYS.calSummary] ? JSON.parse(map[STORAGE_KEYS.calSummary]) : null,
+            aiText: map[STORAGE_KEYS.aiText] ? JSON.parse(map[STORAGE_KEYS.aiText]) : null,
+            oneLineSummary: map[STORAGE_KEYS.oneLineSummary] ? JSON.parse(map[STORAGE_KEYS.oneLineSummary]) : '',
+            weeklyActions: map[STORAGE_KEYS.weeklyActions] ? JSON.parse(map[STORAGE_KEYS.weeklyActions]) : null,
+            followUpQuestions: map[STORAGE_KEYS.followUpQuestions] ? JSON.parse(map[STORAGE_KEYS.followUpQuestions]) : [],
+            followUpAnswers: map[STORAGE_KEYS.followUpAnswers] ? JSON.parse(map[STORAGE_KEYS.followUpAnswers]) : {},
+          }));
+        }
+
         if (map[STORAGE_KEYS.result]) {
           setFlow('app');
         }
@@ -1328,6 +1389,11 @@ export default function MingMeV2App() {
     if (booting) return;
     AsyncStorage.setItem(STORAGE_KEYS.memberRegistration, JSON.stringify(memberRegistration)).catch(() => {});
   }, [memberRegistration, booting]);
+
+  useEffect(() => {
+    if (booting || !primaryAccountArchive) return;
+    AsyncStorage.setItem(STORAGE_KEYS.primaryAccountArchive, JSON.stringify(primaryAccountArchive)).catch(() => {});
+  }, [primaryAccountArchive, booting]);
 
   useEffect(() => {
     if (booting) return;
@@ -1417,6 +1483,23 @@ export default function MingMeV2App() {
     setIntakeOrigin('app');
     setFlow('intake-birth');
   }, []);
+
+  const openPrimaryAccountIntakeFromApp = useCallback(() => {
+    if (activeFamilyProfileId && primaryAccountArchive?.profile) {
+      setProfile({ ...DEFAULT_PROFILE, ...(primaryAccountArchive.profile || {}) });
+      setChartResult(primaryAccountArchive.chartResult || null);
+      setFortuneCalendar(Array.isArray(primaryAccountArchive.fortuneCalendar) ? primaryAccountArchive.fortuneCalendar : []);
+      setCalSummary(primaryAccountArchive.calSummary || null);
+      setAiText(primaryAccountArchive.aiText || null);
+      setOneLineSummary(primaryAccountArchive.oneLineSummary || '');
+      setWeeklyActions(primaryAccountArchive.weeklyActions || null);
+      setFollowUpQuestions(Array.isArray(primaryAccountArchive.followUpQuestions) ? primaryAccountArchive.followUpQuestions : []);
+      setFollowUpAnswers(primaryAccountArchive.followUpAnswers && typeof primaryAccountArchive.followUpAnswers === 'object' ? primaryAccountArchive.followUpAnswers : {});
+      setActiveFamilyProfileId(null);
+    }
+    setIntakeOrigin('app');
+    setFlow('intake-birth');
+  }, [activeFamilyProfileId, primaryAccountArchive]);
 
   const handleIntakeBackFromBirth = useCallback(() => {
     setFlow(intakeOrigin === 'app' ? 'app' : 'onboarding');
@@ -1771,6 +1854,17 @@ export default function MingMeV2App() {
     const summary = getMonthSummary(calendar);
     const shouldCreateFamilyProfile = intakeOrigin === 'family' && memberTier !== 'free';
     const nextFamilyId = shouldCreateFamilyProfile ? `family-${Date.now()}` : activeFamilyProfileId;
+    const nextArchive = buildPrimaryAccountArchive({
+      profile,
+      chartResult: chart,
+      fortuneCalendar: calendar,
+      calSummary: summary,
+      aiText: null,
+      oneLineSummary: '',
+      weeklyActions: null,
+      followUpQuestions: [],
+      followUpAnswers: {},
+    });
 
     setChartResult(chart);
     setFortuneCalendar(calendar);
@@ -1797,6 +1891,9 @@ export default function MingMeV2App() {
         ...prev,
       ].slice(0, MAX_FAMILY_PROFILES));
       setActiveFamilyProfileId(nextFamilyId);
+    } else {
+      setPrimaryAccountArchive(nextArchive);
+      setActiveFamilyProfileId(null);
     }
     setGeneratingStatus(hideMembership ? '正在整理你的基础资料' : '正在保存你的原始出生信息');
     setFlow('generating');
@@ -1956,8 +2053,23 @@ export default function MingMeV2App() {
     }
   }, [chartResult, memberTier, notificationPrefs, profile]);
 
+  const restorePrimaryAccountView = useCallback(() => {
+    if (!primaryAccountArchive) return;
+    setProfile({ ...DEFAULT_PROFILE, ...(primaryAccountArchive.profile || {}) });
+    setChartResult(primaryAccountArchive.chartResult || null);
+    setFortuneCalendar(Array.isArray(primaryAccountArchive.fortuneCalendar) ? primaryAccountArchive.fortuneCalendar : []);
+    setCalSummary(primaryAccountArchive.calSummary || null);
+    setAiText(primaryAccountArchive.aiText || null);
+    setOneLineSummary(primaryAccountArchive.oneLineSummary || '');
+    setWeeklyActions(primaryAccountArchive.weeklyActions || null);
+    setFollowUpQuestions(Array.isArray(primaryAccountArchive.followUpQuestions) ? primaryAccountArchive.followUpQuestions : []);
+    setFollowUpAnswers(primaryAccountArchive.followUpAnswers && typeof primaryAccountArchive.followUpAnswers === 'object' ? primaryAccountArchive.followUpAnswers : {});
+    setActiveFamilyProfileId(null);
+    setFlow('app');
+  }, [primaryAccountArchive]);
+
   const syncMembershipFromBackend = useCallback(async ({
-    chart = chartResult,
+    chart = primaryChartResult || chartResult,
     registration = memberRegistration,
     silent = true,
   } = {}) => {
@@ -1967,15 +2079,18 @@ export default function MingMeV2App() {
       const response = await requestAIMembershipStatusFromBackend({
         chart,
         profile: {
-          ...profile,
-          nickname: registration?.nickname || profile?.nickname || '',
-          city: registration?.city || profile?.city || '',
-          focus: registration?.focus || profile?.focus || '',
+          ...primaryProfile,
+          nickname: registration?.nickname || primaryProfile?.nickname || '',
+          city: registration?.city || primaryProfile?.city || '',
+          focus: registration?.focus || primaryProfile?.focus || '',
         },
       });
       const membership = response?.data?.membership || response?.membership || null;
       if (membership) {
         setMemberTier(membership.isPremium ? (membership.tier || 'premium') : 'free');
+        if (membership.userKey) {
+          setMemberRegistration((prev) => ({ ...prev, userKey: membership.userKey }));
+        }
       }
       return membership;
     } catch (error) {
@@ -1984,12 +2099,12 @@ export default function MingMeV2App() {
       }
       return null;
     }
-  }, [chartResult, memberRegistration, profile]);
+  }, [chartResult, memberRegistration, primaryChartResult, primaryProfile]);
 
   useEffect(() => {
-    if (booting || !chartResult) return;
-    syncMembershipFromBackend({ chart: chartResult, registration: memberRegistration, silent: true });
-  }, [booting, chartResult, memberRegistration, syncMembershipFromBackend]);
+    if (booting || !(primaryChartResult || chartResult)) return;
+    syncMembershipFromBackend({ chart: primaryChartResult || chartResult, registration: memberRegistration, silent: true });
+  }, [booting, chartResult, memberRegistration, primaryChartResult, syncMembershipFromBackend]);
 
   const handleMemberRegistrationSave = useCallback(async (payload) => {
     const nextRegistration = {
@@ -2004,8 +2119,8 @@ export default function MingMeV2App() {
       if (payload?.source === 'registration_trial') {
         const trialResponse = await requestRegistrationTrialFromBackend({
           registration: nextRegistration,
-          profile,
-          chart: chartResult,
+          profile: primaryProfile,
+          chart: primaryChartResult || chartResult,
         });
         const membership = trialResponse?.data?.membership || trialResponse?.membership || null;
 
@@ -2013,8 +2128,8 @@ export default function MingMeV2App() {
           await requestPaywallLeadFromBackend({
             registration: nextRegistration,
             selectedPlan: payload?.selectedPlan || 'trial',
-            profile,
-            chart: chartResult,
+            profile: primaryProfile,
+            chart: primaryChartResult || chartResult,
             source: 'registration_trial',
           });
         } catch (leadError) {
@@ -2023,8 +2138,11 @@ export default function MingMeV2App() {
 
         if (membership) {
           setMemberTier(membership.isPremium ? (membership.tier || 'trial') : 'free');
+          if (membership.userKey) {
+            setMemberRegistration((prev) => ({ ...prev, ...nextRegistration, userKey: membership.userKey }));
+          }
         } else {
-          await syncMembershipFromBackend({ chart: chartResult, registration: nextRegistration, silent: true });
+          await syncMembershipFromBackend({ chart: primaryChartResult || chartResult, registration: nextRegistration, silent: true });
         }
 
         setPaywallVisible(false);
@@ -2044,16 +2162,16 @@ export default function MingMeV2App() {
           screenshotName: payload?.screenshotName || '',
           screenshotDataUrl: payload?.screenshotDataUrl || '',
           notes: payload?.notes || '',
-          profile,
-          chart: chartResult,
+          profile: primaryProfile,
+          chart: primaryChartResult || chartResult,
           source: payload?.source || (Platform.OS === 'web' ? 'web_manual_payment' : 'app_manual_payment'),
         });
       } else {
         await requestPaywallLeadFromBackend({
           registration: nextRegistration,
           selectedPlan: payload?.selectedPlan || 'annual',
-          profile,
-          chart: chartResult,
+          profile: primaryProfile,
+          chart: primaryChartResult || chartResult,
           source: payload?.source || (Platform.OS === 'web' ? 'web_paywall' : 'app_paywall'),
         });
       }
@@ -2063,7 +2181,7 @@ export default function MingMeV2App() {
       Alert.alert('提交失败', error?.message || '暂时无法提交开通意向，请稍后再试。');
       return false;
     }
-  }, [chartResult, profile, syncMembershipFromBackend, memberRegistration]);
+  }, [chartResult, memberRegistration, primaryChartResult, primaryProfile, syncMembershipFromBackend]);
 
   const handleContactMingjiSubmit = useCallback(async (payload) => {
     try {
@@ -2071,8 +2189,8 @@ export default function MingMeV2App() {
         registration: payload?.registration || {},
         topic: payload?.topic || '',
         message: payload?.message || '',
-        profile,
-        chart: chartResult,
+        profile: primaryProfile,
+        chart: primaryChartResult || chartResult,
         source: payload?.source || (Platform.OS === 'web' ? 'web_member_contact' : 'app_member_contact'),
       });
       return true;
@@ -2080,7 +2198,7 @@ export default function MingMeV2App() {
       Alert.alert('提交失败', error?.message || '暂时无法提交留言，请稍后再试。');
       return false;
     }
-  }, [chartResult, profile]);
+  }, [chartResult, primaryChartResult, primaryProfile]);
 
   useEffect(() => {
     if (booting || !activeFamilyProfileId || !chartResult) return;
@@ -2290,12 +2408,12 @@ export default function MingMeV2App() {
         onPress: () => {
           setFamilyProfiles((prev) => prev.filter((item) => item.id !== entry.id));
           if (activeFamilyProfileId === entry.id) {
-            setActiveFamilyProfileId(null);
+            restorePrimaryAccountView();
           }
         },
       },
     ]);
-  }, [activeFamilyProfileId]);
+  }, [activeFamilyProfileId, restorePrimaryAccountView]);
 
   const handleResetData = useCallback(() => {
     Alert.alert('清空本地数据', '这会清除已保存的档案、语言、会员状态和排盘结果。', [
@@ -2310,6 +2428,7 @@ export default function MingMeV2App() {
           setProfile(DEFAULT_PROFILE);
           setMemberTier('free');
           setMemberRegistration(DEFAULT_MEMBER_REGISTRATION);
+          setPrimaryAccountArchive(null);
           setFamilyProfiles([]);
           setActiveFamilyProfileId(null);
           setChartResult(null);
@@ -2381,7 +2500,7 @@ export default function MingMeV2App() {
             onLocaleChange={handleLocaleChange}
             onOpenPaywall={() => setPaywallVisible(true)}
             onRecalculate={openIntakeFromApp}
-            onEditProfile={openIntakeFromApp}
+            onEditProfile={openPrimaryAccountIntakeFromApp}
             onResetData={handleResetData}
             onResetAIReading={handleResetAIReading}
             notificationPrefs={notificationPrefs}
@@ -2399,6 +2518,8 @@ export default function MingMeV2App() {
             memberTier={memberTier}
             memberRegistration={memberRegistration}
             hideMembership={hideMembership}
+            accountProfile={primaryProfile}
+            accountResult={primaryChartResult}
             familyProfiles={familyProfiles}
             activeFamilyProfileId={activeFamilyProfileId}
             profileReadyVisible={profileReadyVisible}
@@ -2406,6 +2527,7 @@ export default function MingMeV2App() {
             onCreateFamilyProfile={handleCreateFamilyProfile}
             onSaveCurrentToFamilyProfile={handleSaveCurrentToFamilyProfiles}
             onSwitchFamilyProfile={handleSwitchFamilyProfile}
+            onSwitchToPrimaryAccount={restorePrimaryAccountView}
             onDeleteFamilyProfile={handleDeleteFamilyProfile}
           />
           <PaywallScreen
@@ -2413,7 +2535,7 @@ export default function MingMeV2App() {
             onClose={() => setPaywallVisible(false)}
             onSaveRegistration={handleMemberRegistrationSave}
             onSubmitContact={handleContactMingjiSubmit}
-            profile={profile}
+            profile={primaryProfile}
             registrationDraft={memberRegistration}
           />
         </>
