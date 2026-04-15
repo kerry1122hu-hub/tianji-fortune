@@ -148,6 +148,7 @@ const DEFAULT_DECISION_DRAFT = {
 
 const MAX_FAMILY_PROFILES = 5;
 const FAMILY_PROFILES_DISABLED = true;
+const SHOW_SMART_SERVICE_AUTH = false;
 
 const PILLAR_LABELS = ['年', '月', '日', '时'];
 
@@ -450,6 +451,19 @@ function getLunarDaysInMonth(year, month, isLeapMonth) {
 
 function clampDay(day, maxDay) {
   return `${Math.min(Math.max(parseInt(day, 10) || 1, 1), maxDay)}`;
+}
+
+function keepDigits(value, maxLength = 2) {
+  return `${value || ''}`.replace(/\D/g, '').slice(0, maxLength);
+}
+
+function clampNumericText(value, min, max, maxLength = 2) {
+  const digits = keepDigits(value, maxLength);
+  if (!digits) {
+    return '';
+  }
+  const parsed = parseInt(digits, 10);
+  return `${Math.min(Math.max(parsed, min), max)}`;
 }
 
 async function syncNotificationPrefsToBackend(payload) {
@@ -970,9 +984,70 @@ function IntakeBirthScreen({ profile, patchProfile, onNext, onBack, reviewMode }
           <DateTrigger
             label={calendarType === 'lunar' ? '出生日期（农历）' : '出生日期（阳历）'}
             value={dateLabel}
-            helper={calendarType === 'lunar' ? '支持农历生日与闰月选择。' : '使用日期选择器选择生日，避免手动填写出错。'}
+            helper={calendarType === 'lunar' ? '支持农历生日与闰月选择，也可直接手动输入。' : '可点选日期，也可直接手动输入，避免卡住。'}
             onPress={() => setDatePickerVisible(true)}
           />
+          <View style={s.birthManualGrid}>
+            <View style={s.birthManualField}>
+              <Text style={s.birthManualLabel}>年</Text>
+              <TextInput
+                value={`${profile.year || ''}`}
+                onChangeText={(value) => {
+                  const nextYear = keepDigits(value, 4);
+                  patchProfile({
+                    year: nextYear,
+                    day: clampDay(profile.day, calendarType === 'lunar'
+                      ? getLunarDaysInMonth(parseInt(nextYear, 10) || year, month, safeLeapMonth)
+                      : getSolarDaysInMonth(parseInt(nextYear, 10) || year, month)),
+                  });
+                }}
+                keyboardType="number-pad"
+                maxLength={4}
+                placeholder="1990"
+                placeholderTextColor={C.faint}
+                style={s.birthManualInput}
+              />
+            </View>
+            <View style={s.birthManualField}>
+              <Text style={s.birthManualLabel}>月</Text>
+              <TextInput
+                value={`${profile.month || ''}`}
+                onChangeText={(value) => {
+                  const nextMonth = clampNumericText(value, 1, 12);
+                  patchProfile({
+                    month: nextMonth,
+                    day: clampDay(
+                      profile.day,
+                      calendarType === 'lunar'
+                        ? getLunarDaysInMonth(year, parseInt(nextMonth, 10) || 1, safeLeapMonth)
+                        : getSolarDaysInMonth(year, parseInt(nextMonth, 10) || 1)
+                    ),
+                  });
+                }}
+                keyboardType="number-pad"
+                maxLength={2}
+                placeholder="6"
+                placeholderTextColor={C.faint}
+                style={s.birthManualInput}
+              />
+            </View>
+            <View style={s.birthManualField}>
+              <Text style={s.birthManualLabel}>日</Text>
+              <TextInput
+                value={`${profile.day || ''}`}
+                onChangeText={(value) =>
+                  patchProfile({
+                    day: clampNumericText(value, 1, daysInMonth),
+                  })
+                }
+                keyboardType="number-pad"
+                maxLength={2}
+                placeholder="15"
+                placeholderTextColor={C.faint}
+                style={s.birthManualInput}
+              />
+            </View>
+          </View>
           {calendarType === 'lunar' && hasLeapMonth ? (
             <View style={s.fieldWrap}>
               <Text style={s.fieldLabel}>是否闰月</Text>
@@ -994,33 +1069,69 @@ function IntakeBirthScreen({ profile, patchProfile, onNext, onBack, reviewMode }
           <DateTrigger
             label="出生时间"
             value={timeLabel}
-            helper="请按时 / 分选择出生时间，分钟也会参与后续画像生成。"
+            helper="可点选时间，也可直接手动输入时 / 分。"
             onPress={() => setTimePickerVisible(true)}
           />
-          <TwoColumnCityPicker selectedCity={profile.city} onSelect={(city) => patchProfile({ city })} />
-          <View style={s.permissionCard}>
-            <Text style={s.permissionCardTitle}>智能服务授权</Text>
-                <Text style={s.permissionCardBody}>允许当前位置可自动补全城市，允许麦克风可在明己AI先生里直接语音输入。</Text>
-            <View style={s.permissionActionRow}>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={handleUseCurrentLocation}
-                style={[s.permissionButton, locationLoading && s.permissionButtonDisabled]}
-                disabled={locationLoading}
-              >
-                <Text style={s.permissionButtonText}>{locationLoading ? '定位中…' : '使用当前位置'}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={0.9}
-                onPress={handleEnableMicrophone}
-                style={[s.permissionButton, microphoneLoading && s.permissionButtonDisabled]}
-                disabled={microphoneLoading}
-              >
-                <Text style={s.permissionButtonText}>{microphoneLoading ? '授权中…' : '允许语音输入'}</Text>
-              </TouchableOpacity>
+          <View style={s.birthManualGrid}>
+            <View style={s.birthManualField}>
+              <Text style={s.birthManualLabel}>时</Text>
+              <TextInput
+                value={`${profile.hour || ''}`}
+                onChangeText={(value) =>
+                  patchProfile({
+                    hour: clampNumericText(value, 0, 23),
+                  })
+                }
+                keyboardType="number-pad"
+                maxLength={2}
+                placeholder="10"
+                placeholderTextColor={C.faint}
+                style={s.birthManualInput}
+              />
             </View>
-            {permissionHint ? <Text style={s.permissionHint}>{permissionHint}</Text> : null}
+            <View style={s.birthManualField}>
+              <Text style={s.birthManualLabel}>分</Text>
+              <TextInput
+                value={`${profile.minute || ''}`}
+                onChangeText={(value) =>
+                  patchProfile({
+                    minute: clampNumericText(value, 0, 59),
+                  })
+                }
+                keyboardType="number-pad"
+                maxLength={2}
+                placeholder="00"
+                placeholderTextColor={C.faint}
+                style={s.birthManualInput}
+              />
+            </View>
           </View>
+          <TwoColumnCityPicker selectedCity={profile.city} onSelect={(city) => patchProfile({ city })} />
+          {SHOW_SMART_SERVICE_AUTH ? (
+            <View style={s.permissionCard}>
+              <Text style={s.permissionCardTitle}>智能服务授权</Text>
+              <Text style={s.permissionCardBody}>允许当前位置可自动补全城市，允许麦克风可在明己AI先生里直接语音输入。</Text>
+              <View style={s.permissionActionRow}>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={handleUseCurrentLocation}
+                  style={[s.permissionButton, locationLoading && s.permissionButtonDisabled]}
+                  disabled={locationLoading}
+                >
+                  <Text style={s.permissionButtonText}>{locationLoading ? '定位中…' : '使用当前位置'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.9}
+                  onPress={handleEnableMicrophone}
+                  style={[s.permissionButton, microphoneLoading && s.permissionButtonDisabled]}
+                  disabled={microphoneLoading}
+                >
+                  <Text style={s.permissionButtonText}>{microphoneLoading ? '授权中…' : '允许语音输入'}</Text>
+                </TouchableOpacity>
+              </View>
+              {permissionHint ? <Text style={s.permissionHint}>{permissionHint}</Text> : null}
+            </View>
+          ) : null}
           <View style={s.fieldWrap}>
             <Text style={s.fieldLabel}>性别</Text>
             <SegmentedOptions
@@ -2682,6 +2793,32 @@ const s = StyleSheet.create({
     marginTop: 5,
     color: C.faint,
     fontSize: 11,
+  },
+  birthManualGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+    flexWrap: 'wrap',
+  },
+  birthManualField: {
+    flex: 1,
+    minWidth: 92,
+  },
+  birthManualLabel: {
+    color: C.soft,
+    fontSize: 11,
+    marginBottom: 6,
+  },
+  birthManualInput: {
+    minHeight: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(60,60,67,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 14,
+    color: C.ink,
+    fontSize: 16,
+    fontWeight: '600',
   },
   twoCol: {
     flexDirection: 'row',
