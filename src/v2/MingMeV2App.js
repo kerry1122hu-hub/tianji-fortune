@@ -147,6 +147,7 @@ const DEFAULT_DECISION_DRAFT = {
 };
 
 const MAX_FAMILY_PROFILES = 5;
+const FAMILY_PROFILES_DISABLED = true;
 
 const PILLAR_LABELS = ['年', '月', '日', '时'];
 
@@ -1303,11 +1304,11 @@ export default function MingMeV2App() {
             });
           }
         }
-        if (map[STORAGE_KEYS.familyProfiles]) {
+        if (!FAMILY_PROFILES_DISABLED && map[STORAGE_KEYS.familyProfiles]) {
           const savedProfiles = JSON.parse(map[STORAGE_KEYS.familyProfiles]);
           setFamilyProfiles(Array.isArray(savedProfiles) ? savedProfiles : []);
         }
-        if (map[STORAGE_KEYS.activeFamilyProfileId]) {
+        if (!FAMILY_PROFILES_DISABLED && map[STORAGE_KEYS.activeFamilyProfileId]) {
           setActiveFamilyProfileId(JSON.parse(map[STORAGE_KEYS.activeFamilyProfileId]));
         }
         if (map[STORAGE_KEYS.result]) {
@@ -1397,11 +1398,19 @@ export default function MingMeV2App() {
 
   useEffect(() => {
     if (booting) return;
+    if (FAMILY_PROFILES_DISABLED) {
+      AsyncStorage.multiRemove([STORAGE_KEYS.familyProfiles, STORAGE_KEYS.activeFamilyProfileId]).catch(() => {});
+      return;
+    }
     AsyncStorage.setItem(STORAGE_KEYS.familyProfiles, JSON.stringify(familyProfiles)).catch(() => {});
   }, [familyProfiles, booting]);
 
   useEffect(() => {
     if (booting) return;
+    if (FAMILY_PROFILES_DISABLED) {
+      AsyncStorage.removeItem(STORAGE_KEYS.activeFamilyProfileId).catch(() => {});
+      return;
+    }
     AsyncStorage.setItem(STORAGE_KEYS.activeFamilyProfileId, JSON.stringify(activeFamilyProfileId)).catch(() => {});
   }, [activeFamilyProfileId, booting]);
 
@@ -1852,7 +1861,7 @@ export default function MingMeV2App() {
     const chart = buildChart();
     const calendar = generateFortuneCalendar(chart.dayGan, 30);
     const summary = getMonthSummary(calendar);
-    const shouldCreateFamilyProfile = intakeOrigin === 'family' && memberTier !== 'free';
+    const shouldCreateFamilyProfile = !FAMILY_PROFILES_DISABLED && intakeOrigin === 'family' && memberTier !== 'free';
     const nextFamilyId = shouldCreateFamilyProfile ? `family-${Date.now()}` : activeFamilyProfileId;
     const nextArchive = buildPrimaryAccountArchive({
       profile,
@@ -2068,6 +2077,20 @@ export default function MingMeV2App() {
     setFlow('app');
   }, [primaryAccountArchive]);
 
+  useEffect(() => {
+    if (booting || !FAMILY_PROFILES_DISABLED) return;
+    if (familyProfiles.length) {
+      setFamilyProfiles([]);
+    }
+    if (activeFamilyProfileId) {
+      if (primaryAccountArchive) {
+        restorePrimaryAccountView();
+      } else {
+        setActiveFamilyProfileId(null);
+      }
+    }
+  }, [activeFamilyProfileId, booting, familyProfiles.length, primaryAccountArchive, restorePrimaryAccountView]);
+
   const syncMembershipFromBackend = useCallback(async ({
     chart = primaryChartResult || chartResult,
     registration = memberRegistration,
@@ -2235,6 +2258,11 @@ export default function MingMeV2App() {
 
   /*
   const handleCreateFamilyProfile = useCallback(() => {
+    if (FAMILY_PROFILES_DISABLED) {
+      restorePrimaryAccountView();
+      Alert.alert('家人档案已暂时关闭', '为了先保证主会员档案稳定，家人档案入口已临时下线。');
+      return;
+    }
     if (memberTier === 'free') {
       setPaywallVisible(true);
       return;
@@ -2247,9 +2275,14 @@ export default function MingMeV2App() {
     setIntakeOrigin('family');
     setProfile(DEFAULT_PROFILE);
     setFlow('intake-birth');
-  }, [familyProfiles.length, memberTier]);
+  }, [familyProfiles.length, memberTier, restorePrimaryAccountView]);
 
   const handleSaveCurrentToFamilyProfiles = useCallback(() => {
+    if (FAMILY_PROFILES_DISABLED) {
+      restorePrimaryAccountView();
+      Alert.alert('家人档案已暂时关闭', '当前版本已暂停保存家人档案，主账号资料不会再被家人档案覆盖。');
+      return;
+    }
     if (memberTier === 'free') {
       setPaywallVisible(true);
       return;
@@ -2287,9 +2320,13 @@ export default function MingMeV2App() {
     });
     setActiveFamilyProfileId(nextId);
     Alert.alert(existing ? '瀹朵汉妗ｆ宸叉洿鏂? : '宸插姞鍏ュ浜烘。妗?, `${profile?.nickname || profile?.city || '褰撳墠妗ｆ'} 宸蹭繚瀛樺埌瀹朵汉妗ｆ鍒楄〃銆俙);
-  }, [activeFamilyProfileId, aiText, calSummary, chartResult, familyProfiles, followUpAnswers, followUpQuestions, fortuneCalendar, memberTier, oneLineSummary, profile, weeklyActions]);
+  }, [activeFamilyProfileId, aiText, calSummary, chartResult, familyProfiles, followUpAnswers, followUpQuestions, fortuneCalendar, memberTier, oneLineSummary, profile, restorePrimaryAccountView, weeklyActions]);
 
   const handleSwitchFamilyProfile = useCallback((entry) => {
+    if (FAMILY_PROFILES_DISABLED) {
+      restorePrimaryAccountView();
+      return;
+    }
     if (!entry) return;
     setProfile({ ...DEFAULT_PROFILE, ...(entry.profile || {}) });
     setChartResult(entry.chartResult || null);
@@ -2396,9 +2433,13 @@ export default function MingMeV2App() {
     setActiveFamilyProfileId(entry.id || null);
     setPaywallVisible(false);
     setFlow('app');
-  }, []);
+  }, [restorePrimaryAccountView]);
 
   const handleDeleteFamilyProfile = useCallback((entry) => {
+    if (FAMILY_PROFILES_DISABLED) {
+      restorePrimaryAccountView();
+      return;
+    }
     if (!entry?.id) return;
     Alert.alert('\u5220\u9664\u5bb6\u4eba\u6863\u6848', `\u786e\u8ba4\u5220\u9664 ${entry?.profile?.nickname || entry?.profile?.city || '\u8fd9\u7ec4\u6863\u6848'} \u5417\uff1f\u5220\u9664\u540e\u5c06\u65e0\u6cd5\u6062\u590d\u3002`, [
       { text: '\u53d6\u6d88', style: 'cancel' },

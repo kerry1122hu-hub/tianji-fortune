@@ -192,14 +192,17 @@ async function postPwaEvent(event) {
   const { baseUrl, authToken } = getAIBackendConfig();
   if (!baseUrl) return;
 
+  const payload = event?.payload && typeof event.payload === 'object' ? event.payload : {};
+  const normalizedUserKey = typeof payload.userKey === 'string' ? payload.userKey.trim() : '';
   const endpoint = `${baseUrl.replace(/\/$/, '')}/api/ai/track-event`;
   const body = {
     eventName: event.name,
     eventSource: 'pwa',
+    userKey: normalizedUserKey,
     sessionId: getSessionId(),
     page: window.location.pathname || '/',
     platform: detectPwaPlatform(),
-    payload: event.payload || {},
+    payload,
   };
 
   await fetch(endpoint, {

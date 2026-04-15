@@ -3299,8 +3299,16 @@ function SmartToolPage(props) {
               </View>
             </View>
             {renderToolActionButton('让明己解这个梦', async () => {
+              const normalizedDreamText = `${dreamDraft || '我醒来只记得这个梦很强烈，但细节还没完全抓住。'}`.trim();
+              trackPwaEvent('mingji_dream_submit', {
+                userKey: stableToolUserKey,
+                memberTier: isPremium ? 'premium' : 'free',
+                dreamLength: normalizedDreamText.length,
+                hasDreamText: Boolean(normalizedDreamText),
+                nickname: toolIdentityProfile?.nickname || '',
+              });
               const output = await runAITool(
-                () => aiMingJiDream(dreamDraft || '我醒来只记得这个梦很强烈，但细节还没完全抓住。', result, {
+                () => aiMingJiDream(normalizedDreamText, result, {
                   isPremium,
                   memberTier: isPremium ? 'premium' : 'free',
                   profile,
@@ -3311,7 +3319,17 @@ function SmartToolPage(props) {
                   successText: '梦里的线索已经拆开了，往下看明己怎么解。',
                 }
               );
-              if (output) setDreamInsight(output);
+              if (output) {
+                trackPwaEvent('mingji_dream_success', {
+                  userKey: stableToolUserKey,
+                  memberTier: isPremium ? 'premium' : 'free',
+                  dreamLength: normalizedDreamText.length,
+                  preview: normalizedDreamText.slice(0, 80),
+                  outputLength: `${output}`.length,
+                  nickname: toolIdentityProfile?.nickname || '',
+                });
+                setDreamInsight(output);
+              }
             }, '解梦中…')}
             {dreamInsight ? (
               <>
@@ -4731,9 +4749,7 @@ function MeTab({ profile, accountProfile, locale, supportedLocales, onLocaleChan
   const profileTitle = hideMembership ? '个人资料概览' : (displayProfile?.nickname || '\u672a\u547d\u540d\u6863\u6848');
   const profileBody = hideMembership
     ? '用于查看当前资料、调整提醒方式与管理本地记录。'
-    : activeFamilyProfileId
-      ? '这里固定显示主账号资料。家人档案只是在下方随时调取查看，不会覆盖会员主身份。'
-      : `${displayProfile?.city || '--'} / ${displayProfile?.focus || '--'} / ${displayProfile?.role || '--'}`;
+    : `${displayProfile?.city || '--'} / ${displayProfile?.focus || '--'} / ${displayProfile?.role || '--'}`;
   const editLabel = hideMembership ? '更新资料' : '\u7f16\u8f91\u6863\u6848 / \u91cd\u65b0\u6392\u76d8';
   const profileName = displayProfile?.nickname || '未命名档案';
   const profileBirth = formatProfileBirthText(displayProfile);
@@ -4774,19 +4790,6 @@ function MeTab({ profile, accountProfile, locale, supportedLocales, onLocaleChan
         <TouchableOpacity onPress={onEditProfile} style={s.secondaryButton}><Text style={s.secondaryButtonText}>{editLabel}</Text></TouchableOpacity>
       </Card>
       {!hideMembership ? <MemberRegistrationCard memberRegistration={memberRegistration} onOpenPaywall={onOpenPaywall} /> : null}
-      {!hideMembership ? (
-        <FamilyProfilesCard
-          memberTier={memberTier}
-          familyProfiles={familyProfiles}
-          activeFamilyProfileId={activeFamilyProfileId}
-          onOpenPaywall={onOpenPaywall}
-          onCreateFamilyProfile={onCreateFamilyProfile}
-          onSaveCurrentToFamilyProfile={onSaveCurrentToFamilyProfile}
-          onSwitchFamilyProfile={onSwitchFamilyProfile}
-          onSwitchToPrimaryAccount={onSwitchToPrimaryAccount}
-          onDeleteFamilyProfile={onDeleteFamilyProfile}
-        />
-      ) : null}
       <Card>
         <SectionHeader eyebrow={'支持入口'} title={'联系明己'} body={'遇到会员开通、付款、资料补充，或想单独留言给明己，都可以从这里进入。'} />
         <Text style={s.paragraph}>
