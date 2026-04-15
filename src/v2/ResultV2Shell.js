@@ -2100,6 +2100,7 @@ function AICompanionModal({
   onVoiceInput,
 }) {
   const scrollRef = useRef(null);
+  const chatInputRef = useRef(null);
   const inputHeightRef = useRef(44);
   const [inputHeight, setInputHeight] = useState(44);
   const [installState, setInstallState] = useState({ standalone: false, platform: 'native', safari: false, displayMode: 'browser', canPrompt: false });
@@ -2111,7 +2112,8 @@ function AICompanionModal({
     if (!visible) return;
     const timer = setTimeout(() => {
       scrollRef.current?.scrollToEnd?.({ animated: true });
-    }, 120);
+      chatInputRef.current?.focus?.();
+    }, 180);
     return () => clearTimeout(timer);
   }, [visible, chatHistory.length, chatLoading]);
 
@@ -2234,37 +2236,6 @@ function AICompanionModal({
             scrollRef.current?.scrollToEnd?.({ animated: true });
           }}
         >
-          {chatHistory.length === 0 ? (
-            <View style={s.aiWelcomeBlock}>
-              <View style={s.aiWelcomeAura} />
-              <View style={s.aiAvatarHero}>
-                <View style={s.aiAvatarRingOuter} />
-                <View style={s.aiAvatarRingInner} />
-                <View style={s.aiAvatarStar} />
-                <Text style={s.aiAvatarHeroText}>{'明'}</Text>
-              </View>
-              <Text style={s.aiWelcomeTitle}>{'你好，我是明己'}</Text>
-              <Text style={s.aiWelcomeBody}>
-                {result ? '我已结合你的当前资料，可以陪你一起梳理情绪、关系和重要决定。' : '先完成资料建立，我就能更好地理解你。'}
-              </Text>
-              <View style={s.aiQuickList}>
-                <TouchableOpacity onPress={() => onChangeInput?.(randomQuickPrompt)} style={s.aiQuickCard}>
-                  <View style={s.aiQuickTop}>
-                    <View style={s.aiQuickIcon}>
-                      <Text style={s.aiQuickIconText}>{'✦'}</Text>
-                    </View>
-                    <Text style={s.aiQuickLabel}>{'今日随机提问'}</Text>
-                  </View>
-                  <Text style={s.aiQuickText}>{randomQuickPrompt}</Text>
-                  <View style={s.aiQuickFooter}>
-                    <Text style={s.aiQuickAction}>{getQuickPromptActionLabel(randomQuickPrompt)}</Text>
-                    <Text style={s.aiQuickArrow}>{'›'}</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : null}
-
           {chatHistory.map((msg, index) => (
             <View key={`${msg.role}-${index}`} style={[s.aiBubbleRow, msg.role === 'user' ? s.aiBubbleRowUser : s.aiBubbleRowAssistant]}>
               {msg.role === 'assistant' ? (
@@ -2345,6 +2316,7 @@ function AICompanionModal({
             </TouchableOpacity>
             <View style={s.aiInputWrap}>
               <TextInput
+                ref={chatInputRef}
                 value={chatInput}
                 onChangeText={onChangeInput}
                 onFocus={() => {
@@ -3777,11 +3749,6 @@ function HomeTab(props) {
             },
           ]}
         />
-        <View style={s.homeEntryDeckHeader}>
-          <Text style={s.homeEntryDeckEyebrow}>{'明己入口'}</Text>
-          <Text style={s.homeEntryDeckTitle}>{'先选你现在最需要的那一条线'}</Text>
-          <Text style={s.homeEntryDeckBody}>{'上面适合深聊，下面两张适合快速切进当下问题。主次清楚一点，首页会更像正式产品页。'}</Text>
-        </View>
         <Animated.View
           style={{
             transform: [{ translateY: homePrimaryBreath.interpolate({ inputRange: [0, 1], outputRange: [0, -3] }) }],
@@ -6087,7 +6054,7 @@ const s = StyleSheet.create({
   familyEmptyCard: { borderRadius: 16, backgroundColor: '#F7F8FA', borderWidth: 1, borderColor: C.line, padding: 14, marginTop: 12 },
   familyEmptyTitle: { fontSize: 14, fontWeight: '800', color: C.ink },
   familyEmptyBody: { fontSize: 13, lineHeight: 20, color: C.soft, marginTop: 6 },
-  aiPageRoot: { flex: 1, backgroundColor: '#F2F2F7' },
+  aiPageRoot: { flex: 1, backgroundColor: '#EEF3F1' },
   readyMask: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', padding: 24 },
   readyScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,16,24,0.24)' },
   readyCard: { width: '100%', maxWidth: 340, minHeight: 260, borderRadius: 30, backgroundColor: 'rgba(24,36,58,0.96)', borderWidth: 1, borderColor: 'rgba(234,245,241,0.10)', paddingHorizontal: 24, paddingVertical: 28, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
@@ -6099,7 +6066,7 @@ const s = StyleSheet.create({
   readyBody: { fontSize: 14, lineHeight: 22, color: 'rgba(234,245,241,0.78)', textAlign: 'center', marginTop: 10 },
   readyButton: { marginTop: 22, minWidth: 124, height: 44, borderRadius: 999, backgroundColor: '#EDF6F2', paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
   readyButtonText: { fontSize: 14, fontWeight: '800', color: '#163238' },
-  aiHeader: { backgroundColor: 'rgba(242,248,247,0.94)', paddingTop: 56, paddingBottom: 14, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(20,51,58,0.12)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden' },
+  aiHeader: { backgroundColor: 'rgba(248,251,250,0.96)', paddingTop: 56, paddingBottom: 12, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(20,51,58,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', overflow: 'hidden' },
   aiHeaderAura: { position: 'absolute', width: 180, height: 180, borderRadius: 999, top: -92, right: -16, backgroundColor: C.logoGlow },
   aiHeaderOrbit: { position: 'absolute', width: 140, height: 140, borderRadius: 999, top: -54, right: 18, borderWidth: 1, borderColor: 'rgba(169,222,208,0.24)' },
   aiBackButton: { minWidth: 72, minHeight: 36, borderRadius: 999, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.78)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.22)' },
@@ -6110,7 +6077,7 @@ const s = StyleSheet.create({
   aiHeaderMetaPill: { minHeight: 30, borderRadius: 999, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,222,208,0.12)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.18)' },
   aiHeaderMeta: { fontSize: 12, color: C.logoDeep, fontWeight: '700' },
   aiScroll: { flex: 1 },
-  aiScrollContent: { padding: 16, paddingBottom: 20 },
+  aiScrollContent: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12 },
   aiWelcomeBlock: { alignItems: 'center', paddingVertical: 20, borderRadius: 24, backgroundColor: 'rgba(244,251,248,0.76)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.18)', overflow: 'hidden' },
   aiWelcomeAura: { position: 'absolute', width: 220, height: 220, borderRadius: 999, top: -112, right: -48, backgroundColor: 'rgba(169,222,208,0.12)' },
   aiAvatarHero: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
@@ -6150,26 +6117,26 @@ const s = StyleSheet.create({
   aiQuotaBody: { fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.62)' },
   aiQuotaButton: { minWidth: 78, height: 36, borderRadius: 999, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: C.logoDeep },
   aiQuotaButtonText: { fontSize: 13, fontWeight: '800', color: '#F7FFFC' },
-  aiComposerPanel: { minHeight: 106, marginHorizontal: 10, marginBottom: 10, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(196,218,255,0.86)', backgroundColor: 'rgba(248,249,252,0.98)', paddingTop: 8, paddingHorizontal: 10, paddingBottom: 8, justifyContent: 'space-between', shadowColor: '#0E2230', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
-  aiComposerTopline: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, marginBottom: 5 },
-  aiComposerToplineDot: { width: 8, height: 8, borderRadius: 999, backgroundColor: 'rgba(198,146,42,0.84)', shadowColor: '#C6922A', shadowOpacity: 0.22, shadowRadius: 6, shadowOffset: { width: 0, height: 1 } },
-  aiComposerToplineText: { fontSize: 12, lineHeight: 17, color: 'rgba(20,51,58,0.60)', fontWeight: '700' },
-  aiInputDock: { flex: 1, borderRadius: 22, backgroundColor: '#FFFFFF', paddingHorizontal: 8, paddingTop: 6, paddingBottom: 6, flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1.5, borderColor: 'rgba(150,182,245,0.88)', shadowColor: '#91A8D8', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 2 } },
+  aiComposerPanel: { minHeight: 108, marginHorizontal: 12, marginTop: 4, marginBottom: 12, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(213,223,230,0.88)', backgroundColor: 'rgba(252,253,253,0.98)', paddingTop: 8, paddingHorizontal: 10, paddingBottom: 8, justifyContent: 'space-between', shadowColor: '#0E2230', shadowOpacity: 0.10, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 4 },
+  aiComposerTopline: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 10, marginBottom: 6 },
+  aiComposerToplineDot: { width: 7, height: 7, borderRadius: 999, backgroundColor: 'rgba(109,184,160,0.82)', shadowColor: '#6DB8A0', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 1 } },
+  aiComposerToplineText: { fontSize: 11, lineHeight: 16, color: 'rgba(20,51,58,0.52)', fontWeight: '700', letterSpacing: 0.1 },
+  aiInputDock: { flex: 1, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.98)', paddingHorizontal: 8, paddingTop: 7, paddingBottom: 7, flexDirection: 'row', alignItems: 'flex-end', gap: 8, borderWidth: 1, borderColor: 'rgba(218,226,232,0.95)', shadowColor: '#A9B9C6', shadowOpacity: 0.10, shadowRadius: 14, shadowOffset: { width: 0, height: 4 } },
   aiInputWrap: { flex: 1, minWidth: 0, alignSelf: 'stretch', position: 'relative', zIndex: 1 },
-  aiVoiceButton: { width: 40, height: 40, borderRadius: 999, backgroundColor: 'rgba(245,248,252,1)', borderWidth: 1, borderColor: 'rgba(167,198,255,0.62)', alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 2 },
+  aiVoiceButton: { width: 42, height: 42, borderRadius: 999, backgroundColor: 'rgba(246,249,250,1)', borderWidth: 1, borderColor: 'rgba(214,222,228,0.95)', alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 1 },
   aiVoiceButtonDisabled: { opacity: 0.66 },
   aiVoiceButtonActive: { backgroundColor: '#DDF4ED', borderColor: 'rgba(30,142,109,0.32)' },
   aiVoiceText: { fontSize: 17, fontWeight: '800', color: C.logoDeep },
   aiVoiceTextActive: { color: '#1E8E6D' },
-  aiInput: { width: '100%', alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 16, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 10, fontSize: 15, lineHeight: 21, color: '#1C1C1E', borderWidth: 1.5, borderColor: 'rgba(184,204,246,0.98)', textAlignVertical: 'top' },
-  aiSendButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 2, position: 'relative', zIndex: 3 },
-  aiSendButtonActive: { backgroundColor: C.logoDeep, borderWidth: 1, borderColor: 'rgba(169,222,208,0.32)', shadowColor: '#78D4BC', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
-  aiSendButtonDisabled: { backgroundColor: 'rgba(60,60,67,0.15)', borderWidth: 1, borderColor: 'rgba(60,60,67,0.06)' },
+  aiInput: { width: '100%', alignSelf: 'stretch', backgroundColor: 'transparent', borderRadius: 18, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 10, fontSize: 15, lineHeight: 22, color: '#1C1C1E', borderWidth: 0, textAlignVertical: 'top' },
+  aiSendButton: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', flexShrink: 0, alignSelf: 'flex-end', marginBottom: 1, position: 'relative', zIndex: 3 },
+  aiSendButtonActive: { backgroundColor: C.logoDeep, borderWidth: 1, borderColor: 'rgba(169,222,208,0.24)', shadowColor: '#12343A', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 5 }, elevation: 3 },
+  aiSendButtonDisabled: { backgroundColor: 'rgba(125,134,145,0.14)', borderWidth: 1, borderColor: 'rgba(125,134,145,0.06)' },
   aiSendText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
   aiSendCta: { marginTop: 8, minHeight: 42, borderRadius: 16, backgroundColor: C.logoDeep, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(169,222,208,0.28)', shadowColor: '#12343A', shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   aiSendCtaDisabled: { opacity: 0.68 },
   aiSendCtaText: { fontSize: 14, fontWeight: '800', color: '#F7FFFC' },
-  aiInputHint: { paddingHorizontal: 8, paddingTop: 8, fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.56)' },
+  aiInputHint: { paddingHorizontal: 10, paddingTop: 8, fontSize: 11, lineHeight: 17, color: 'rgba(20,51,58,0.48)' },
   structureOverviewCard: { borderRadius: 18, backgroundColor: '#FBFAF5', borderWidth: 1, borderColor: 'rgba(198,146,42,0.16)', padding: 14, marginTop: 2, marginBottom: 8 },
   structureOverviewTitle: { fontSize: 16, lineHeight: 23, fontWeight: '800', color: C.ink },
   structureOverviewBody: { fontSize: 13, lineHeight: 20, color: C.soft, marginTop: 6 },
