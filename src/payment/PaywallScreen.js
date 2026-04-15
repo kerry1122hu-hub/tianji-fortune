@@ -171,9 +171,10 @@ function MembershipSummaryCard() {
     <View style={s.summaryCard}>
       <Text style={s.summaryTitle}>会员权益</Text>
       <Text style={s.summaryBody}>
-        这版会员以明己 AI 先生无限使用为主，更适合连续追问、长期陪伴和反复回看。详细内容默认收起，点开你关心的那一类再看。
+        这版会员以明己 AI 先生无限使用为主，更适合连续追问、长期陪伴和反复回看。新用户填写资料后，可先领取 30 天会员体验，再决定是否继续开通。
       </Text>
       <View style={s.summaryList}>
+        <Text style={s.summaryItem}>• 新用户填写资料可先领 30 天会员体验</Text>
         <Text style={s.summaryItem}>• 明己 AI 先生无限使用</Text>
         <Text style={s.summaryItem}>• 重要问题可以连续追问</Text>
         <Text style={s.summaryItem}>• 详细会员内容开通后持续解锁</Text>
@@ -299,7 +300,35 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, onSubmitCo
 
   const handleSubmit = async () => {
     if (!screenshotDataUrl) {
-      Alert.alert('请先上传付款截图', '先把付款凭证上传，再提交审核。');
+      if (!`${registration.nickname || ''}`.trim()) {
+        Alert.alert('先写一个称呼', '填写你的称呼后，我才能帮你开出 30 天会员体验。');
+        return;
+      }
+
+      if (!`${registration.email || ''}`.trim() && !`${registration.phone || ''}`.trim()) {
+        Alert.alert('补一个联系方式', '邮箱或手机号填写任意一项，就能领取 30 天会员体验。');
+        return;
+      }
+
+      const saved = await onSaveRegistration?.({
+        registration,
+        selectedPlan: selectedPlan || 'trial',
+        source: 'registration_trial',
+      });
+      if (saved === false || saved?.ok === false) return;
+
+      const membership = saved?.membership || null;
+      if (membership?.granted === false) {
+        if (membership?.isPremium) {
+          Alert.alert('你已经是会员', '当前账号已经在会员期内，可以直接去使用会员功能。');
+        } else {
+          Alert.alert('这次没有重复发放', '这个账号之前已经领过注册体验了，可以继续看会员方案决定是否开通。');
+        }
+        return;
+      }
+
+      Alert.alert('已领取 30 天会员', '从现在起，你可以先按会员权限使用一个月，喜欢再继续开通。');
+      onClose?.();
       return;
     }
 
@@ -339,9 +368,9 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, onSubmitCo
             </TouchableOpacity>
 
             <Text style={s.heroEyebrow}>会员权益</Text>
-            <Text style={s.heroTitle}>先看权益，再开通会员</Text>
+            <Text style={s.heroTitle}>先看权益，再决定怎么用</Text>
             <Text style={s.heroSubtitle}>
-              先确认你要开的方案。点击“开通会员”后，再显示微信和支付宝付款码，以及付款截图上传入口。
+              新用户填写资料后，可先领取 30 天会员体验。想直接付费开通，也可以继续进入付款页。
             </Text>
           </View>
 
@@ -543,24 +572,26 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, onSubmitCo
             <Text style={s.bottomTitle}>
               {showPaymentStep ? '提交后会进入待审核付款名单。' : '先确认方案，再进入扫码付款页。'}
             </Text>
-            <Text style={s.bottomBody}>
-              {showPaymentStep
-                ? '后台确认截图和到账后，可以一键为你开通会员。'
-                : '点击开通会员后，再显示付款码、截图上传和联系方式填写。'}
-            </Text>
-          </View>
+              <Text style={s.bottomBody}>
+                {showPaymentStep
+                ? (screenshotDataUrl
+                  ? '后台确认截图和到账后，可以一键为你开通会员。'
+                  : '不上传付款截图也可以，先填写资料即可领取 30 天会员体验。')
+                : '先填写资料可直接领取 30 天会员体验，也可以继续进入付款开通页。'}
+              </Text>
+            </View>
           {showPaymentStep ? (
             <View style={s.bottomActions}>
               <TouchableOpacity onPress={() => setShowPaymentStep(false)} style={s.bottomGhostButton} activeOpacity={0.9}>
                 <Text style={s.bottomGhostButtonText}>返回权益页</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleSubmit} style={s.bottomButton} activeOpacity={0.9}>
-                <Text style={s.bottomButtonText}>提交付款审核</Text>
+                <Text style={s.bottomButtonText}>{screenshotDataUrl ? '提交付款审核' : '填写资料，领取30天会员'}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity onPress={() => setShowPaymentStep(true)} style={s.bottomButton} activeOpacity={0.9}>
-              <Text style={s.bottomButtonText}>开通会员</Text>
+              <Text style={s.bottomButtonText}>填写资料，领取30天会员</Text>
             </TouchableOpacity>
           )}
         </View>

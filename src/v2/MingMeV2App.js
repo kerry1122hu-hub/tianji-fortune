@@ -36,7 +36,14 @@ import {
 import { analyzeStrengthRules, analyzeTenGodPreference, analyzeUseGod, analyzeLuck, analyzeNarrative, getSeasonByMonthBranch } from '../engines/engine_rules';
 import { generateAIReading, parseAIReading } from '../utils/aiReading';
 import { generateCompanionPack } from '../services/aiCompanion';
-import { getAIBackendConfig, requestContactMingjiFromBackend, requestManualPaymentReviewFromBackend, requestPaywallLeadFromBackend } from '../services/aiBackendConnector';
+import {
+  getAIBackendConfig,
+  requestAIMembershipStatusFromBackend,
+  requestContactMingjiFromBackend,
+  requestManualPaymentReviewFromBackend,
+  requestPaywallLeadFromBackend,
+  requestRegistrationTrialFromBackend,
+} from '../services/aiBackendConnector';
 import { getCityList } from '../utils/chinaCities';
 import { calculateChengGu } from '../utils/chengGu';
 import { generateFortuneCalendar, getMonthSummary } from '../utils/fortuneCalendar';
@@ -1949,18 +1956,87 @@ export default function MingMeV2App() {
     }
   }, [chartResult, memberTier, notificationPrefs, profile]);
 
-  const handleMemberRegistrationSave = useCallback(async (payload) => {
-    if (payload?.registration) {
-      setMemberRegistration({
-        ...DEFAULT_MEMBER_REGISTRATION,
-        ...payload.registration,
+  const syncMembershipFromBackend = useCallback(async ({
+    chart = chartResult,
+    registration = memberRegistration,
+    silent = true,
+  } = {}) => {
+    if (!chart || !getAIBackendConfig().baseUrl) return null;
+
+    try {
+      const response = await requestAIMembershipStatusFromBackend({
+        chart,
+        profile: {
+          ...profile,
+          nickname: registration?.nickname || profile?.nickname || '',
+          city: registration?.city || profile?.city || '',
+          focus: registration?.focus || profile?.focus || '',
+        },
       });
+      const membership = response?.data?.membership || response?.membership || null;
+      if (membership) {
+        setMemberTier(membership.isPremium ? (membership.tier || 'premium') : 'free');
+      }
+      return membership;
+    } catch (error) {
+      if (!silent) {
+        Alert.alert('会员状态同步失败', error?.message || '暂时无法刷新会员状态，请稍后再试。');
+      }
+      return null;
+    }
+  }, [chartResult, memberRegistration, profile]);
+
+  useEffect(() => {
+    if (booting || !chartResult) return;
+    syncMembershipFromBackend({ chart: chartResult, registration: memberRegistration, silent: true });
+  }, [booting, chartResult, memberRegistration, syncMembershipFromBackend]);
+
+  const handleMemberRegistrationSave = useCallback(async (payload) => {
+    const nextRegistration = {
+      ...DEFAULT_MEMBER_REGISTRATION,
+      ...(payload?.registration || {}),
+    };
+    if (payload?.registration) {
+      setMemberRegistration(nextRegistration);
     }
 
     try {
+      if (payload?.source === 'registration_trial') {
+        const trialResponse = await requestRegistrationTrialFromBackend({
+          registration: nextRegistration,
+          profile,
+          chart: chartResult,
+        });
+        const membership = trialResponse?.data?.membership || trialResponse?.membership || null;
+
+        try {
+          await requestPaywallLeadFromBackend({
+            registration: nextRegistration,
+            selectedPlan: payload?.selectedPlan || 'trial',
+            profile,
+            chart: chartResult,
+            source: 'registration_trial',
+          });
+        } catch (leadError) {
+          console.warn('[membership] failed to save registration trial lead:', leadError?.message || leadError);
+        }
+
+        if (membership) {
+          setMemberTier(membership.isPremium ? (membership.tier || 'trial') : 'free');
+        } else {
+          await syncMembershipFromBackend({ chart: chartResult, registration: nextRegistration, silent: true });
+        }
+
+        setPaywallVisible(false);
+        return {
+          ok: true,
+          membership,
+        };
+      }
+
       if (payload?.paymentMethod) {
         await requestManualPaymentReviewFromBackend({
-          registration: payload?.registration || {},
+          registration: nextRegistration,
           selectedPlan: payload?.selectedPlan || 'annual',
           paymentMethod: payload?.paymentMethod,
           amountText: payload?.amountText || '',
@@ -1974,7 +2050,7 @@ export default function MingMeV2App() {
         });
       } else {
         await requestPaywallLeadFromBackend({
-          registration: payload?.registration || {},
+          registration: nextRegistration,
           selectedPlan: payload?.selectedPlan || 'annual',
           profile,
           chart: chartResult,
@@ -1987,7 +2063,7 @@ export default function MingMeV2App() {
       Alert.alert('提交失败', error?.message || '暂时无法提交开通意向，请稍后再试。');
       return false;
     }
-  }, [chartResult, profile]);
+  }, [chartResult, profile, syncMembershipFromBackend, memberRegistration]);
 
   const handleContactMingjiSubmit = useCallback(async (payload) => {
     try {

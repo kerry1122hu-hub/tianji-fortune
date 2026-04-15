@@ -247,6 +247,22 @@ export async function requestAIMembershipStatusFromBackend({ chart, profile, use
   return payload;
 }
 
+export async function requestRegistrationTrialFromBackend({
+  chart,
+  profile,
+  userKey,
+  registration,
+}) {
+  const { baseUrl, authToken, signingSecret, retryCount, retryDelayMs } = getAIBackendConfig();
+  if (!baseUrl) {
+    throw new Error('Missing backend URL. Fill expo.extra.aiBackendUrl in app.json.');
+  }
+
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/api/ai/registration-trial`;
+  const requestBody = JSON.stringify({ chart, profile, userKey, registration });
+  return requestWithRetry(endpoint, requestBody, { authToken, signingSecret, retryCount, retryDelayMs });
+}
+
 export async function requestAITranscriptionFromBackend({
   uri,
   mimeType = 'audio/m4a',
