@@ -2204,8 +2204,20 @@ function AICompanionModal({
     return '点开继续聊下去';
   };
 
+  const focusChatComposer = useCallback(() => {
+    scrollRef.current?.scrollToEnd?.({ animated: false });
+    setTimeout(() => {
+      chatInputRef.current?.focus?.();
+      scrollRef.current?.scrollToEnd?.({ animated: true });
+    }, 80);
+    setTimeout(() => {
+      chatInputRef.current?.focus?.();
+      scrollRef.current?.scrollToEnd?.({ animated: true });
+    }, 260);
+  }, []);
+
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose} onShow={focusChatComposer}>
       <KeyboardAvoidingView
         style={s.aiPageRoot}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -2297,6 +2309,22 @@ function AICompanionModal({
             </View>
           </View>
         ) : null}
+        {chatHistory.length === 0 ? (
+          <TouchableOpacity
+            onPress={() => {
+              onChangeInput?.(randomQuickPrompt);
+              focusChatComposer();
+            }}
+            activeOpacity={0.92}
+            style={s.aiInlinePromptCard}
+          >
+            <View style={s.aiInlinePromptTop}>
+              <View style={s.aiInlinePromptDot} />
+              <Text style={s.aiInlinePromptLabel}>{'今日随机提问'}</Text>
+            </View>
+            <Text style={s.aiInlinePromptText}>{randomQuickPrompt}</Text>
+          </TouchableOpacity>
+        ) : null}
         <View style={s.aiComposerPanel}>
           <View style={s.aiComposerTopline}>
             <View style={s.aiComposerToplineDot} />
@@ -2317,6 +2345,7 @@ function AICompanionModal({
             <View style={s.aiInputWrap}>
               <TextInput
                 ref={chatInputRef}
+                autoFocus={visible}
                 value={chatInput}
                 onChangeText={onChangeInput}
                 onFocus={() => {
@@ -6117,6 +6146,11 @@ const s = StyleSheet.create({
   aiQuotaBody: { fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.62)' },
   aiQuotaButton: { minWidth: 78, height: 36, borderRadius: 999, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: C.logoDeep },
   aiQuotaButtonText: { fontSize: 13, fontWeight: '800', color: '#F7FFFC' },
+  aiInlinePromptCard: { marginHorizontal: 12, marginTop: 4, marginBottom: 6, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(214,222,228,0.88)', backgroundColor: 'rgba(252,253,253,0.98)', paddingHorizontal: 14, paddingVertical: 12, shadowColor: '#0E2230', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 5 }, elevation: 2 },
+  aiInlinePromptTop: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 6 },
+  aiInlinePromptDot: { width: 7, height: 7, borderRadius: 999, backgroundColor: 'rgba(109,184,160,0.82)' },
+  aiInlinePromptLabel: { fontSize: 11, fontWeight: '800', color: 'rgba(20,51,58,0.52)', textTransform: 'uppercase', letterSpacing: 0.4 },
+  aiInlinePromptText: { fontSize: 14, lineHeight: 20, color: C.logoDeep, fontWeight: '700' },
   aiComposerPanel: { minHeight: 108, marginHorizontal: 12, marginTop: 4, marginBottom: 12, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(213,223,230,0.88)', backgroundColor: 'rgba(252,253,253,0.98)', paddingTop: 8, paddingHorizontal: 10, paddingBottom: 8, justifyContent: 'space-between', shadowColor: '#0E2230', shadowOpacity: 0.10, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 4 },
   aiComposerTopline: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 10, marginBottom: 6 },
   aiComposerToplineDot: { width: 7, height: 7, borderRadius: 999, backgroundColor: 'rgba(109,184,160,0.82)', shadowColor: '#6DB8A0', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 1 } },
