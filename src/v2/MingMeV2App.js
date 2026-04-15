@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
-import { Audio } from 'expo-av';
+import { Audio, Video } from 'expo-av';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -149,6 +149,8 @@ const DEFAULT_DECISION_DRAFT = {
 const MAX_FAMILY_PROFILES = 5;
 const FAMILY_PROFILES_DISABLED = true;
 const SHOW_SMART_SERVICE_AUTH = false;
+const LAUNCH_VIDEO_MIN_MS = 1200;
+const LAUNCH_VIDEO_MAX_MS = 2600;
 
 const PILLAR_LABELS = ['年', '月', '日', '时'];
 
@@ -675,6 +677,53 @@ function DateTrigger({ label, value, helper, onPress }) {
         <Text style={s.selectorArrow}>›</Text>
       </TouchableOpacity>
       {helper ? <Text style={s.helper}>{helper}</Text> : null}
+    </View>
+  );
+}
+
+function LaunchVideoScreen({ onFinish }) {
+  const finishedRef = useRef(false);
+
+  useEffect(() => {
+    const hardStop = setTimeout(() => {
+      if (!finishedRef.current) {
+        finishedRef.current = true;
+        onFinish?.();
+      }
+    }, LAUNCH_VIDEO_MAX_MS);
+
+    return () => clearTimeout(hardStop);
+  }, [onFinish]);
+
+  return (
+    <View style={s.launchScreen}>
+      <Video
+        source={require('../../assets/splash-icon.mp4')}
+        style={s.launchVideo}
+        resizeMode="cover"
+        shouldPlay
+        isLooping={false}
+        isMuted
+        onError={() => {
+          if (!finishedRef.current) {
+            finishedRef.current = true;
+            onFinish?.();
+          }
+        }}
+        onPlaybackStatusUpdate={(status) => {
+          if (!status?.isLoaded) {
+            return;
+          }
+          if ((status.didJustFinish || status.positionMillis >= status.durationMillis - 80) && !finishedRef.current) {
+            finishedRef.current = true;
+            onFinish?.();
+          }
+        }}
+      />
+      <View style={s.launchOverlay}>
+        <Text style={s.launchTitle}>明己</Text>
+        <Text style={s.launchBody}>正在展开你的今日气场</Text>
+      </View>
     </View>
   );
 }
@@ -1335,6 +1384,8 @@ function IntakeRoleScreen({ profile, patchProfile, onGenerate, onBack, reviewMod
 export default function MingMeV2App() {
   const hideMembership = Platform.OS === 'ios';
   const [booting, setBooting] = useState(true);
+  const [launchVisualDone, setLaunchVisualDone] = useState(false);
+  const [launchVisualMinReached, setLaunchVisualMinReached] = useState(false);
   const [flow, setFlow] = useState('onboarding');
   const [intakeOrigin, setIntakeOrigin] = useState('onboarding');
   const [locale, setLocaleState] = useState('zh-Hans');
@@ -1481,6 +1532,13 @@ export default function MingMeV2App() {
       clearTimers();
     };
   }, [clearTimers]);
+
+  useEffect(() => {
+    const minTimer = setTimeout(() => {
+      setLaunchVisualMinReached(true);
+    }, LAUNCH_VIDEO_MIN_MS);
+    return () => clearTimeout(minTimer);
+  }, []);
 
   useEffect(() => {
     if (booting) return;
@@ -2612,10 +2670,16 @@ export default function MingMeV2App() {
     ]);
   }, [clearTimers]);
 
-  if (booting) {
+  const shouldShowLaunchVideo = !launchVisualDone || !launchVisualMinReached;
+
+  if (booting || shouldShowLaunchVideo) {
     return (
       <SafeAreaProvider>
-        <GeneratingV2Screen statusText="正在载入你的本地档案…" />
+        {shouldShowLaunchVideo ? (
+          <LaunchVideoScreen onFinish={() => setLaunchVisualDone(true)} />
+        ) : (
+          <GeneratingV2Screen statusText="正在载入你的本地档案…" />
+        )}
       </SafeAreaProvider>
     );
   }
@@ -2711,6 +2775,36 @@ const s = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: C.bg,
+  },
+  launchScreen: {
+    flex: 1,
+    backgroundColor: '#090B10',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  launchVideo: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  launchOverlay: {
+    position: 'absolute',
+    bottom: 72,
+    left: 24,
+    right: 24,
+    alignItems: 'center',
+  },
+  launchTitle: {
+    color: 'rgba(255,255,255,0.96)',
+    fontSize: 28,
+    fontWeight: '700',
+    letterSpacing: 6,
+  },
+  launchBody: {
+    marginTop: 10,
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 13,
+    letterSpacing: 1.6,
   },
   screenPad: {
     paddingHorizontal: 18,
