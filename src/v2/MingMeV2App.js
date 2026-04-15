@@ -1493,22 +1493,27 @@ export default function MingMeV2App() {
     setFlow('intake-birth');
   }, []);
 
+  const syncPrimaryArchiveToLiveState = useCallback(() => {
+    if (!primaryAccountArchive) return;
+    setProfile({ ...DEFAULT_PROFILE, ...(primaryAccountArchive.profile || {}) });
+    setChartResult(primaryAccountArchive.chartResult || null);
+    setFortuneCalendar(Array.isArray(primaryAccountArchive.fortuneCalendar) ? primaryAccountArchive.fortuneCalendar : []);
+    setCalSummary(primaryAccountArchive.calSummary || null);
+    setAiText(primaryAccountArchive.aiText || null);
+    setOneLineSummary(primaryAccountArchive.oneLineSummary || '');
+    setWeeklyActions(primaryAccountArchive.weeklyActions || null);
+    setFollowUpQuestions(Array.isArray(primaryAccountArchive.followUpQuestions) ? primaryAccountArchive.followUpQuestions : []);
+    setFollowUpAnswers(primaryAccountArchive.followUpAnswers && typeof primaryAccountArchive.followUpAnswers === 'object' ? primaryAccountArchive.followUpAnswers : {});
+    setActiveFamilyProfileId(null);
+  }, [primaryAccountArchive]);
+
   const openPrimaryAccountIntakeFromApp = useCallback(() => {
-    if (activeFamilyProfileId && primaryAccountArchive?.profile) {
-      setProfile({ ...DEFAULT_PROFILE, ...(primaryAccountArchive.profile || {}) });
-      setChartResult(primaryAccountArchive.chartResult || null);
-      setFortuneCalendar(Array.isArray(primaryAccountArchive.fortuneCalendar) ? primaryAccountArchive.fortuneCalendar : []);
-      setCalSummary(primaryAccountArchive.calSummary || null);
-      setAiText(primaryAccountArchive.aiText || null);
-      setOneLineSummary(primaryAccountArchive.oneLineSummary || '');
-      setWeeklyActions(primaryAccountArchive.weeklyActions || null);
-      setFollowUpQuestions(Array.isArray(primaryAccountArchive.followUpQuestions) ? primaryAccountArchive.followUpQuestions : []);
-      setFollowUpAnswers(primaryAccountArchive.followUpAnswers && typeof primaryAccountArchive.followUpAnswers === 'object' ? primaryAccountArchive.followUpAnswers : {});
-      setActiveFamilyProfileId(null);
+    if (primaryAccountArchive?.profile) {
+      syncPrimaryArchiveToLiveState();
     }
     setIntakeOrigin('app');
     setFlow('intake-birth');
-  }, [activeFamilyProfileId, primaryAccountArchive]);
+  }, [primaryAccountArchive, syncPrimaryArchiveToLiveState]);
 
   const handleIntakeBackFromBirth = useCallback(() => {
     setFlow(intakeOrigin === 'app' ? 'app' : 'onboarding');
@@ -2084,12 +2089,12 @@ export default function MingMeV2App() {
     }
     if (activeFamilyProfileId) {
       if (primaryAccountArchive) {
-        restorePrimaryAccountView();
+        syncPrimaryArchiveToLiveState();
       } else {
         setActiveFamilyProfileId(null);
       }
     }
-  }, [activeFamilyProfileId, booting, familyProfiles.length, primaryAccountArchive, restorePrimaryAccountView]);
+  }, [activeFamilyProfileId, booting, familyProfiles.length, primaryAccountArchive, syncPrimaryArchiveToLiveState]);
 
   const syncMembershipFromBackend = useCallback(async ({
     chart = primaryChartResult || chartResult,
@@ -2464,7 +2469,12 @@ export default function MingMeV2App() {
         style: 'destructive',
         onPress: async () => {
           clearTimers();
-          await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
+          await AsyncStorage.multiRemove([...new Set(Object.values(STORAGE_KEYS))]);
+          await AsyncStorage.multiRemove([
+            STORAGE_KEYS.primaryAccountArchive,
+            STORAGE_KEYS.familyProfiles,
+            STORAGE_KEYS.activeFamilyProfileId,
+          ]);
           setIntakeOrigin('onboarding');
           setProfile(DEFAULT_PROFILE);
           setMemberTier('free');
@@ -2481,6 +2491,7 @@ export default function MingMeV2App() {
           setFollowUpQuestions([]);
           setFollowUpAnswers({});
           setNotificationPrefs(DEFAULT_NOTIFICATION_PREFS);
+          setProfileReadyVisible(false);
           setPaywallVisible(false);
           setLocale('zh-Hans');
           setLocaleState('zh-Hans');
