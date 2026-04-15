@@ -107,12 +107,6 @@ function getDreamComposerHint(dreamText = '') {
   return '先把梦里最醒目的“象”写出来，例如人、动物、水火、颜色、追逐、坠落、生死、说话与否，明己才好真正拆梦。';
 }
 
-const DREAM_EXAMPLE_PROMPTS = [
-  '我梦见自己一直在找路，最后走进一片黑水里。',
-  '我梦见已故亲人来家里坐着，一直看着我，却没有说话。',
-  '我梦见牙齿松动快掉了，醒来时心里很慌。',
-];
-
 function buildDreamPreview(text = '') {
   const normalized = `${text || ''}`.trim().replace(/\s+/g, ' ');
   if (!normalized) return '这个梦先不急着往凶吉上压，明己会先替你把梦里的“象”挑出来，再看它在提醒什么。';
@@ -2619,6 +2613,8 @@ function SmartToolPage(props) {
   const toolFeedbackOpacity = useRef(new Animated.Value(0)).current;
   const [divinationBodyY, setDivinationBodyY] = useState(0);
   const [divinationFormalY, setDivinationFormalY] = useState(0);
+  const [dreamComposerY, setDreamComposerY] = useState(0);
+  const [dreamResultY, setDreamResultY] = useState(0);
   const [divinationVideoLoaded, setDivinationVideoLoaded] = useState(false);
   const normalizedDivinationInsight = useMemo(
     () => normalizeDivinationInsightPayload(divinationInsight, divinationDraft.sceneType),
@@ -2682,6 +2678,14 @@ function SmartToolPage(props) {
   }, [normalizedDivinationInsight, divinationBodyOpacity, divinationBodyTranslate, divinationHeroOpacity, divinationHeroTranslate]);
 
   useEffect(() => {
+    if (toolKey !== 'dream' || !dreamInsight) return;
+    requestAnimationFrame(() => {
+      const targetY = Math.max(0, Number(dreamResultY || 0) - 18);
+      toolScrollRef.current?.scrollTo?.({ y: targetY, animated: true });
+    });
+  }, [toolKey, dreamInsight, dreamResultY]);
+
+  useEffect(() => {
     if (!toolFeedback.text) {
       toolFeedbackOpacity.setValue(0);
       toolFeedbackScale.setValue(1);
@@ -2734,6 +2738,13 @@ function SmartToolPage(props) {
     const targetY = Math.max(0, Number(divinationBodyY || 0) + Number(divinationFormalY || 0) - 18);
     toolScrollRef.current?.scrollTo?.({ y: targetY, animated: true });
   }, [divinationBodyY, divinationFormalY]);
+
+  const focusDreamComposer = useCallback(() => {
+    const targetY = Math.max(0, Number(dreamComposerY || 0) - 18);
+    requestAnimationFrame(() => {
+      toolScrollRef.current?.scrollTo?.({ y: targetY, animated: true });
+    });
+  }, [dreamComposerY]);
 
   const handleDivinationVideoFinished = useCallback(async () => {
     setDivinationLoadingReady(true);
@@ -3233,35 +3244,21 @@ function SmartToolPage(props) {
 
         {toolKey === 'dream' ? (
           <Card>
-            <View style={s.dreamExampleCard}>
-              <Text style={s.dreamExampleEyebrow}>{'梦境示例'}</Text>
-              <Text style={s.dreamExampleTitle}>{'先抓梦里最醒目的那一幕'}</Text>
-              <Text style={s.dreamExampleBody}>{'不用一上来讲得很完整。先把你醒来后最难忘的画面写下来，明己会顺着“象”往下拆。'}</Text>
-              <View style={s.dreamExampleRow}>
-                {DREAM_EXAMPLE_PROMPTS.map((item) => (
-                  <TouchableOpacity
-                    key={item}
-                    activeOpacity={0.9}
-                    style={s.dreamExampleChip}
-                    onPress={() => setDreamDraft(item)}
-                  >
-                    <Text style={s.dreamExampleChipText}>{item}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
             <View style={s.questionBlock}>
               <Text style={s.questionText}>刚才梦见了什么</Text>
-              <View style={s.divinationComposer}>
+              <View style={s.dreamComposerShell}>
+              <View style={s.divinationComposer} onLayout={(event) => setDreamComposerY(event.nativeEvent.layout.y)}>
                 <TextInput
                   value={dreamDraft}
                   onChangeText={setDreamDraft}
+                  onFocus={focusDreamComposer}
                   style={s.divinationComposerInput}
                   multiline
                   placeholder={getDreamQuestionPlaceholder()}
                   placeholderTextColor={'rgba(20,51,58,0.42)'}
                 />
                 <Text style={s.divinationComposerHint}>{getDreamComposerHint(dreamDraft)}</Text>
+              </View>
               </View>
             </View>
             {renderToolActionButton('让明己解这个梦', async () => {
@@ -3281,7 +3278,7 @@ function SmartToolPage(props) {
             }, '解梦中…')}
             {dreamInsight ? (
               <>
-                <Card style={s.dreamResultHero}>
+                <Card style={s.dreamResultHero} onLayout={(event) => setDreamResultY(event.nativeEvent.layout.y)}>
                   <Text style={s.divinationResultEyebrow}>{'明己解梦'}</Text>
                   <Text style={s.divinationResultTitle}>{'先看这个梦，眼下在映哪一层心事'}</Text>
                   <Text style={s.divinationResultBody}>{buildDreamPreview(dreamInsight)}</Text>
@@ -5506,6 +5503,19 @@ const s = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 10,
     shadowColor: '#12343A',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  dreamComposerShell: {
+    marginTop: 2,
+    borderRadius: 26,
+    padding: 10,
+    backgroundColor: 'rgba(248,244,255,0.94)',
+    borderWidth: 1,
+    borderColor: 'rgba(182,155,255,0.22)',
+    shadowColor: '#5A3E8B',
     shadowOpacity: 0.06,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
