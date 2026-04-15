@@ -22,7 +22,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio, Video } from 'expo-av';
 import * as Notifications from 'expo-notifications';
-import { aiAnalyzeEmotion, aiChat, aiDecisionSupport, aiMingJiDivination, canUseAI, getRemainingCount, incrementUsage, transcribeVoiceInput } from '../utils/aiService';
+import { aiAnalyzeEmotion, aiChat, aiDecisionSupport, aiMingJiDivination, aiMingJiDream, canUseAI, getRemainingCount, incrementUsage, transcribeVoiceInput } from '../utils/aiService';
 import { generateFortuneCalendar } from '../utils/fortuneCalendar';
 import { detectPwaPlatform, getPwaDisplayMode, isSafariBrowser, isStandalonePwa, listenToPwaInstallability, promptPwaInstall, trackPwaEvent } from '../utils/pwaWeb';
 
@@ -93,6 +93,37 @@ function getDivinationComposerHint(sceneType) {
   if (sceneType === 'travel') return '把身体状态或这趟出行收焦到一个问题上，明己会先断现在动身是顺、阻，还是容易白跑。';
   if (sceneType === 'communication') return '把要寻的人或物写具体一点，明己会先断线索眼前是有回音、拖着找，还是容易扑空。';
   return '把问题收焦到眼前这件事，明己会按起卦当下的时点替你先断势，再讲该怎么动。';
+}
+
+function getDreamQuestionPlaceholder() {
+  return '例如：我梦见自己一直在找路，最后走进一片黑水里；或，我梦见已故亲人来家里坐着不说话。';
+}
+
+function getDreamComposerHint(dreamText = '') {
+  const normalized = `${dreamText || ''}`.trim();
+  if (normalized) {
+    return '把梦里最清楚的画面、人物、颜色、动作写出来，明己会先按周公解梦抓“象”，再补现实中的心理线索。';
+  }
+  return '先把梦里最醒目的“象”写出来，例如人、动物、水火、颜色、追逐、坠落、生死、说话与否，明己才好真正拆梦。';
+}
+
+const DREAM_EXAMPLE_PROMPTS = [
+  '我梦见自己一直在找路，最后走进一片黑水里。',
+  '我梦见已故亲人来家里坐着，一直看着我，却没有说话。',
+  '我梦见牙齿松动快掉了，醒来时心里很慌。',
+];
+
+function buildDreamPreview(text = '') {
+  const normalized = `${text || ''}`.trim().replace(/\s+/g, ' ');
+  if (!normalized) return '这个梦先不急着往凶吉上压，明己会先替你把梦里的“象”挑出来，再看它在提醒什么。';
+  const first = normalized.split(/(?<=[。！？!?])/)[0]?.trim() || normalized;
+  return first.length > 56 ? `${first.slice(0, 56)}…` : first;
+}
+
+function buildDreamFormalLead(text = '') {
+  const normalized = `${text || ''}`.trim();
+  if (!normalized) return '';
+  return `明己先替你把梦里的“象”拆开，再把传统寓意和现实心事放在一起看：${normalized}`;
 }
 
 function normalizeDivinationInsightPayload(payload, sceneType) {
@@ -356,12 +387,12 @@ const MOOD_OPTIONS = [
 
 const SMART_TOOL_META = {
   divination: { label: '明己一卦', hint: '用小六壬看当前这件事的势、时机与宜忌', accent: '#7FB4FF', icon: '◈' },
+  dream: { label: '明己解梦', hint: '把梦里的象与现实心事一起拆开来看', accent: '#B69BFF', icon: '☾' },
   weekly: { label: '本周安排', hint: '五张行动卡集中查看', accent: '#D7B765', icon: '≋' },
   emotion: { label: '情绪洞察', hint: '记录今天的情绪并获得 AI 分析', accent: '#7FCFBD', icon: '◌' },
   decision: { label: '决策辅助', hint: '把复杂选择拆开再看', accent: '#8FB7FF', icon: '△' },
   growth: { label: '成长追踪', hint: '把阶段变化总结成一段建议', accent: '#D7B765', icon: '◎' },
   reflection: { label: '自我反思', hint: '补充观察并生成新的摘要方向', accent: '#A78BFA', icon: '◐' },
-  bridge: { label: '龙虾接口', hint: '预留接入口，后续可扩展', accent: '#FF9F7A', icon: '∞' },
 };
 
 const DIVINATION_SCENE_OPTIONS = [
@@ -2571,6 +2602,8 @@ function SmartToolPage(props) {
   const [divinationDraft, setDivinationDraft] = useState({ sceneType: 'wealth', question: '' });
   const [divinationInsight, setDivinationInsight] = useState(null);
   const [divinationLoadingReady, setDivinationLoadingReady] = useState(false);
+  const [dreamDraft, setDreamDraft] = useState('');
+  const [dreamInsight, setDreamInsight] = useState('');
   const [growthInsight, setGrowthInsight] = useState('');
   const [reflectionInsight, setReflectionInsight] = useState('');
   const [expandedWeeklyKey, setExpandedWeeklyKey] = useState('work');
@@ -3198,6 +3231,70 @@ function SmartToolPage(props) {
           </Card>
         ) : null}
 
+        {toolKey === 'dream' ? (
+          <Card>
+            <View style={s.dreamExampleCard}>
+              <Text style={s.dreamExampleEyebrow}>{'梦境示例'}</Text>
+              <Text style={s.dreamExampleTitle}>{'先抓梦里最醒目的那一幕'}</Text>
+              <Text style={s.dreamExampleBody}>{'不用一上来讲得很完整。先把你醒来后最难忘的画面写下来，明己会顺着“象”往下拆。'}</Text>
+              <View style={s.dreamExampleRow}>
+                {DREAM_EXAMPLE_PROMPTS.map((item) => (
+                  <TouchableOpacity
+                    key={item}
+                    activeOpacity={0.9}
+                    style={s.dreamExampleChip}
+                    onPress={() => setDreamDraft(item)}
+                  >
+                    <Text style={s.dreamExampleChipText}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+            <View style={s.questionBlock}>
+              <Text style={s.questionText}>刚才梦见了什么</Text>
+              <View style={s.divinationComposer}>
+                <TextInput
+                  value={dreamDraft}
+                  onChangeText={setDreamDraft}
+                  style={s.divinationComposerInput}
+                  multiline
+                  placeholder={getDreamQuestionPlaceholder()}
+                  placeholderTextColor={'rgba(20,51,58,0.42)'}
+                />
+                <Text style={s.divinationComposerHint}>{getDreamComposerHint(dreamDraft)}</Text>
+              </View>
+            </View>
+            {renderToolActionButton('让明己解这个梦', async () => {
+              const output = await runAITool(
+                () => aiMingJiDream(dreamDraft || '我醒来只记得这个梦很强烈，但细节还没完全抓住。', result, {
+                  isPremium,
+                  memberTier: isPremium ? 'premium' : 'free',
+                  profile,
+                  userKey: stableToolUserKey,
+                }),
+                {
+                  loadingText: '明己正在拆梦里的象与心事…',
+                  successText: '梦里的线索已经拆开了，往下看明己怎么解。',
+                }
+              );
+              if (output) setDreamInsight(output);
+            }, '解梦中…')}
+            {dreamInsight ? (
+              <>
+                <Card style={s.dreamResultHero}>
+                  <Text style={s.divinationResultEyebrow}>{'明己解梦'}</Text>
+                  <Text style={s.divinationResultTitle}>{'先看这个梦，眼下在映哪一层心事'}</Text>
+                  <Text style={s.divinationResultBody}>{buildDreamPreview(dreamInsight)}</Text>
+                </Card>
+                <Card>
+                  <SectionHeader eyebrow={'完整梦解'} title={'明己怎么拆这个梦'} />
+                  <Text style={s.toolResultText}>{buildDreamFormalLead(dreamInsight)}</Text>
+                </Card>
+              </>
+            ) : null}
+          </Card>
+        ) : null}
+
       {toolKey === 'decision' ? (
         <Card>
           <View style={s.questionBlock}>
@@ -3259,14 +3356,6 @@ function SmartToolPage(props) {
         </Card>
       ) : null}
 
-        {toolKey === 'bridge' ? (
-          <Card>
-            <Text style={s.toolResultText}>这里预留给未来的龙虾接入口。后续可以接入外部智能模块、专属助手或企业服务能力。</Text>
-            <TouchableOpacity style={s.secondaryGhostButton}>
-              <Text style={s.secondaryGhostButtonText}>保留接口按钮</Text>
-            </TouchableOpacity>
-          </Card>
-        ) : null}
       </ScrollView>
     </View>
   );
@@ -5484,6 +5573,7 @@ const s = StyleSheet.create({
   divinationResultEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(214,230,255,0.72)' },
   divinationResultTitle: { fontSize: 28, lineHeight: 34, color: '#F1F7FF', fontWeight: '800', marginTop: 10, maxWidth: '84%' },
   divinationResultBody: { fontSize: 15, lineHeight: 24, color: 'rgba(241,247,255,0.80)', marginTop: 12, fontWeight: '600' },
+  dreamResultHero: { backgroundColor: '#261A46', borderColor: 'rgba(205,188,255,0.16)', padding: 18, overflow: 'hidden' },
   divinationTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   divinationTag: { minHeight: 30, paddingHorizontal: 10, borderRadius: 999, backgroundColor: 'rgba(82,183,136,0.12)', borderWidth: 1, borderColor: 'rgba(82,183,136,0.20)', justifyContent: 'center' },
   divinationTagText: { fontSize: 12, fontWeight: '700', color: '#198754' },
@@ -5525,6 +5615,28 @@ const s = StyleSheet.create({
   moodChipText: { fontSize: 13, fontWeight: '700', color: C.ink },
   questionBlock: { gap: 8, marginBottom: 12 },
   questionText: { fontSize: 14, fontWeight: '600', color: C.ink },
+  dreamExampleCard: {
+    marginBottom: 14,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: 'rgba(241,236,255,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(182,155,255,0.24)',
+  },
+  dreamExampleEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(90,67,140,0.70)' },
+  dreamExampleTitle: { marginTop: 6, fontSize: 21, lineHeight: 28, fontWeight: '800', color: '#2E2152' },
+  dreamExampleBody: { marginTop: 8, fontSize: 14, lineHeight: 22, color: 'rgba(46,33,82,0.78)', fontWeight: '600' },
+  dreamExampleRow: { marginTop: 14, gap: 8 },
+  dreamExampleChip: {
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(182,155,255,0.24)',
+  },
+  dreamExampleChipText: { fontSize: 13, lineHeight: 20, color: '#433168', fontWeight: '700' },
   answerInput: { minHeight: 88, borderRadius: 18, backgroundColor: 'rgba(118,118,128,0.08)', padding: 12, textAlignVertical: 'top', color: C.ink },
   toolFootnote: { fontSize: 13, lineHeight: 20, color: C.soft, marginTop: 10 },
   growthGrid: { flexDirection: 'row', gap: 10, marginTop: 4, marginBottom: 8 },
