@@ -2222,6 +2222,110 @@ function AICompanionModal({
       scrollRef.current?.scrollToEnd?.({ animated: true });
     }, 260);
   }, []);
+  const hasConversation = chatHistory.length > 0 || chatLoading;
+
+  const renderPromptChooser = () => (
+    <View style={s.aiInlinePromptCard}>
+      <View style={s.aiInlinePromptTop}>
+        <View style={s.aiInlinePromptDot} />
+        <Text style={s.aiInlinePromptLabel}>{'可从这两类开始'}</Text>
+      </View>
+      <View style={s.aiInlinePromptCategoryRow}>
+        {quickPromptCategories.map((item) => (
+          <TouchableOpacity
+            key={item.key}
+            onPress={() => {
+              onChangeInput?.(item.prompt);
+              focusChatComposer();
+            }}
+            activeOpacity={0.92}
+            style={s.aiInlinePromptCategory}
+          >
+            <Text style={s.aiInlinePromptCategoryLabel}>{item.label}</Text>
+            <Text style={s.aiInlinePromptCategoryText}>{item.prompt}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderComposer = (extraStyle = null) => (
+    <View style={[s.aiComposerPanel, extraStyle]}>
+      <View style={s.aiComposerTopline}>
+        <View style={s.aiComposerToplineDot} />
+        <Text style={s.aiComposerToplineText}>{voiceRecording ? '先生正在听你说话' : '想到什么，就直接对先生说'}</Text>
+      </View>
+      <View style={s.aiInputDock}>
+        <TouchableOpacity
+          onPress={onVoiceInput}
+          disabled={voiceLoading || chatLoading}
+          style={[s.aiVoiceButton, (voiceLoading || chatLoading) && s.aiVoiceButtonDisabled, voiceRecording && s.aiVoiceButtonActive]}
+        >
+          {voiceLoading ? (
+            <ActivityIndicator size="small" color={voiceRecording ? '#163238' : C.logoDeep} />
+          ) : (
+            <Text style={[s.aiVoiceText, voiceRecording && s.aiVoiceTextActive]}>{voiceRecording ? '■' : '◉'}</Text>
+          )}
+        </TouchableOpacity>
+        <View style={s.aiInputWrap}>
+          <TextInput
+            ref={chatInputRef}
+            autoFocus={visible}
+            value={chatInput}
+            onChangeText={onChangeInput}
+            onFocus={() => {
+              setTimeout(() => {
+                scrollRef.current?.scrollToEnd?.({ animated: true });
+              }, 150);
+            }}
+            onContentSizeChange={(event) => {
+              const nextHeight = Math.max(44, Math.min(112, Math.ceil((event?.nativeEvent?.contentSize?.height || 34) + 4)));
+              if (Math.abs(nextHeight - inputHeightRef.current) < 2) return;
+              inputHeightRef.current = nextHeight;
+              setInputHeight((current) => {
+                if (Math.abs(nextHeight - current) < 2) return current;
+                return nextHeight;
+              });
+              if (Platform.OS !== 'web') {
+                setTimeout(() => {
+                  scrollRef.current?.scrollToEnd?.({ animated: true });
+                }, 60);
+              }
+            }}
+            placeholder={'给明己AI先生发消息…'}
+            placeholderTextColor={'rgba(60,60,67,0.46)'}
+            multiline
+            scrollEnabled
+            maxLength={500}
+            editable={!chatLoading}
+            style={[s.aiInput, { height: inputHeight, minHeight: 44, maxHeight: 112 }]}
+          />
+        </View>
+        <TouchableOpacity
+          onPress={() => onSend?.()}
+          disabled={!chatInput.trim() || chatLoading}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={[
+            s.aiSendButton,
+            chatInput.trim() && !chatLoading ? s.aiSendButtonActive : s.aiSendButtonDisabled,
+          ]}
+        >
+          <Text style={s.aiSendText}>{'↑'}</Text>
+        </TouchableOpacity>
+      </View>
+      {chatInput.trim() ? (
+        <TouchableOpacity
+          onPress={() => onSend?.()}
+          disabled={chatLoading}
+          activeOpacity={0.9}
+          style={[s.aiSendCta, chatLoading && s.aiSendCtaDisabled]}
+        >
+          <Text style={s.aiSendCtaText}>{chatLoading ? '正在发送…' : '发送给明己AI先生'}</Text>
+        </TouchableOpacity>
+      ) : null}
+      <Text style={s.aiInputHint}>{voiceRecording ? '正在录音，再点一次即可转成文字。' : '可直接输入，也可点左侧语音按钮把语音转成文字。'}</Text>
+    </View>
+  );
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} onShow={focusChatComposer}>
@@ -2245,180 +2349,89 @@ function AICompanionModal({
           </View>
         </View>
 
-        <View style={s.aiConversationShell}>
-          <ScrollView
-            ref={scrollRef}
-            style={s.aiScroll}
-            contentContainerStyle={s.aiScrollContent}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-            onContentSizeChange={() => {
-              scrollRef.current?.scrollToEnd?.({ animated: true });
-            }}
-          >
-            {chatHistory.map((msg, index) => (
-              <View key={`${msg.role}-${index}`} style={[s.aiBubbleRow, msg.role === 'user' ? s.aiBubbleRowUser : s.aiBubbleRowAssistant]}>
-                {msg.role === 'assistant' ? (
+        {hasConversation ? (
+          <View style={s.aiConversationShell}>
+            <ScrollView
+              ref={scrollRef}
+              style={s.aiScroll}
+              contentContainerStyle={s.aiScrollContent}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+              onContentSizeChange={() => {
+                scrollRef.current?.scrollToEnd?.({ animated: true });
+              }}
+            >
+              {chatHistory.map((msg, index) => (
+                <View key={`${msg.role}-${index}`} style={[s.aiBubbleRow, msg.role === 'user' ? s.aiBubbleRowUser : s.aiBubbleRowAssistant]}>
+                  {msg.role === 'assistant' ? (
+                    <View style={s.aiBubbleAvatar}>
+                      <Text style={s.aiBubbleAvatarText}>{'明'}</Text>
+                    </View>
+                  ) : null}
+                  <View style={[s.aiBubbleCard, msg.role === 'user' ? s.aiBubbleCardUser : s.aiBubbleCardAssistant]}>
+                      <Text style={[s.aiBubbleText, msg.role === 'user' && s.aiBubbleTextUser]}>{normalizeChatMessageContent(msg.content)}</Text>
+                    </View>
+                  </View>
+                ))}
+
+              {chatLoading ? (
+                <View style={s.aiBubbleRow}>
                   <View style={s.aiBubbleAvatar}>
                     <Text style={s.aiBubbleAvatarText}>{'明'}</Text>
                   </View>
-                ) : null}
-                <View style={[s.aiBubbleCard, msg.role === 'user' ? s.aiBubbleCardUser : s.aiBubbleCardAssistant]}>
-                    <Text style={[s.aiBubbleText, msg.role === 'user' && s.aiBubbleTextUser]}>{normalizeChatMessageContent(msg.content)}</Text>
+                  <View style={s.aiTypingCard}>
+                    <Text style={s.aiTypingText}>{'···'}</Text>
                   </View>
                 </View>
-              ))}
-
-            {chatLoading ? (
-              <View style={s.aiBubbleRow}>
-                <View style={s.aiBubbleAvatar}>
-                  <Text style={s.aiBubbleAvatarText}>{'明'}</Text>
-                </View>
-                <View style={s.aiTypingCard}>
-                  <Text style={s.aiTypingText}>{'···'}</Text>
-                </View>
-              </View>
-            ) : null}
-          </ScrollView>
-
-          <View style={s.aiBottomDock}>
-            {!aiAllowed && !isPremium ? (
-              <View style={s.aiQuotaCard}>
-                <View style={s.aiQuotaBadge}>
-                  <Text style={s.aiQuotaBadgeText}>{'会员'}</Text>
-                </View>
-                <View style={s.aiQuotaContent}>
-                  <Text style={s.aiQuotaTitle}>{'今日 3 次免费 AI 已用完'}</Text>
-                    <Text style={s.aiQuotaBody}>{'开通会员后，可继续使用明己AI先生与智能工具。'}</Text>
-                </View>
-                <TouchableOpacity style={s.aiQuotaButton} onPress={onOpenPaywall}>
-                  <Text style={s.aiQuotaButtonText}>{'开通会员'}</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
-            {installReminderVisible ? (
-              <View style={s.aiInstallReminderCard}>
-                <View style={s.aiInstallReminderCopy}>
-                  <Text style={s.aiInstallReminderTitle}>把 MingMe 放到桌面</Text>
-                  <Text style={s.aiInstallReminderBody}>
-                    {installState.platform === 'ios'
-                      ? '请把当前链接用手机浏览器打开，再按步骤添加到桌面，下次会更容易直接接上。'
-                      : '请把当前链接用手机浏览器打开，浏览器更容易直接弹出安装到桌面的提示。'}
-                  </Text>
-                </View>
-                <View style={s.aiInstallReminderActions}>
-                  <TouchableOpacity style={s.aiInstallReminderGhost} onPress={markInstallReminderSeen} activeOpacity={0.9}>
-                    <Text style={s.aiInstallReminderGhostText}>稍后</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={s.aiInstallReminderButton} onPress={handleInstallPress} activeOpacity={0.9}>
-                    <Text style={s.aiInstallReminderButtonText}>
-                      {installState.platform === 'android' && installState.canPrompt ? '立即安装' : '添加到桌面'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : null}
-            {chatHistory.length === 0 ? (
-              <View style={s.aiInlinePromptCard}>
-                <View style={s.aiInlinePromptTop}>
-                  <View style={s.aiInlinePromptDot} />
-                  <Text style={s.aiInlinePromptLabel}>{'可从这两类开始'}</Text>
-                </View>
-                <View style={s.aiInlinePromptCategoryRow}>
-                  {quickPromptCategories.map((item) => (
-                    <TouchableOpacity
-                      key={item.key}
-                      onPress={() => {
-                        onChangeInput?.(item.prompt);
-                        focusChatComposer();
-                      }}
-                      activeOpacity={0.92}
-                      style={s.aiInlinePromptCategory}
-                    >
-                      <Text style={s.aiInlinePromptCategoryLabel}>{item.label}</Text>
-                      <Text style={s.aiInlinePromptCategoryText}>{item.prompt}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            ) : null}
-            <View style={s.aiComposerPanel}>
-              <View style={s.aiComposerTopline}>
-                <View style={s.aiComposerToplineDot} />
-                <Text style={s.aiComposerToplineText}>{voiceRecording ? '先生正在听你说话' : '想到什么，就直接对先生说'}</Text>
-              </View>
-              <View style={s.aiInputDock}>
-                <TouchableOpacity
-                  onPress={onVoiceInput}
-                  disabled={voiceLoading || chatLoading}
-                  style={[s.aiVoiceButton, (voiceLoading || chatLoading) && s.aiVoiceButtonDisabled, voiceRecording && s.aiVoiceButtonActive]}
-                >
-                  {voiceLoading ? (
-                    <ActivityIndicator size="small" color={voiceRecording ? '#163238' : C.logoDeep} />
-                  ) : (
-                    <Text style={[s.aiVoiceText, voiceRecording && s.aiVoiceTextActive]}>{voiceRecording ? '■' : '◉'}</Text>
-                  )}
-                </TouchableOpacity>
-                <View style={s.aiInputWrap}>
-                  <TextInput
-                    ref={chatInputRef}
-                    autoFocus={visible}
-                    value={chatInput}
-                    onChangeText={onChangeInput}
-                    onFocus={() => {
-                      setTimeout(() => {
-                        scrollRef.current?.scrollToEnd?.({ animated: true });
-                      }, 150);
-                    }}
-                    onContentSizeChange={(event) => {
-                      const nextHeight = Math.max(44, Math.min(112, Math.ceil((event?.nativeEvent?.contentSize?.height || 34) + 4)));
-                      if (Math.abs(nextHeight - inputHeightRef.current) < 2) return;
-                      inputHeightRef.current = nextHeight;
-                      setInputHeight((current) => {
-                        if (Math.abs(nextHeight - current) < 2) return current;
-                        return nextHeight;
-                      });
-                      if (Platform.OS !== 'web') {
-                        setTimeout(() => {
-                          scrollRef.current?.scrollToEnd?.({ animated: true });
-                        }, 60);
-                      }
-                    }}
-                    placeholder={'给明己AI先生发消息…'}
-                    placeholderTextColor={'rgba(60,60,67,0.46)'}
-                    multiline
-                    scrollEnabled
-                    maxLength={500}
-                    editable={!chatLoading}
-                    style={[s.aiInput, { height: inputHeight, minHeight: 44, maxHeight: 112 }]}
-                  />
-                </View>
-                <TouchableOpacity
-                  onPress={() => onSend?.()}
-                  disabled={!chatInput.trim() || chatLoading}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  style={[
-                    s.aiSendButton,
-                    chatInput.trim() && !chatLoading ? s.aiSendButtonActive : s.aiSendButtonDisabled,
-                  ]}
-                >
-                  <Text style={s.aiSendText}>{'↑'}</Text>
-                </TouchableOpacity>
-              </View>
-              {chatInput.trim() ? (
-                <TouchableOpacity
-                  onPress={() => onSend?.()}
-                  disabled={chatLoading}
-                  activeOpacity={0.9}
-                  style={[s.aiSendCta, chatLoading && s.aiSendCtaDisabled]}
-                >
-                  <Text style={s.aiSendCtaText}>{chatLoading ? '正在发送…' : '发送给明己AI先生'}</Text>
-                </TouchableOpacity>
               ) : null}
-              <Text style={s.aiInputHint}>{voiceRecording ? '正在录音，再点一次即可转成文字。' : '可直接输入，也可点左侧语音按钮把语音转成文字。'}</Text>
+            </ScrollView>
+
+            <View style={s.aiBottomDock}>
+              {!aiAllowed && !isPremium ? (
+                <View style={s.aiQuotaCard}>
+                  <View style={s.aiQuotaBadge}>
+                    <Text style={s.aiQuotaBadgeText}>{'会员'}</Text>
+                  </View>
+                  <View style={s.aiQuotaContent}>
+                    <Text style={s.aiQuotaTitle}>{'今日 3 次免费 AI 已用完'}</Text>
+                      <Text style={s.aiQuotaBody}>{'开通会员后，可继续使用明己AI先生与智能工具。'}</Text>
+                  </View>
+                  <TouchableOpacity style={s.aiQuotaButton} onPress={onOpenPaywall}>
+                    <Text style={s.aiQuotaButtonText}>{'开通会员'}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+              {installReminderVisible ? (
+                <View style={s.aiInstallReminderCard}>
+                  <View style={s.aiInstallReminderCopy}>
+                    <Text style={s.aiInstallReminderTitle}>把 MingMe 放到桌面</Text>
+                    <Text style={s.aiInstallReminderBody}>
+                      {installState.platform === 'ios'
+                        ? '请把当前链接用手机浏览器打开，再按步骤添加到桌面，下次会更容易直接接上。'
+                        : '请把当前链接用手机浏览器打开，浏览器更容易直接弹出安装到桌面的提示。'}
+                    </Text>
+                  </View>
+                  <View style={s.aiInstallReminderActions}>
+                    <TouchableOpacity style={s.aiInstallReminderGhost} onPress={markInstallReminderSeen} activeOpacity={0.9}>
+                      <Text style={s.aiInstallReminderGhostText}>稍后</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={s.aiInstallReminderButton} onPress={handleInstallPress} activeOpacity={0.9}>
+                      <Text style={s.aiInstallReminderButtonText}>
+                        {installState.platform === 'android' && installState.canPrompt ? '立即安装' : '添加到桌面'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : null}
+              {renderComposer()}
             </View>
           </View>
-        </View>
+        ) : (
+          <View style={s.aiStartShell}>
+            {renderPromptChooser()}
+            {renderComposer(s.aiComposerPanelStatic)}
+          </View>
+        )}
       </KeyboardAvoidingView>
       <Sheet
         visible={installSheetVisible}
@@ -6125,6 +6138,7 @@ const s = StyleSheet.create({
   aiHeaderMetaPill: { minHeight: 30, borderRadius: 999, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,222,208,0.12)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.18)' },
   aiHeaderMeta: { fontSize: 12, color: C.logoDeep, fontWeight: '700' },
   aiConversationShell: { flex: 1 },
+  aiStartShell: { flex: 1, paddingTop: 14, paddingBottom: 14, justifyContent: 'flex-start' },
   aiScroll: { flex: 1 },
   aiScrollContent: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 16, flexGrow: 1, justifyContent: 'flex-end' },
   aiWelcomeBlock: { alignItems: 'center', paddingVertical: 20, borderRadius: 24, backgroundColor: 'rgba(244,251,248,0.76)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.18)', overflow: 'hidden' },
@@ -6177,6 +6191,7 @@ const s = StyleSheet.create({
   aiInlinePromptCategoryLabel: { fontSize: 10, fontWeight: '800', color: '#2E8A72', marginBottom: 4 },
   aiInlinePromptCategoryText: { fontSize: 12, lineHeight: 18, color: C.logoDeep, fontWeight: '700' },
   aiComposerPanel: { minHeight: 108, marginHorizontal: 12, marginTop: 4, marginBottom: 12, borderRadius: 28, borderWidth: 1, borderColor: 'rgba(213,223,230,0.88)', backgroundColor: 'rgba(252,253,253,0.98)', paddingTop: 8, paddingHorizontal: 10, paddingBottom: 8, justifyContent: 'space-between', shadowColor: '#0E2230', shadowOpacity: 0.10, shadowRadius: 22, shadowOffset: { width: 0, height: 10 }, elevation: 4 },
+  aiComposerPanelStatic: { marginTop: 0 },
   aiComposerTopline: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 10, marginBottom: 6 },
   aiComposerToplineDot: { width: 7, height: 7, borderRadius: 999, backgroundColor: 'rgba(109,184,160,0.82)', shadowColor: '#6DB8A0', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 1 } },
   aiComposerToplineText: { fontSize: 11, lineHeight: 16, color: 'rgba(20,51,58,0.52)', fontWeight: '700', letterSpacing: 0.1 },
