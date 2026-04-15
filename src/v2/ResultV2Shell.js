@@ -3575,6 +3575,8 @@ function HomeTab(props) {
   const {
     result,
     profile,
+    accountProfile,
+    accountResult,
     fortuneCalendar,
     calSummary,
     weeklyActions,
