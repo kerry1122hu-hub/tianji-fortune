@@ -130,6 +130,18 @@ function InlineCitySelector({ selectedCity, search, onChangeSearch, onSelectCity
   );
 }
 
+function BirthMomentRow({ year, month, day, hour, minute, setYear, setMonth, setDay, setHour, setMinute, dayOptions }) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.birthMomentRow}>
+      <WheelColumn label="年" items={birthOptions.years} selectedValue={year} onSelect={setYear} width={92} />
+      <WheelColumn label="月" items={birthOptions.months} selectedValue={month} onSelect={setMonth} width={74} />
+      <WheelColumn label="日" items={dayOptions} selectedValue={day} onSelect={setDay} width={74} />
+      <WheelColumn label="时" items={birthOptions.hours} selectedValue={hour} onSelect={setHour} width={74} />
+      <WheelColumn label="分" items={birthOptions.minutes} selectedValue={minute} onSelect={setMinute} width={74} />
+    </ScrollView>
+  );
+}
+
 function CityPickerModal({ visible, onClose, selectedCityKey, onSelect }) {
   const [search, setSearch] = useState('');
   const selectedCity = useMemo(() => CITY_OPTIONS.find((city) => city.key === selectedCityKey) || CITY_OPTIONS[0], [selectedCityKey]);
@@ -245,17 +257,8 @@ export default function InterpretationWebApp() {
                     <Text style={styles.sectionBody}>先在首页完成出生日期、出生时间和出生城市选择，生成后直接跳到带星盘结果的报告页。</Text>
                   </View>
                   <View style={styles.homeIntakeForm}>
-                    <Text style={styles.label}>出生日期</Text>
-                    <View style={styles.wheelRow}>
-                      <WheelColumn label="年" items={birthOptions.years} selectedValue={year} onSelect={setYear} width={110} />
-                      <WheelColumn label="月" items={birthOptions.months} selectedValue={month} onSelect={setMonth} width={82} />
-                      <WheelColumn label="日" items={dayOptions} selectedValue={day} onSelect={setDay} width={82} />
-                    </View>
-                    <Text style={styles.label}>出生时间</Text>
-                    <View style={styles.wheelRow}>
-                      <WheelColumn label="时" items={birthOptions.hours} selectedValue={hour} onSelect={setHour} width={82} />
-                      <WheelColumn label="分" items={birthOptions.minutes} selectedValue={minute} onSelect={setMinute} width={82} />
-                    </View>
+                    <Text style={styles.label}>出生年 / 月 / 日 / 时 / 分</Text>
+                    <BirthMomentRow year={year} month={month} day={day} hour={hour} minute={minute} setYear={setYear} setMonth={setMonth} setDay={setDay} setHour={setHour} setMinute={setMinute} dayOptions={dayOptions} />
                     <Text style={styles.label}>出生城市</Text>
                     <InlineCitySelector selectedCity={selectedCity} search={citySearch} onChangeSearch={setCitySearch} onSelectCity={setCityKey} onOpenLibrary={() => setCityPickerVisible(true)} />
                     <Pressable style={styles.primaryBtn} onPress={onGenerate}><Text style={styles.primaryText}>生成解读</Text></Pressable>
@@ -282,17 +285,8 @@ export default function InterpretationWebApp() {
                   <Text style={styles.panelBody}>出生日期和出生时间都改成滚轴式选择，出生城市则用“搜索 + 左右两栏”的方式。</Text>
                   <Text style={styles.label}>当前报告</Text>
                   <Text style={styles.activeText}>{activeReport.title}</Text>
-                  <Text style={styles.label}>出生日期</Text>
-                  <View style={styles.wheelRow}>
-                    <WheelColumn label="年" items={birthOptions.years} selectedValue={year} onSelect={setYear} width={110} />
-                    <WheelColumn label="月" items={birthOptions.months} selectedValue={month} onSelect={setMonth} width={82} />
-                    <WheelColumn label="日" items={dayOptions} selectedValue={day} onSelect={setDay} width={82} />
-                  </View>
-                  <Text style={styles.label}>出生时间</Text>
-                  <View style={styles.wheelRow}>
-                    <WheelColumn label="时" items={birthOptions.hours} selectedValue={hour} onSelect={setHour} width={82} />
-                    <WheelColumn label="分" items={birthOptions.minutes} selectedValue={minute} onSelect={setMinute} width={82} />
-                  </View>
+                  <Text style={styles.label}>出生年 / 月 / 日 / 时 / 分</Text>
+                  <BirthMomentRow year={year} month={month} day={day} hour={hour} minute={minute} setYear={setYear} setMonth={setMonth} setDay={setDay} setHour={setHour} setMinute={setMinute} dayOptions={dayOptions} />
                   <Text style={styles.label}>出生城市</Text>
                   <InlineCitySelector selectedCity={selectedCity} search={citySearch} onChangeSearch={setCitySearch} onSelectCity={setCityKey} onOpenLibrary={() => setCityPickerVisible(true)} />
                   <Text style={styles.label}>先看哪条主线</Text>
@@ -341,7 +335,7 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: 20, paddingTop: 24 }, sectionEyebrow: { color: '#516b62', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, sectionTitle: { marginTop: 6, color: '#17221d', fontSize: 28, lineHeight: 34, fontWeight: '800', maxWidth: 760 }, sectionBody: { marginTop: 10, color: '#5a6b64', fontSize: 15, lineHeight: 22, maxWidth: 640 }, homeIntake: { marginBottom: 18, flexDirection: 'row', gap: 18, alignItems: 'flex-start', borderRadius: 8, backgroundColor: '#fbfdfc', borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', padding: 18 }, homeIntakeText: { flex: 1, minWidth: 240 }, homeIntakeForm: { flex: 1.1, minWidth: 300 }, grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 14 }, card: { minWidth: 240, flexGrow: 1, flexBasis: 240, borderRadius: 8, backgroundColor: '#fbfdfc', borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', padding: 18 }, cardTitle: { color: '#17221d', fontSize: 20, lineHeight: 24, fontWeight: '800' }, cardBody: { marginTop: 10, color: '#5a6b64', fontSize: 15, lineHeight: 22 },
   searchInput: { marginTop: 14, height: 52, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.14)', backgroundColor: '#fff', paddingHorizontal: 16, color: '#17221d', fontSize: 15, maxWidth: 420 }, reportCard: { minWidth: 220, flexGrow: 1, flexBasis: 220, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', backgroundColor: '#f8fbf9', padding: 18 }, reportCardFeatured: { backgroundColor: '#112722', borderColor: '#112722' }, reportCardActive: { borderColor: '#d69a3b', borderWidth: 2 }, reportTitle: { color: '#17221d', fontSize: 19, lineHeight: 24, fontWeight: '800' }, reportTitleFeatured: { color: '#f7faf8' }, badge: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: '#d69a3b', color: '#fffaf1', fontSize: 11, fontWeight: '800' }, reportBody: { marginTop: 14, color: '#51615a', fontSize: 14, lineHeight: 20 }, reportBodyFeatured: { color: 'rgba(247,250,248,0.84)' },
   workspace: { flexDirection: 'row', gap: 22, paddingHorizontal: 20, paddingTop: 24 }, workspaceStack: { flexDirection: 'column' }, formPanel: { flex: 0.96, minWidth: 320, borderRadius: 8, backgroundColor: '#fbfdfc', padding: 18, borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)' }, panelTitle: { color: '#17221d', fontSize: 28, lineHeight: 34, fontWeight: '800' }, panelBody: { marginTop: 8, color: '#5a6b64', fontSize: 15, lineHeight: 22 }, label: { marginTop: 18, color: '#2a3732', fontSize: 13, lineHeight: 18, fontWeight: '700' }, activeText: { marginTop: 8, color: '#17362f', fontSize: 16, lineHeight: 22, fontWeight: '800' },
-  wheelRow: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, wheelColumn: { gap: 8 }, wheelLabel: { color: '#5a6b64', fontSize: 12, lineHeight: 16, fontWeight: '700' }, wheelShell: { position: 'relative' }, wheelViewport: { height: 192, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.12)', backgroundColor: '#fff' }, wheelContent: { paddingVertical: 52 }, wheelItem: { minHeight: 42, alignItems: 'center', justifyContent: 'center', marginHorizontal: 8, marginVertical: 4, borderRadius: 8 }, wheelItemActive: { backgroundColor: '#17362f' }, wheelText: { color: '#264038', fontSize: 15, lineHeight: 18, fontWeight: '700' }, wheelTextActive: { color: '#f7faf8' }, wheelSelectionBand: { position: 'absolute', left: 6, right: 6, top: 73, height: 46, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(201,137,63,0.42)', backgroundColor: 'rgba(201,137,63,0.08)' }, wheelFadeTop: { position: 'absolute', left: 1, right: 1, top: 1, height: 38, borderTopLeftRadius: 8, borderTopRightRadius: 8, backgroundColor: 'rgba(251,253,252,0.82)' }, wheelFadeBottom: { position: 'absolute', left: 1, right: 1, bottom: 1, height: 38, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, backgroundColor: 'rgba(251,253,252,0.82)' },
+  wheelRow: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, birthMomentRow: { marginTop: 10, gap: 10, paddingRight: 12 }, wheelColumn: { gap: 8 }, wheelLabel: { color: '#5a6b64', fontSize: 12, lineHeight: 16, fontWeight: '700' }, wheelShell: { position: 'relative' }, wheelViewport: { height: 192, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.12)', backgroundColor: '#fff' }, wheelContent: { paddingVertical: 52 }, wheelItem: { minHeight: 42, alignItems: 'center', justifyContent: 'center', marginHorizontal: 8, marginVertical: 4, borderRadius: 8 }, wheelItemActive: { backgroundColor: '#17362f' }, wheelText: { color: '#264038', fontSize: 15, lineHeight: 18, fontWeight: '700' }, wheelTextActive: { color: '#f7faf8' }, wheelSelectionBand: { position: 'absolute', left: 6, right: 6, top: 73, height: 46, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(201,137,63,0.42)', backgroundColor: 'rgba(201,137,63,0.08)' }, wheelFadeTop: { position: 'absolute', left: 1, right: 1, top: 1, height: 38, borderTopLeftRadius: 8, borderTopRightRadius: 8, backgroundColor: 'rgba(251,253,252,0.82)' }, wheelFadeBottom: { position: 'absolute', left: 1, right: 1, bottom: 1, height: 38, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, backgroundColor: 'rgba(251,253,252,0.82)' },
   cityInlineWrap: { marginTop: 10, gap: 10 }, citySearchInput: { height: 50, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.14)', backgroundColor: '#fff', paddingHorizontal: 14, color: '#17221d', fontSize: 15 }, cityCurrentRow: { minHeight: 60, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', backgroundColor: '#f6faf8', paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }, cityCurrentTitle: { color: '#17221d', fontSize: 16, lineHeight: 20, fontWeight: '800' }, cityCurrentMeta: { marginTop: 4, color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityLibraryBtn: { borderRadius: 8, backgroundColor: '#17362f', paddingHorizontal: 12, paddingVertical: 9 }, cityLibraryBtnText: { color: '#f7faf8', fontSize: 12, lineHeight: 16, fontWeight: '800' }, cityQuickList: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, cityQuickItem: { minWidth: 92, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 10 }, cityQuickItemActive: { backgroundColor: '#17362f', borderColor: '#17362f' }, cityQuickTitle: { color: '#17221d', fontSize: 13, lineHeight: 16, fontWeight: '800' }, cityQuickTitleActive: { color: '#f7faf8' }, cityQuickMeta: { marginTop: 4, color: '#72857d', fontSize: 11, lineHeight: 14, fontWeight: '700' },
   focusWrap: { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, focusChip: { borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.14)', backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 10 }, focusChipActive: { backgroundColor: '#17362f', borderColor: '#17362f' }, focusText: { color: '#264038', fontSize: 14, lineHeight: 18, fontWeight: '700' }, focusTextActive: { color: '#f5faf7' },
   resultPanel: { flex: 1.2, minWidth: 320, gap: 16 }, resultHero: { borderRadius: 8, backgroundColor: '#fbfdfc', borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', padding: 18 }, resultEyebrow: { color: '#6a7f76', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, resultTitle: { marginTop: 8, color: '#17221d', fontSize: 26, lineHeight: 32, fontWeight: '800' }, resultBody: { marginTop: 10, color: '#5a6b64', fontSize: 15, lineHeight: 22 }, resultMeta: { marginTop: 12, color: '#7c8f87', fontSize: 13, lineHeight: 18, fontWeight: '700' }, metricRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, metric: { flex: 1, minWidth: 150, borderRadius: 8, backgroundColor: '#fbfdfc', borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', padding: 16 }, metricValue: { color: '#17221d', fontSize: 34, lineHeight: 38, fontWeight: '800' }, metricLabel: { marginTop: 8, color: '#5a6b64', fontSize: 14, lineHeight: 20, fontWeight: '700' }, resultTabRow: { gap: 10, paddingRight: 20 }, resultTab: { borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.12)', backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 10 }, resultTabActive: { backgroundColor: '#17362f', borderColor: '#17362f' }, resultTabText: { color: '#264038', fontSize: 14, lineHeight: 18, fontWeight: '800' }, resultTabTextActive: { color: '#f7faf8' },
