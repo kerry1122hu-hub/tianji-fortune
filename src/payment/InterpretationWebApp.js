@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { ImageBackground, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import {
   CITY_OPTIONS,
+  ENGINE_INFO,
   generateInterpretationPreview,
   getBirthFormOptions,
   getDayOptions,
@@ -32,6 +33,13 @@ const pricingCards = [
   ['免费体验', '$0', ['浏览全部报告入口', '生成基础星盘结果', '查看核心结果卡和盘面概览']],
   ['月度会员', '$19 / 月', ['完整报告解读', '月度预测和关系扩展', '保存我的历史结果']],
   ['年度会员', '$149 / 年', ['全部报告不限次查看', '优先体验新工具', '后续接入明空品牌人格']],
+];
+
+const resultTabs = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'chart', label: 'Chart' },
+  { key: 'themes', label: 'Themes' },
+  { key: 'details', label: 'Reading' },
 ];
 
 function buildInput(state) {
@@ -120,6 +128,8 @@ export default function InterpretationWebApp() {
   const [hour, setHour] = useState('08');
   const [minute, setMinute] = useState('30');
   const [cityKey, setCityKey] = useState('perth');
+  const [citySearch, setCitySearch] = useState('');
+  const [resultTab, setResultTab] = useState('overview');
   const [generatedResult, setGeneratedResult] = useState(() =>
     generateInterpretationPreview(buildInput({ reportType: 'past-life', year: '1994', month: '09', day: '17', hour: '08', minute: '30', cityKey: 'perth', focus: 'self' }))
   );
@@ -133,6 +143,13 @@ export default function InterpretationWebApp() {
     if (!keyword) return reportOptions;
     return reportOptions.filter((report) => `${report.title} ${report.intro}`.toLowerCase().includes(keyword));
   }, [reportSearch]);
+  const filteredCities = useMemo(() => {
+    const keyword = citySearch.trim().toLowerCase();
+    if (!keyword) return CITY_OPTIONS.slice(0, 16);
+    return CITY_OPTIONS.filter((city) =>
+      `${city.label} ${city.region} ${city.timezone}`.toLowerCase().includes(keyword)
+    ).slice(0, 18);
+  }, [citySearch]);
 
   const onReportChange = (report) => {
     setReportType(report.key);
@@ -143,6 +160,7 @@ export default function InterpretationWebApp() {
     const next = generateInterpretationPreview(buildInput({ reportType, year, month, day, hour, minute, cityKey, focus }));
     setGeneratedResult(next);
     setActivePage('reports');
+    setResultTab('overview');
   };
 
   return (
@@ -226,8 +244,15 @@ export default function InterpretationWebApp() {
                 <ChipScroller items={birthOptions.hours} selectedValue={hour} onSelect={setHour} width={58} />
                 <ChipScroller items={birthOptions.minutes} selectedValue={minute} onSelect={setMinute} width={58} />
                 <Text style={styles.label}>出生城市</Text>
+                <TextInput
+                  value={citySearch}
+                  onChangeText={setCitySearch}
+                  style={styles.citySearchInput}
+                  placeholder="Search city: Perth / Shanghai / New York"
+                  placeholderTextColor="#72857d"
+                />
                 <View style={styles.cityGrid}>
-                  {CITY_OPTIONS.map((city) => {
+                  {filteredCities.map((city) => {
                     const active = city.key === cityKey;
                     return <Pressable key={city.key} onPress={() => setCityKey(city.key)} style={[styles.cityCard, active && styles.cityCardActive]}><Text style={[styles.cityTitle, active && styles.cityTitleActive]}>{city.label}</Text><Text style={[styles.cityRegion, active && styles.cityRegionActive]}>{city.region}</Text></Pressable>;
                   })}
@@ -253,7 +278,17 @@ export default function InterpretationWebApp() {
                   <View style={styles.metric}><Text style={styles.metricValue}>{generatedResult.tags.length}</Text><Text style={styles.metricLabel}>结构化主题</Text></View>
                   <View style={styles.metric}><Text style={styles.metricValue}>{generatedResult.chartVisual.aspects.length}</Text><Text style={styles.metricLabel}>主要相位</Text></View>
                 </View>
-                <View style={styles.resultCardShell}>
+                <View style={styles.resultTabs}>
+                  {resultTabs.map((tab) => {
+                    const active = resultTab === tab.key;
+                    return (
+                      <Pressable key={tab.key} onPress={() => setResultTab(tab.key)} style={[styles.resultTab, active && styles.resultTabActive]}>
+                        <Text style={[styles.resultTabText, active && styles.resultTabTextActive]}>{tab.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <View style={[styles.resultCardShell, resultTab !== 'chart' && styles.hiddenPanel]}>
                   <Text style={styles.boxTitle}>真实盘面概览</Text>
                   <View style={[styles.chartRow, isNarrow && styles.workspaceStack]}>
                     <ChartWheel chartVisual={generatedResult.chartVisual} />
@@ -262,17 +297,26 @@ export default function InterpretationWebApp() {
                     </View>
                   </View>
                 </View>
-                <View style={styles.resultCardShell}>
+                <View style={[styles.resultCardShell, resultTab !== 'overview' && styles.hiddenPanel]}>
                   <Text style={styles.boxTitle}>本次先看这三张结果卡</Text>
                   {generatedResult.insights.map((insight) => <View key={insight.code} style={styles.miniCard}><Text style={styles.miniTitle}>{insight.title}</Text><Text style={styles.miniBody}>{insight.body}</Text></View>)}
+                  <View style={styles.engineNote}>
+                    <Text style={styles.engineNoteTitle}>Engine</Text>
+                    <Text style={styles.engineNoteBody}>{ENGINE_INFO.id} · {ENGINE_INFO.version} · {ENGINE_INFO.license} · {ENGINE_INFO.author}</Text>
+                    <Text style={styles.engineNoteBody}>Western chart calculation is running on astronomy-engine and feeding the interpretation pipeline directly.</Text>
+                  </View>
                 </View>
-                <View style={styles.resultCardShell}>
+                <View style={[styles.resultCardShell, resultTab !== 'details' && styles.hiddenPanel]}>
                   <Text style={styles.boxTitle}>详细星盘解释</Text>
                   {generatedResult.detailSections.map((section) => <View key={section.title} style={styles.detailRow}><Text style={styles.detailTitle}>{section.title}</Text><Text style={styles.detailBody}>{section.body}</Text></View>)}
                 </View>
-                <View style={styles.resultCardShell}>
+                <View style={[styles.resultCardShell, resultTab !== 'themes' && styles.hiddenPanel]}>
                   <Text style={styles.boxTitle}>结构化主题</Text>
                   <View style={styles.tagWrap}>{generatedResult.tags.map((tag) => <View key={tag.code} style={styles.tag}><Text style={styles.tagText}>{tag.label}</Text></View>)}</View>
+                  <View style={styles.resultCardShellInner}>
+                    <Text style={styles.boxTitle}>Key Aspects</Text>
+                    {generatedResult.chartVisual.aspects.map((aspect) => <View key={aspect.code} style={styles.detailRow}><Text style={styles.detailTitle}>{aspect.label}</Text><Text style={styles.detailBody}>Orb {aspect.orb}</Text></View>)}
+                  </View>
                 </View>
               </View>
             </View>
@@ -344,6 +388,7 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: '#17362f', borderColor: '#17362f' },
   chipText: { color: '#264038', fontSize: 14, lineHeight: 18, fontWeight: '700' },
   chipTextActive: { color: '#f7faf8' },
+  citySearchInput: { marginTop: 10, height: 48, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.14)', backgroundColor: '#fff', paddingHorizontal: 14, color: '#17221d', fontSize: 14 },
   cityGrid: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   cityCard: { minWidth: 118, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.12)', backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 12 },
   cityCardActive: { backgroundColor: '#17362f', borderColor: '#17362f' },
@@ -365,7 +410,14 @@ const styles = StyleSheet.create({
   metric: { flex: 1, minWidth: 150, borderRadius: 8, backgroundColor: '#fbfdfc', borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', padding: 16 },
   metricValue: { color: '#17221d', fontSize: 34, lineHeight: 38, fontWeight: '800' },
   metricLabel: { marginTop: 8, color: '#5a6b64', fontSize: 14, lineHeight: 20, fontWeight: '700' },
+  resultTabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  resultTab: { borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.12)', backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 10 },
+  resultTabActive: { backgroundColor: '#17362f', borderColor: '#17362f' },
+  resultTabText: { color: '#264038', fontSize: 14, lineHeight: 18, fontWeight: '800' },
+  resultTabTextActive: { color: '#f7faf8' },
+  hiddenPanel: { display: 'none' },
   resultCardShell: { borderRadius: 8, backgroundColor: '#fbfdfc', borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', padding: 18 },
+  resultCardShellInner: { marginTop: 16, borderRadius: 8, backgroundColor: '#f6faf8', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)', padding: 14 },
   boxTitle: { color: '#17221d', fontSize: 18, lineHeight: 24, fontWeight: '800' },
   chartRow: { marginTop: 16, flexDirection: 'row', gap: 18, alignItems: 'center' },
   wheel: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafcfb', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)' },
@@ -384,6 +436,9 @@ const styles = StyleSheet.create({
   miniCard: { marginTop: 14, borderRadius: 8, backgroundColor: '#f6faf8', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)', padding: 14 },
   miniTitle: { color: '#17221d', fontSize: 18, lineHeight: 24, fontWeight: '800' },
   miniBody: { marginTop: 8, color: '#5a6b64', fontSize: 15, lineHeight: 22 },
+  engineNote: { marginTop: 16, borderRadius: 8, backgroundColor: '#eef3ef', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)', padding: 14 },
+  engineNoteTitle: { color: '#17221d', fontSize: 15, lineHeight: 18, fontWeight: '800' },
+  engineNoteBody: { marginTop: 6, color: '#5a6b64', fontSize: 13, lineHeight: 18 },
   detailRow: { paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' },
   detailTitle: { color: '#17221d', fontSize: 17, lineHeight: 22, fontWeight: '800' },
   detailBody: { marginTop: 8, color: '#5a6b64', fontSize: 15, lineHeight: 22 },
