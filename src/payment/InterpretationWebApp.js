@@ -89,6 +89,11 @@ function ChartWheel({ chartVisual, compact }) {
   );
 }
 
+function getCityDisplayLabel(city) {
+  if (!city) return '';
+  return city.nativeLabel ? `${city.nativeLabel} · ${city.label}` : city.label;
+}
+
 function InlineCitySelector({ selectedCity, search, onChangeSearch, onSelectCity, onOpenLibrary }) {
   const quickResults = useMemo(() => {
     if (!search.trim()) {
@@ -108,7 +113,7 @@ function InlineCitySelector({ selectedCity, search, onChangeSearch, onSelectCity
       />
       <View style={styles.cityCurrentRow}>
         <View>
-          <Text style={styles.cityCurrentTitle}>{selectedCity.label}</Text>
+          <Text style={styles.cityCurrentTitle}>{getCityDisplayLabel(selectedCity)}</Text>
           <Text style={styles.cityCurrentMeta}>{selectedCity.province || selectedCity.region} · {selectedCity.timezone}</Text>
         </View>
         <Pressable style={styles.cityLibraryBtn} onPress={onOpenLibrary}>
@@ -120,7 +125,7 @@ function InlineCitySelector({ selectedCity, search, onChangeSearch, onSelectCity
           const active = city.key === selectedCity.key;
           return (
             <Pressable key={city.key} style={[styles.cityQuickItem, active && styles.cityQuickItemActive]} onPress={() => { onSelectCity(city.key); onChangeSearch(''); }}>
-              <Text style={[styles.cityQuickTitle, active && styles.cityQuickTitleActive]}>{city.label}</Text>
+              <Text style={[styles.cityQuickTitle, active && styles.cityQuickTitleActive]}>{getCityDisplayLabel(city)}</Text>
               <Text style={styles.cityQuickMeta}>{city.province || city.region}</Text>
             </Pressable>
           );
@@ -150,10 +155,18 @@ function CityPickerModal({ visible, onClose, selectedCityKey, onSelect }) {
   const provinces = useMemo(() => [...new Set(CITY_OPTIONS.filter((city) => city.region === 'China').map((city) => city.province).filter(Boolean))], []);
   const overseasRegions = useMemo(() => [...new Set(CITY_OPTIONS.filter((city) => city.region !== 'China').map((city) => city.region))], []);
   const searchResults = useMemo(() => search.trim() ? CITY_OPTIONS.filter((city) => getCitySearchText(city).includes(search.trim().toLowerCase())) : [], [search]);
+  const hasSearch = Boolean(search.trim());
   const regionCities = useMemo(() => {
     if (scope === '海外城市') return CITY_OPTIONS.filter((city) => city.region !== 'China');
     return CITY_OPTIONS.filter((city) => city.region === 'China' && city.province === province);
   }, [province, scope]);
+  const displayCities = hasSearch ? searchResults : regionCities;
+  const cityPaneTitle = hasSearch ? '快速搜索结果' : scope === '海外城市' ? '海外城市' : '地级市';
+  const cityPaneMeta = hasSearch
+    ? `${displayCities.length} 个匹配`
+    : scope === '海外城市'
+      ? `${displayCities.length} 个热门城市`
+      : `${province} · ${displayCities.length} 个城市`;
   useEffect(() => {
     if (selectedCity.region === 'China' && selectedCity.province) {
       setScope('中国省份');
@@ -172,26 +185,27 @@ function CityPickerModal({ visible, onClose, selectedCityKey, onSelect }) {
             <Pressable onPress={onClose} style={styles.modalDone}><Text style={styles.modalDoneText}>完成</Text></Pressable>
           </View>
           <View style={styles.modalSearchWrap}><TextInput value={search} onChangeText={setSearch} placeholder="搜索国家或城市" placeholderTextColor="#72857d" style={styles.modalSearchInput} /></View>
-          {search.trim() ? (
-            <ScrollView style={styles.modalBody}>
-              {searchResults.map((city) => {
-                const active = city.key === selectedCityKey;
-                return <Pressable key={city.key} onPress={() => { onSelect(city.key); if (city.region === 'China' && city.province) { setScope('中国省份'); setProvince(city.province); } else { setScope('海外城市'); } setSearch(''); onClose(); }} style={[styles.searchRow, active && styles.searchRowActive]}><Text style={[styles.searchTitle, active && styles.searchTitleActive]}>{city.label}</Text><Text style={styles.searchMeta}>{city.province || city.region} · {city.timezone}</Text></Pressable>;
-              })}
+          <View style={styles.cityModeHint}>
+            <Text style={styles.cityModeText}>支持三种方式同时使用：左侧省份导航、右侧地级市列表、顶部快速搜索。</Text>
+          </View>
+          <View style={styles.cityColumns}>
+            <ScrollView style={styles.regionList}>
+              <Pressable onPress={() => setScope('中国省份')} style={[styles.regionItem, scope === '中国省份' && styles.regionItemActive]}><Text style={[styles.regionText, scope === '中国省份' && styles.regionTextActive]}>中国省份</Text></Pressable>
+              {scope === '中国省份' ? provinces.map((item) => { const active = item === province; return <Pressable key={item} onPress={() => setProvince(item)} style={[styles.regionItem, active && styles.regionItemActive]}><Text style={[styles.regionText, active && styles.regionTextActive]}>{item}</Text></Pressable>; }) : null}
+              <Pressable onPress={() => setScope('海外城市')} style={[styles.regionItem, scope === '海外城市' && styles.regionItemActive]}><Text style={[styles.regionText, scope === '海外城市' && styles.regionTextActive]}>海外城市</Text></Pressable>
+              {scope === '海外城市' ? overseasRegions.map((item) => <View key={item} style={styles.regionHint}><Text style={styles.regionHintText}>{item}</Text></View>) : null}
             </ScrollView>
-          ) : (
-            <View style={styles.cityColumns}>
-              <ScrollView style={styles.regionList}>
-                <Pressable onPress={() => setScope('中国省份')} style={[styles.regionItem, scope === '中国省份' && styles.regionItemActive]}><Text style={[styles.regionText, scope === '中国省份' && styles.regionTextActive]}>中国省份</Text></Pressable>
-                {scope === '中国省份' ? provinces.map((item) => { const active = item === province; return <Pressable key={item} onPress={() => setProvince(item)} style={[styles.regionItem, active && styles.regionItemActive]}><Text style={[styles.regionText, active && styles.regionTextActive]}>{item}</Text></Pressable>; }) : null}
-                <Pressable onPress={() => setScope('海外城市')} style={[styles.regionItem, scope === '海外城市' && styles.regionItemActive]}><Text style={[styles.regionText, scope === '海外城市' && styles.regionTextActive]}>海外城市</Text></Pressable>
-                {scope === '海外城市' ? overseasRegions.map((item) => <View key={item} style={styles.regionHint}><Text style={styles.regionHintText}>{item}</Text></View>) : null}
-              </ScrollView>
-              <ScrollView style={styles.cityList}>
-                {regionCities.map((city) => { const active = city.key === selectedCityKey; return <Pressable key={city.key} onPress={() => { onSelect(city.key); onClose(); }} style={[styles.cityListItem, active && styles.cityListItemActive]}><Text style={[styles.cityListTitle, active && styles.cityListTitleActive]}>{city.label}</Text><Text style={styles.cityListMeta}>{city.province || city.region} · {city.timezone}</Text></Pressable>; })}
-              </ScrollView>
-            </View>
-          )}
+            <ScrollView style={styles.cityList}>
+              <View style={styles.cityPaneHeader}>
+                <Text style={styles.cityPaneTitle}>{cityPaneTitle}</Text>
+                <Text style={styles.cityPaneMeta}>{cityPaneMeta}</Text>
+              </View>
+              {displayCities.length ? displayCities.map((city) => {
+                const active = city.key === selectedCityKey;
+                return <Pressable key={city.key} onPress={() => { onSelect(city.key); if (city.region === 'China' && city.province) { setScope('中国省份'); setProvince(city.province); } else { setScope('海外城市'); } setSearch(''); onClose(); }} style={[styles.cityListItem, active && styles.cityListItemActive]}><Text style={[styles.cityListTitle, active && styles.cityListTitleActive]}>{getCityDisplayLabel(city)}</Text><Text style={styles.cityListMeta}>{city.province || city.region} · {city.timezone}</Text></Pressable>;
+              }) : <View style={styles.cityEmpty}><Text style={styles.cityEmptyText}>没有找到匹配城市，请换一个关键词，或先从左侧省份进入。</Text></View>}
+            </ScrollView>
+          </View>
         </View>
       </View>
     </Modal>
@@ -342,6 +356,6 @@ const styles = StyleSheet.create({
   resultCard: { borderRadius: 8, backgroundColor: '#fbfdfc', borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', padding: 18 }, innerCard: { marginTop: 16, borderRadius: 8, backgroundColor: '#f6faf8', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)', padding: 14 }, boxTitle: { color: '#17221d', fontSize: 18, lineHeight: 24, fontWeight: '800' }, chartRow: { marginTop: 16, flexDirection: 'row', gap: 18, alignItems: 'center' },
   wheel: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafcfb', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)' }, wheelOuter: { position: 'absolute', borderWidth: 16, borderColor: '#263f38' }, wheelInner: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(23,34,29,0.18)' }, wheelSign: { position: 'absolute', color: '#17362f', fontSize: 12, lineHeight: 14, fontWeight: '800' }, houseDot: { position: 'absolute', width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(23,34,29,0.12)' }, houseDotText: { color: '#17362f', fontSize: 12, lineHeight: 14, fontWeight: '800' }, planetDot: { position: 'absolute', width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, planetDotText: { color: '#fff', fontSize: 16, lineHeight: 18, fontWeight: '800' }, planetTable: { flex: 1, minWidth: 250, gap: 10 }, planetRow: { borderRadius: 8, backgroundColor: '#f6faf8', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)', padding: 12 }, planetName: { color: '#17221d', fontSize: 15, lineHeight: 18, fontWeight: '800' }, planetPos: { marginTop: 6, color: '#264038', fontSize: 14, lineHeight: 18, fontWeight: '700' }, planetMeta: { marginTop: 4, color: '#70837c', fontSize: 12, lineHeight: 16, fontWeight: '700' },
   miniCard: { marginTop: 14, borderRadius: 8, backgroundColor: '#f6faf8', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)', padding: 14 }, miniTitle: { color: '#17221d', fontSize: 18, lineHeight: 24, fontWeight: '800' }, miniBody: { marginTop: 8, color: '#5a6b64', fontSize: 15, lineHeight: 22 }, moduleGrid: { marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, moduleCard: { flexGrow: 1, flexBasis: 180, minWidth: 180, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)', backgroundColor: '#f6faf8', padding: 14 }, moduleTitle: { color: '#17221d', fontSize: 15, lineHeight: 18, fontWeight: '800' }, moduleBody: { marginTop: 8, color: '#5a6b64', fontSize: 14, lineHeight: 20 }, reportCover: { borderRadius: 8, padding: 22, backgroundColor: '#112722' }, reportCoverEyebrow: { color: '#e7c36c', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, reportCoverTitle: { marginTop: 10, color: '#f7faf8', fontSize: 30, lineHeight: 36, fontWeight: '800', maxWidth: 760 }, reportCoverBody: { marginTop: 12, color: 'rgba(247,250,248,0.88)', fontSize: 15, lineHeight: 24, maxWidth: 760 }, reportCoverMetaRow: { marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, reportMetaChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(247,250,248,0.12)', borderWidth: 1, borderColor: 'rgba(247,250,248,0.18)' }, reportMetaChipText: { color: '#f7faf8', fontSize: 13, lineHeight: 16, fontWeight: '700' }, reportToc: { marginTop: 16, borderRadius: 8, backgroundColor: '#f6faf8', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)', padding: 16 }, reportTocTitle: { color: '#17221d', fontSize: 17, lineHeight: 22, fontWeight: '800' }, sectionRail: { marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, sectionPill: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#eef3ef', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)' }, sectionPillNumber: { color: '#17362f', fontSize: 12, lineHeight: 14, fontWeight: '800' }, sectionPillText: { color: '#20312a', fontSize: 13, lineHeight: 16, fontWeight: '700' }, reportBodyWrap: { marginTop: 6, gap: 14 }, reportSectionCard: { marginTop: 14, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)', backgroundColor: '#f8fbf9', padding: 18 }, reportSectionIndex: { color: '#70837c', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, reportSectionTitle: { marginTop: 8, color: '#17221d', fontSize: 22, lineHeight: 28, fontWeight: '800' }, reportSectionLead: { marginTop: 10, color: '#17362f', fontSize: 15, lineHeight: 22, fontWeight: '700' }, reportSectionBody: { marginTop: 10, color: '#5a6b64', fontSize: 15, lineHeight: 24 }, reportCallout: { marginTop: 14, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(201,137,63,0.22)', backgroundColor: '#fff9f1', padding: 14 }, reportCalloutLabel: { color: '#a36b24', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, reportCalloutText: { marginTop: 8, color: '#6a4a21', fontSize: 14, lineHeight: 21, fontWeight: '600' }, actionRow: { marginTop: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 12, borderRadius: 8, backgroundColor: '#f6faf8', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)', padding: 14 }, actionIndex: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#17362f', alignItems: 'center', justifyContent: 'center' }, actionIndexText: { color: '#f7faf8', fontSize: 13, lineHeight: 16, fontWeight: '800' }, actionText: { flex: 1, color: '#20312a', fontSize: 15, lineHeight: 22, fontWeight: '600' }, engineNote: { marginTop: 16, borderRadius: 8, backgroundColor: '#eef3ef', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)', padding: 14 }, engineTitle: { color: '#17221d', fontSize: 15, lineHeight: 18, fontWeight: '800' }, engineBody: { marginTop: 6, color: '#5a6b64', fontSize: 13, lineHeight: 18 }, detailRow: { paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' }, detailTitle: { color: '#17221d', fontSize: 17, lineHeight: 22, fontWeight: '800' }, detailBody: { marginTop: 8, color: '#5a6b64', fontSize: 15, lineHeight: 22 }, tagWrap: { marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, tag: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#eef3ef', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)' }, tagText: { color: '#20312a', fontSize: 14, lineHeight: 18, fontWeight: '700' },
-  modalScrim: { flex: 1, backgroundColor: 'rgba(9,16,14,0.48)', alignItems: 'center', justifyContent: 'center', padding: 18 }, modalCard: { width: '100%', maxWidth: 860, maxHeight: '88%', borderRadius: 8, backgroundColor: '#fbfdfc', overflow: 'hidden' }, modalHeader: { paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, modalTitle: { color: '#17221d', fontSize: 22, lineHeight: 26, fontWeight: '800' }, modalDone: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: '#eef3ef' }, modalDoneText: { color: '#17362f', fontSize: 14, lineHeight: 18, fontWeight: '800' }, modalSearchWrap: { padding: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' }, modalSearchInput: { height: 50, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.14)', backgroundColor: '#fff', paddingHorizontal: 14, color: '#17221d', fontSize: 15 }, modalBody: { paddingHorizontal: 18 }, searchRow: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' }, searchRowActive: { backgroundColor: '#f4f8f5' }, searchTitle: { color: '#17221d', fontSize: 15, lineHeight: 18, fontWeight: '800' }, searchTitleActive: { color: '#17362f' }, searchMeta: { marginTop: 4, color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityColumns: { flexDirection: 'row', minHeight: 420 }, regionList: { width: 220, borderRightWidth: 1, borderRightColor: 'rgba(23,34,29,0.08)', backgroundColor: '#f3f7f4' }, regionItem: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.05)' }, regionItemActive: { backgroundColor: '#17362f' }, regionText: { color: '#264038', fontSize: 14, lineHeight: 18, fontWeight: '700' }, regionTextActive: { color: '#f7faf8' }, regionHint: { paddingHorizontal: 16, paddingVertical: 8 }, regionHintText: { color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityList: { flex: 1, paddingHorizontal: 18 }, cityListItem: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' }, cityListItemActive: { backgroundColor: '#f4f8f5' }, cityListTitle: { color: '#17221d', fontSize: 15, lineHeight: 18, fontWeight: '800' }, cityListTitleActive: { color: '#17362f' }, cityListMeta: { marginTop: 4, color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  modalScrim: { flex: 1, backgroundColor: 'rgba(9,16,14,0.48)', alignItems: 'center', justifyContent: 'center', padding: 18 }, modalCard: { width: '100%', maxWidth: 860, maxHeight: '88%', borderRadius: 8, backgroundColor: '#fbfdfc', overflow: 'hidden' }, modalHeader: { paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, modalTitle: { color: '#17221d', fontSize: 22, lineHeight: 26, fontWeight: '800' }, modalDone: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: '#eef3ef' }, modalDoneText: { color: '#17362f', fontSize: 14, lineHeight: 18, fontWeight: '800' }, modalSearchWrap: { padding: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' }, modalSearchInput: { height: 50, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.14)', backgroundColor: '#fff', paddingHorizontal: 14, color: '#17221d', fontSize: 15 }, modalBody: { paddingHorizontal: 18 }, searchRow: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' }, searchRowActive: { backgroundColor: '#f4f8f5' }, searchTitle: { color: '#17221d', fontSize: 15, lineHeight: 18, fontWeight: '800' }, searchTitleActive: { color: '#17362f' }, searchMeta: { marginTop: 4, color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityModeHint: { paddingHorizontal: 18, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)', backgroundColor: '#f6faf8' }, cityModeText: { color: '#5c6f67', fontSize: 13, lineHeight: 18, fontWeight: '700' }, cityColumns: { flexDirection: 'row', minHeight: 420 }, regionList: { width: 220, borderRightWidth: 1, borderRightColor: 'rgba(23,34,29,0.08)', backgroundColor: '#f3f7f4' }, regionItem: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.05)' }, regionItemActive: { backgroundColor: '#17362f' }, regionText: { color: '#264038', fontSize: 14, lineHeight: 18, fontWeight: '700' }, regionTextActive: { color: '#f7faf8' }, regionHint: { paddingHorizontal: 16, paddingVertical: 8 }, regionHintText: { color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityList: { flex: 1, paddingHorizontal: 18 }, cityPaneHeader: { paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' }, cityPaneTitle: { color: '#17221d', fontSize: 16, lineHeight: 20, fontWeight: '800' }, cityPaneMeta: { marginTop: 4, color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityListItem: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' }, cityListItemActive: { backgroundColor: '#f4f8f5' }, cityListTitle: { color: '#17221d', fontSize: 15, lineHeight: 18, fontWeight: '800' }, cityListTitleActive: { color: '#17362f' }, cityListMeta: { marginTop: 4, color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityEmpty: { paddingVertical: 28, alignItems: 'center', justifyContent: 'center' }, cityEmptyText: { maxWidth: 320, color: '#72857d', fontSize: 13, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
   simplePage: { paddingHorizontal: 20, paddingTop: 24, gap: 14 },
 });
