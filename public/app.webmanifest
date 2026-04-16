@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "MingMe",
-  "short_name": "MingMe",
-  "description": "A self-reflection and decision-support companion.",
+  "name": "MingSky Astrology",
+  "short_name": "MingSky",
+  "description": "Structured astrology reports for personality, relationships, timing, compatibility, wealth, and life themes.",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
@@ -32,15 +32,15 @@
   ],
   "shortcuts": [
     {
-      "name": "Open Chat",
-      "short_name": "Chat",
-      "description": "Continue your last conversation",
+      "name": "Open Reports",
+      "short_name": "Reports",
+      "description": "Open your latest astrology reports",
       "url": "/?source=shortcut-chat"
     },
     {
-      "name": "Weekly Review",
-      "short_name": "Review",
-      "description": "Open your weekly reflection",
+      "name": "Past Life",
+      "short_name": "Past Life",
+      "description": "Open the past life report entry",
       "url": "/?source=shortcut-review"
     }
   ]

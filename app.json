@@ -16,13 +16,13 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mingme.app",
+      "bundleIdentifier": "com.mingsky.astrology",
       "buildNumber": "3",
       "infoPlist": {
-        "CFBundleDisplayName": "MingMe",
+        "CFBundleDisplayName": "MingSky Astrology",
         "NSCalendarsUsageDescription": "Used for displaying fortune calendar",
         "NSLocationWhenInUseUsageDescription": "Used to auto-fill your city and local rhythm hints for your profile.",
-        "NSMicrophoneUsageDescription": "Used to let you speak to AI MingMe and convert your voice into text input.",
+        "NSMicrophoneUsageDescription": "Used to let you speak to MingSky Astrology and convert your voice into text input.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "config": {
@@ -34,7 +34,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0a0a12"
       },
-      "package": "com.mingme.app",
+      "package": "com.mingsky.astrology",
       "versionCode": 3,
       "permissions": [],
       "blockedPermissions": [

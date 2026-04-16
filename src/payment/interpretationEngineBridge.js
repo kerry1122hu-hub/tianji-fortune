@@ -2,12 +2,13 @@ import { runInterpretationPipeline } from './interpretation_engine';
 import { TAG_REGISTRY } from './interpretation_engine/tag_matching/tag_registry';
 
 const SIGNS = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'];
+
 const FOCUS_PRESETS = {
   self: {
     westernPoint: 'SUN',
     westernSign: 'leo',
-    westernHouse: 10,
-    ziweiRefs: ['ZIWEI_ZI_WEI_IN_LIFE', 'ZIWEI_LIFE_MAIN_STAR'],
+    westernHouse: 1,
+    ziweiRefs: ['ZIWEI_LIFE_MAIN_STAR', 'ZIWEI_ZI_WEI_IN_LIFE'],
   },
   relationship: {
     westernPoint: 'VENUS',
@@ -34,16 +35,16 @@ const TAG_LABELS = {
   'self.growth_pattern.self_reinvention': '自我重塑',
   'self.temperament.magnetic_visibility': '存在感与吸引力',
   'self.temperament.deep_internalization': '内在消化能力',
-  'self.temperament.fast_reactivity': '反应速度',
+  'self.temperament.fast_reactivity': '反应速度快',
   'self.decision_style.analytic_patterning': '分析式思考',
   'self.decision_style.strategic_indirection': '策略感',
   'self.decision_style.dual_track_thinking': '双轨思考',
   'self.shadow.control_through_withdrawal': '退后掌控',
   'self.shadow.overresponsibility': '过度承担',
-  'relationship.attachment_style.reassurance_hunger': '关系里的确认需求',
+  'relationship.attachment_style.reassurance_hunger': '关系中的确认需求',
   'relationship.attachment_style.high_selectivity': '关系选择门槛',
   'relationship.attachment_style.slow_to_trust': '慢热信任',
-  'relationship.partnership_dynamics.intense_bonding': '强连接关系',
+  'relationship.partnership_dynamics.intense_bonding': '强连结关系',
   'relationship.family_patterns.early_responsibility': '早期责任模式',
   'relationship.social_mode.selective_visibility': '选择性社交曝光',
   'relationship.social_mode.networked_support': '网络支持力',
@@ -52,7 +53,7 @@ const TAG_LABELS = {
   'career.leadership_style.public_leadership': '公开领导力',
   'career.strengths.specialist_mastery': '专业深耕能力',
   'wealth.earning_style.volatile_growth': '波动型增长',
-  'wealth.earning_style.accumulative_discipline': '累积型财富节奏',
+  'wealth.earning_style.accumulative_discipline': '积累型财富节奏',
   'health.vitality.fluctuating_reserves': '精力储备波动',
   'timing.upcoming_cycle.visibility_rise': '曝光上升期',
   'timing.current_season.consolidation_phase': '整固阶段',
@@ -69,7 +70,7 @@ const INSIGHT_COPY = {
   },
   interiority_needs_trust_and_processing_space: {
     title: '你需要先消化，再靠近',
-    body: '很多感觉不会第一时间说出来。给自己一点整理情绪和确认边界的空间，关系反而更稳。',
+    body: '很多感觉不会第一时间说出来。给自己一点整理情绪和确认边界的空间，关系反而会更稳。',
   },
   thinking_prefers_pattern_and_strategy: {
     title: '你更像一个先看结构的人',
@@ -81,14 +82,14 @@ const INSIGHT_COPY = {
   },
   partnerships_can_be_intense_and_formative: {
     title: '重要关系会深刻改变你',
-    body: '你和人的连接往往不是淡淡的路过，而是会牵动选择、边界和自我认识。',
+    body: '你和人的连结往往不是淡淡的路过，而是会牵动选择、边界和自我认识。',
   },
   career_compounds_through_discipline: {
     title: '你的事业更像复利，不像爆发',
     body: '长期积累、专业深耕和稳定交付，是你最有力量的上升路径。速度未必最早，但后劲通常很强。',
   },
   leadership_grows_with_public_exposure: {
-    title: '越到前台，你越容易长出领导力',
+    title: '越到台前，你越容易长出领导力',
     body: '当你承担公开角色、对外表达或需要整合资源时，个人存在感会明显增强。',
   },
   money_builds_best_with_patience_and_structure: {
@@ -225,7 +226,6 @@ function buildPrototypeChart(input) {
   }
 
   const ziweiFacts = preset.ziweiRefs.map((refCode, index) => crossRefFact(`z${index + 1}`, refCode));
-
   if (seed % 2 === 0) {
     ziweiFacts.push(crossRefFact('z9', 'ZIWEI_HUA_JI'));
   }
@@ -262,12 +262,32 @@ function buildPrototypeChart(input) {
   };
 }
 
-function labelForTag(tagCode) {
-  return TAG_LABELS[tagCode] || TAG_REGISTRY.tags.find((tag) => tag.tag_code === tagCode)?.label_zh || tagCode;
+function tagLabel(tagCode) {
+  if (TAG_LABELS[tagCode]) {
+    return TAG_LABELS[tagCode];
+  }
+
+  const match = TAG_REGISTRY.tags.find((tag) => tag.tag_code === tagCode);
+  if (match?.label_zh) {
+    return match.label_zh;
+  }
+  if (match?.label_en) {
+    return match.label_en;
+  }
+
+  return tagCode.split('.').slice(-1)[0].replace(/_/g, ' ');
 }
 
-function formatRef(refCode) {
-  return refCode.replace(/_/g, ' ').replace(/\b\w/g, (value) => value.toUpperCase());
+function buildInsightCopy(insight) {
+  const preset = INSIGHT_COPY[insight.insight_code];
+  if (preset) {
+    return preset;
+  }
+
+  return {
+    title: tagLabel(insight.tag_refs[0] || insight.insight_code),
+    body: '这条结论已经在解释层跑通，接下来可以继续扩展成长文报告、问答卡片和更细的主题分栏。',
+  };
 }
 
 export function getInterpretationFocusOptions() {
@@ -277,41 +297,50 @@ export function getInterpretationFocusOptions() {
 export function generateInterpretationPreview(input) {
   const chart = buildPrototypeChart(input);
   const pipeline = runInterpretationPipeline(chart);
-  const topInsights = pipeline.insights.slice(0, 3).map((insight) => ({
-    code: insight.insight_code,
-    title: INSIGHT_COPY[insight.insight_code]?.title || insight.insight_code,
-    body: INSIGHT_COPY[insight.insight_code]?.body || '这一条线索已经亮起，适合继续往下问得更具体一些。',
-    section: insight.section,
-    confidence: insight.confidence,
-  }));
 
-  const topTags = pipeline.semantic_items.slice(0, 6).map((item) => ({
+  const topInsights = pipeline.insights.slice(0, 3).map((insight) => {
+    const copy = buildInsightCopy(insight);
+    return {
+      code: insight.insight_code,
+      title: copy.title,
+      body: copy.body,
+      section: insight.section,
+      confidence: insight.confidence,
+    };
+  });
+
+  const topTags = pipeline.semantic_items.slice(0, 8).map((item) => ({
     code: item.tag_code,
-    label: labelForTag(item.tag_code),
-    confidence: item.confidence,
+    label: tagLabel(item.tag_code),
     crossSystem: item.cross_system_agreement,
   }));
 
-  const topRefs = pipeline.refs.refs.slice(0, 8).map((ref) => ({
+  const evidence = pipeline.refs.refs.slice(0, 6).map((ref) => ({
     code: ref.ref_code,
-    label: formatRef(ref.ref_code),
+    label: ref.ref_code.replace(/_/g, ' '),
     system: ref.system_code,
   }));
 
-  const crossSystemCount = pipeline.semantic_items.filter((item) => item.cross_system_agreement).length;
+  const focusHeadlines = {
+    self: '你会在不断认识自己时，把人生重新排整齐',
+    relationship: '你的关系不是浅连接，而是会深深影响你',
+    career: '你的成长不是慢，而是成熟得更扎实',
+    wealth: '你的财富节奏适合稳扎稳打，再慢慢放大',
+  };
+
+  const focusSummaries = {
+    self: '你不是那种很快把自己定义死的人。你更像是在一次次经历里，慢慢把真正稳定的内核筛出来。',
+    relationship: '你会认真看待人与人之间的回应、信任和边界，所以真正重要的关系，通常会走得很深。',
+    career: '很多能力需要时间发酵。等机会真的到来时，你往往已经把结构、节奏和可靠性都准备好了。',
+    wealth: '你适合先搭稳自己的资源系统，再去追逐放大机会。守住边界，反而更容易留住增长。',
+  };
 
   return {
-    chartId: pipeline.chart_id,
-    headline:
-      topInsights[0]?.title ||
-      '你的盘面已经开始给出一条稳定线索。',
-    summary:
-      topInsights[0]?.body ||
-      '先从最亮的主题切入，再决定是继续看事业、关系还是节奏变化。',
+    headline: focusHeadlines[input.focus] || focusHeadlines.self,
+    summary: focusSummaries[input.focus] || focusSummaries.self,
     insights: topInsights,
     tags: topTags,
-    evidence: topRefs,
-    crossSystemCount,
-    raw: pipeline,
+    evidence,
+    crossSystemCount: pipeline.semantic_items.filter((item) => item.cross_system_agreement).length,
   };
 }

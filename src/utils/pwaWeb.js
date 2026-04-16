@@ -1,9 +1,9 @@
 import { Platform } from 'react-native';
 import { getAIBackendConfig } from '../services/aiBackendConnector';
 
-const PWA_EVENTS_KEY = 'mingme.pwa.events';
-const PWA_SESSION_KEY = 'mingme.pwa.session';
-const PWA_REFRESH_GUARD_KEY = 'mingme.pwa.refresh.guard';
+const PWA_EVENTS_KEY = 'mingsky.pwa.events';
+const PWA_SESSION_KEY = 'mingsky.pwa.session';
+const PWA_REFRESH_GUARD_KEY = 'mingsky.pwa.refresh.guard';
 let deferredInstallPrompt = null;
 
 function isBrowser() {
@@ -105,12 +105,12 @@ export function ensurePwaHead() {
 
 export function registerPwaServiceWorker() {
   if (!isBrowser() || !('serviceWorker' in navigator)) return;
-  if (window.__mingmeSwRegistered) return;
-  window.__mingmeSwRegistered = true;
+  if (window.__mingskySwRegistered) return;
+  window.__mingskySwRegistered = true;
 
   const handleControllerChange = () => {
-    if (window.__mingmeSwReloading) return;
-    window.__mingmeSwReloading = true;
+    if (window.__mingskySwReloading) return;
+    window.__mingskySwReloading = true;
     window.location.reload();
   };
 
