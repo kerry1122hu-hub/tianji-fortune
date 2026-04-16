@@ -1,93 +1,134 @@
+import {
+  AstroTime,
+  Body,
+  EclipticLongitude,
+  Observer,
+  RotateVector,
+  Rotation_HOR_ECL,
+  SphereFromVector,
+  Vector,
+} from 'astronomy-engine';
 import { runInterpretationPipeline } from './interpretation_engine';
 import { TAG_REGISTRY } from './interpretation_engine/tag_matching/tag_registry';
 
-const SIGNS = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'];
+const SIGN_CODES = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'];
+const SIGN_LABELS = {
+  aries: '白羊',
+  taurus: '金牛',
+  gemini: '双子',
+  cancer: '巨蟹',
+  leo: '狮子',
+  virgo: '处女',
+  libra: '天秤',
+  scorpio: '天蝎',
+  sagittarius: '射手',
+  capricorn: '摩羯',
+  aquarius: '水瓶',
+  pisces: '双鱼',
+};
+
+const ELEMENT_BY_SIGN = {
+  aries: 'fire',
+  leo: 'fire',
+  sagittarius: 'fire',
+  taurus: 'earth',
+  virgo: 'earth',
+  capricorn: 'earth',
+  gemini: 'air',
+  libra: 'air',
+  aquarius: 'air',
+  cancer: 'water',
+  scorpio: 'water',
+  pisces: 'water',
+};
+
+const ELEMENT_LABELS = {
+  fire: '火象',
+  earth: '土象',
+  air: '风象',
+  water: '水象',
+};
+
+const PLANET_DEFS = [
+  { code: 'SUN', label: '太阳', body: Body.Sun, symbol: '☉', color: '#f4a623' },
+  { code: 'MOON', label: '月亮', body: Body.Moon, symbol: '☽', color: '#7c8cf5' },
+  { code: 'MERCURY', label: '水星', body: Body.Mercury, symbol: '☿', color: '#35a77a' },
+  { code: 'VENUS', label: '金星', body: Body.Venus, symbol: '♀', color: '#d86cb3' },
+  { code: 'MARS', label: '火星', body: Body.Mars, symbol: '♂', color: '#ea5a47' },
+  { code: 'JUPITER', label: '木星', body: Body.Jupiter, symbol: '♃', color: '#d9a441' },
+  { code: 'SATURN', label: '土星', body: Body.Saturn, symbol: '♄', color: '#82715d' },
+  { code: 'URANUS', label: '天王星', body: Body.Uranus, symbol: '♅', color: '#34b7cc' },
+  { code: 'NEPTUNE', label: '海王星', body: Body.Neptune, symbol: '♆', color: '#5976f4' },
+  { code: 'PLUTO', label: '冥王星', body: Body.Pluto, symbol: '♇', color: '#6f4f9f' },
+];
+
+const CITY_OPTIONS = [
+  { key: 'perth', label: 'Perth', region: 'Australia', timezone: 'Australia/Perth', latitude: -31.9523, longitude: 115.8613 },
+  { key: 'sydney', label: 'Sydney', region: 'Australia', timezone: 'Australia/Sydney', latitude: -33.8688, longitude: 151.2093 },
+  { key: 'melbourne', label: 'Melbourne', region: 'Australia', timezone: 'Australia/Melbourne', latitude: -37.8136, longitude: 144.9631 },
+  { key: 'singapore', label: 'Singapore', region: 'Singapore', timezone: 'Asia/Singapore', latitude: 1.3521, longitude: 103.8198 },
+  { key: 'hong-kong', label: 'Hong Kong', region: 'China SAR', timezone: 'Asia/Hong_Kong', latitude: 22.3193, longitude: 114.1694 },
+  { key: 'taipei', label: 'Taipei', region: 'Taiwan', timezone: 'Asia/Taipei', latitude: 25.033, longitude: 121.5654 },
+  { key: 'tokyo', label: 'Tokyo', region: 'Japan', timezone: 'Asia/Tokyo', latitude: 35.6764, longitude: 139.65 },
+  { key: 'london', label: 'London', region: 'United Kingdom', timezone: 'Europe/London', latitude: 51.5072, longitude: -0.1276 },
+];
 
 const REPORT_PRESETS = {
+  home: {
+    eyebrow: 'MingSky Signature',
+    title: '把出生信息变成真正可读的星盘报告',
+    summary: '先看热门报告，再进入可选择的出生信息面板，最后拿到真实天体位置驱动的结果页。',
+  },
   'past-life': {
     title: '前世报告',
     focus: 'self',
-    headline: '你带着熟悉的责任感来到这一生',
-    summary: '这类命盘常见的主题不是从零开始，而是把旧经验带进新阶段，再学会用更轻的方式去完成它。',
-    details: [
-      { title: '前世惯性', body: '你容易自然地扛起责任，也会比别人更早意识到局势、边界和代价。这种熟悉感像是旧经验延续到了这一生。' },
-      { title: '今生课题', body: '这一生不只是继续证明自己能扛，而是学会在承担与松开之间重新分配力量，让关系、表达和自我价值不再只靠硬撑。' },
-      { title: '意义线索', body: '当你开始把成熟、判断力与内在愿望放到同一条线上时，你会比以往更清楚自己究竟想成为什么样的人。' },
-    ],
+    intro: '探索前世，发现人生意义',
   },
   personality: {
     title: '性格报告',
     focus: 'self',
-    headline: '你的核心不是张扬，而是先把自己看清',
-    summary: '你对自己的要求通常比外界看到的更高，也更容易在一段段经历里慢慢形成稳定的自我定义。',
-    details: [
-      { title: '个性核心', body: '你更像是内核驱动型的人。很多选择不是为了立刻证明什么，而是为了让自己更接近真正认可的状态。' },
-      { title: '表达方式', body: '你会表达，但通常不是无差别外放。等判断成熟、时机合适、关系安全时，你的表达反而更有分量。' },
-      { title: '成长方式', body: '你的人格成长常常来自一次次重整秩序，而不是一路轻松地往前冲。' },
-    ],
+    intro: '发现你个性的核心',
   },
   relationship: {
     title: '关系报告',
     focus: 'relationship',
-    headline: '你要的不是热闹连接，而是可靠回应',
-    summary: '你会认真感受关系里的分寸、信任和安全感，所以真正重要的人，往往会深深影响你的决定。',
-    details: [
-      { title: '亲密模式', body: '你不太会轻易交出全部，但一旦确认对方值得投入，就会很认真地经营这段关系。' },
-      { title: '人际边界', body: '你需要被理解，也需要被尊重。如果回应长期模糊，你会开始收回能量，甚至慢慢退后。' },
-      { title: '关系成长', body: '关系对你而言不是陪衬，而是让你重新认识自己、修整边界和价值排序的重要场域。' },
-    ],
+    intro: '深入了解你的人际关系特征',
   },
   monthly: {
     title: '月度预测报告',
     focus: 'career',
-    headline: '这个月适合先整合，再把机会推到台前',
-    summary: '节奏上不是一味加速，而是先把结构拉稳，再推动关键曝光和合作窗口。',
-    details: [
-      { title: '本月节奏', body: '这个月更适合把有限的注意力集中到最有回报的事情上，少开新线，多把已有事项做深。' },
-      { title: '行动窗口', body: '如果你要提交申请、谈合作、做上线或做公开发布，中后段的回应感通常会更强。' },
-      { title: '避坑提醒', body: '不要用忙代替推进。越是关键月份，越要让每一步都落到能形成结果的节点上。' },
-    ],
+    intro: '利用个性化指导规划你的月度计划',
   },
   compatibility: {
     title: '兼容性报告',
     focus: 'relationship',
-    headline: '你在关系里最看重节奏是否对得上',
-    summary: '兼容不只是喜欢，而是两个人能不能在安全感、沟通方式和现实安排上形成稳定回路。',
-    details: [
-      { title: '高兼容线索', body: '当对方既能给你回应，也不会过度逼近，你更容易打开自己，关系也会走得更深。' },
-      { title: '摩擦来源', body: '如果节奏忽冷忽热、边界模糊，或者承诺和行动长期不一致，你会迅速感到消耗。' },
-      { title: '匹配重点', body: '你更适合和愿意把关系做扎实的人在一起，而不是只追求短期浓度和表面热烈。' },
-    ],
+    intro: '揭开你人际关系中的动态',
   },
   wealth: {
     title: '财务潜力报告',
     focus: 'wealth',
-    headline: '你的财富优势在于把资源做成系统',
-    summary: '你通常更适合长期积累、结构化配置和稳住边界后的放大，而不是一把梭式的冒进。',
-    details: [
-      { title: '优势方式', body: '你做得好的通常不是一时冲刺，而是把规则、预算、节奏和长期目标逐步搭起来。' },
-      { title: '风险点', body: '一旦节奏被情绪或外部诱因打乱，资源流动就会变得比预期更不稳定。' },
-      { title: '增长机会', body: '当你把专业能力、信任度和持续输出绑在一起时，财富机会会比你想象中更稳地长出来。' },
-    ],
+    intro: '了解你的财务优势和机遇',
   },
   evolution: {
     title: '生命进化报告',
     focus: 'career',
-    headline: '你正在走向更成熟、也更有方向感的阶段',
-    summary: '这不是单纯追求更大，而是把经历沉淀成可重复的判断力，再把它变成你未来的主轴。',
-    details: [
-      { title: '旧模式正在退场', body: '以前那些只靠硬撑、只靠外部标准的做法，正在慢慢失去吸引力。' },
-      { title: '新阶段主题', body: '你会越来越重视稳定结构、真实价值和长期能持续的路径，而不是短期证明。' },
-      { title: '下一步方向', body: '把你已经形成的经验、边界和判断，整理成能长期复用的方法，这会是这一阶段最关键的进化。' },
-    ],
+    intro: '把成长主题整理成更长期的方向感',
   },
 };
 
 const FOCUS_OPTIONS = [
-  { key: 'career', label: '事业轨迹' },
-  { key: 'relationship', label: '关系模式' },
   { key: 'self', label: '自我认知' },
+  { key: 'relationship', label: '关系模式' },
+  { key: 'career', label: '事业轨迹' },
   { key: 'wealth', label: '财富节奏' },
+];
+
+const ASPECT_RULES = [
+  { type: 'conjunction', angle: 0, orb: 8, label: '合相' },
+  { type: 'sextile', angle: 60, orb: 4, label: '六合' },
+  { type: 'square', angle: 90, orb: 6, label: '刑相' },
+  { type: 'trine', angle: 120, orb: 6, label: '拱相' },
+  { type: 'opposition', angle: 180, orb: 8, label: '对冲' },
 ];
 
 const TAG_LABELS = {
@@ -98,11 +139,11 @@ const TAG_LABELS = {
   'self.temperament.fast_reactivity': '反应速度快',
   'self.decision_style.analytic_patterning': '分析式思考',
   'self.decision_style.strategic_indirection': '策略感',
-  'self.decision_style.dual_track_thinking': '双轨思考',
+  'self.decision_style.dual_track_thinking': '双轨思维',
   'self.shadow.control_through_withdrawal': '退后掌控',
   'self.shadow.overresponsibility': '过度承担',
-  'relationship.attachment_style.reassurance_hunger': '关系中的确认需求',
-  'relationship.attachment_style.high_selectivity': '关系选择门槛',
+  'relationship.attachment_style.reassurance_hunger': '确认需求',
+  'relationship.attachment_style.high_selectivity': '关系门槛高',
   'relationship.attachment_style.slow_to_trust': '慢热信任',
   'relationship.partnership_dynamics.intense_bonding': '强连结关系',
   'relationship.family_patterns.early_responsibility': '早期责任模式',
@@ -124,89 +165,368 @@ const TAG_LABELS = {
 };
 
 const INSIGHT_COPY = {
-  self_definition_expands_through_visibility: { title: '你适合在被看见的环境里成长', body: '当表达空间、角色感和外部回应同时打开时，你的判断和行动会更稳定，也更容易找到自己的节奏。' },
-  interiority_needs_trust_and_processing_space: { title: '你需要先消化，再靠近', body: '很多感觉不会第一时间说出来。给自己一点整理情绪和确认边界的空间，关系反而会更稳。' },
-  thinking_prefers_pattern_and_strategy: { title: '你更像一个先看结构的人', body: '你通常不是凭第一反应做决定，而是会先看走势、关系和成本，再决定什么时候出手。' },
-  bonds_need_reassurance_but_open_slowly: { title: '你在关系里既需要安全感，也需要时间', body: '你并不随便交付信任，但一旦确认对方稳定可靠，就会非常认真地经营一段关系。' },
-  partnerships_can_be_intense_and_formative: { title: '重要关系会深刻改变你', body: '你和人的连结往往不是淡淡的路过，而是会牵动选择、边界和自我认识。' },
-  career_compounds_through_discipline: { title: '你的事业更像复利，不像爆发', body: '长期积累、专业深耕和稳定交付，是你最有力量的上升路径。速度未必最早，但后劲通常很强。' },
-  leadership_grows_with_public_exposure: { title: '越到台前，你越容易长出领导力', body: '当你承担公开角色、对外表达或需要整合资源时，个人存在感会明显增强。' },
-  money_builds_best_with_patience_andStructure: { title: '你的财富节奏适合稳扎稳打', body: '预算、节奏和长期配置感会比短期冲动更适合你。你适合把财富做成一种系统，而不是赌一把。' },
+  self_definition_expands_through_visibility: {
+    title: '你适合在被看见的环境里长出自我定义',
+    body: '当表达空间、角色感和外部回应被同时打开时，你会更容易确认自己的位置，也更知道该把力量放到哪里。',
+  },
+  interiority_needs_trust_and_processing_space: {
+    title: '你的感受需要先被消化，再被表达',
+    body: '你不是没有情绪，而是更需要先在内在整理它们。安全感和处理空间一旦够了，你的表达反而会更准确。',
+  },
+  thinking_prefers_pattern_and_strategy: {
+    title: '你更像一个先看结构再行动的人',
+    body: '你习惯先理解走势、关系和成本，再决定什么时候推进。这样的思考方式让你在复杂局面里更稳。',
+  },
+  bonds_need_reassurance_but_open_slowly: {
+    title: '你在关系里既需要确定感，也需要时间',
+    body: '你不会轻易把信任一次性交出去，但一旦确认关系可靠，就会很认真地投入并长期经营。',
+  },
+  partnerships_can_be_intense_and_formative: {
+    title: '重要关系常常会深刻地塑造你',
+    body: '你与人的连结很少只是轻轻掠过，反而更容易成为你重新认识自己、确认边界与价值排序的场域。',
+  },
+  career_compounds_through_discipline: {
+    title: '你的事业更像复利，不像爆发',
+    body: '长期积累、专业深耕和稳定交付是你最可靠的增长方式。速度未必最早，但后劲往往更强。',
+  },
+  leadership_grows_with_public_exposure: {
+    title: '越到台前，你越容易长出领导力',
+    body: '当你开始承担公开角色、面向更大范围表达或整合资源时，存在感和带动力会明显变强。',
+  },
+  money_builds_best_with_patience_andStructure: {
+    title: '你的财富节奏更适合稳扎稳打',
+    body: '预算感、长期配置和风险边界，比情绪化冲动更适合你。把资源做成系统，会比赌一把更有效。',
+  },
 };
+
+function clampValue(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function normalizeLongitude(value) {
+  let next = value % 360;
+  if (next < 0) next += 360;
+  return next;
+}
+
+function longitudeDistance(left, right) {
+  const delta = Math.abs(normalizeLongitude(left) - normalizeLongitude(right));
+  return delta > 180 ? 360 - delta : delta;
+}
+
+function signedLongitudeDelta(left, right) {
+  let delta = normalizeLongitude(right) - normalizeLongitude(left);
+  if (delta > 180) delta -= 360;
+  if (delta < -180) delta += 360;
+  return delta;
+}
+
+function getSignFromLongitude(longitude) {
+  const normalized = normalizeLongitude(longitude);
+  const index = Math.floor(normalized / 30) % 12;
+  return {
+    code: SIGN_CODES[index],
+    label: SIGN_LABELS[SIGN_CODES[index]],
+    degree: normalized % 30,
+    index,
+  };
+}
+
+function formatDegree(value) {
+  const degree = Math.floor(value);
+  const minute = Math.floor((value - degree) * 60);
+  return `${degree}°${String(minute).padStart(2, '0')}`;
+}
 
 function hashSeed(input) {
   let value = 0;
-  for (let index = 0; index < input.length; index += 1) value = (value * 31 + input.charCodeAt(index)) % 2147483647;
+  for (let index = 0; index < input.length; index += 1) {
+    value = (value * 31 + input.charCodeAt(index)) % 2147483647;
+  }
   return value;
 }
 
-function signAt(seed, offset = 0) {
-  return SIGNS[(seed + offset) % SIGNS.length];
+function getTimeZoneOffsetMinutes(date, timeZone) {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour12: false,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+  const parts = formatter.formatToParts(date);
+  const map = {};
+  for (const part of parts) {
+    if (part.type !== 'literal') map[part.type] = part.value;
+  }
+  const utcEquivalent = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day),
+    Number(map.hour),
+    Number(map.minute),
+    Number(map.second),
+  );
+  return Math.round((utcEquivalent - date.getTime()) / 60000);
 }
 
-function houseAt(seed, offset = 0) {
-  return ((seed + offset) % 12) + 1;
+function zonedDateTimeToUtc(dateString, timeString, timeZone) {
+  const [year, month, day] = dateString.split('-').map(Number);
+  const [hour, minute] = timeString.split(':').map(Number);
+  let guess = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  for (let index = 0; index < 4; index += 1) {
+    const offsetMinutes = getTimeZoneOffsetMinutes(guess, timeZone);
+    const refined = new Date(Date.UTC(year, month - 1, day, hour, minute, 0) - offsetMinutes * 60000);
+    if (Math.abs(refined.getTime() - guess.getTime()) < 1000) return refined;
+    guess = refined;
+  }
+  return guess;
 }
 
-function pointFact(factId, pointCode, sign, houseNumber, motion = 'direct') {
-  return { fact_id: factId, fact_code: `${factId}_${pointCode.toLowerCase()}`, fact_type: 'point', qualifiers: { point_code: pointCode, sign, house_number: houseNumber, motion }, confidence: 0.96 };
+function getCityByKey(cityKey) {
+  return CITY_OPTIONS.find((city) => city.key === cityKey) || CITY_OPTIONS[0];
 }
 
-function aspectFact(factId, pointA, pointB, aspectType, strengthScore = 0.82) {
-  return { fact_id: factId, fact_code: `${factId}_${pointA.toLowerCase()}_${pointB.toLowerCase()}`, fact_type: 'aspect', qualifiers: { point_a_code: pointA, point_b_code: pointB, aspect_type: aspectType, orb_deg: 1.8, strength_score: strengthScore, exact: false }, confidence: 0.92 };
+function calculateAscendantLongitude(date, observer) {
+  const time = new AstroTime(date);
+  const rotation = Rotation_HOR_ECL(time, observer);
+  const eastVector = new Vector(0, -1, 0, time);
+  const eclipticVector = RotateVector(rotation, eastVector);
+  const sphere = SphereFromVector(eclipticVector);
+  return normalizeLongitude(sphere.lon);
 }
 
-function houseFact(factId, houseNumber, sign) {
-  return { fact_id: factId, fact_code: `${factId}_house_${houseNumber}`, fact_type: 'house', qualifiers: { house_number: houseNumber, sign }, confidence: 0.94 };
+function getWholeSignHouseNumber(planetLongitude, ascLongitude) {
+  const planetSign = getSignFromLongitude(planetLongitude).index;
+  const ascSign = getSignFromLongitude(ascLongitude).index;
+  return ((planetSign - ascSign + 12) % 12) + 1;
 }
 
-function crossRefFact(factId, refCode) {
-  return { fact_id: factId, fact_code: `${factId}_${refCode.toLowerCase()}`, fact_type: 'cross_reference', qualifiers: { ref_code: refCode }, confidence: 0.9 };
+function buildHouseSigns(ascLongitude) {
+  const ascSign = getSignFromLongitude(ascLongitude).index;
+  return Array.from({ length: 12 }, (_, index) => {
+    const signIndex = (ascSign + index) % 12;
+    return {
+      houseNumber: index + 1,
+      sign: SIGN_CODES[signIndex],
+      signLabel: SIGN_LABELS[SIGN_CODES[signIndex]],
+      longitude: normalizeLongitude(signIndex * 30),
+    };
+  });
 }
 
-function buildPrototypeChart(input) {
-  const seed = hashSeed(`${input.birthDate}|${input.birthTime}|${input.city}|${input.focus}|${input.reportType}`);
-  const westernFacts = [
-    pointFact('w1', 'SUN', input.focus === 'self' ? 'leo' : signAt(seed, 1), input.focus === 'self' ? 1 : houseAt(seed, 1)),
-    pointFact('w2', 'MOON', input.focus === 'relationship' ? 'cancer' : signAt(seed, 3), houseAt(seed, 2)),
-    pointFact('w3', 'MERCURY', signAt(seed, 5), houseAt(seed, 3)),
-    pointFact('w4', 'SATURN', input.focus === 'career' ? 'capricorn' : signAt(seed, 7), input.focus === 'career' ? 10 : houseAt(seed, 4), input.focus === 'career' ? 'retrograde' : 'direct'),
-    pointFact('w5', 'JUPITER', input.focus === 'wealth' ? 'taurus' : signAt(seed, 8), input.focus === 'wealth' ? 2 : houseAt(seed, 6)),
-    houseFact('w6', 2, input.focus === 'wealth' ? 'taurus' : signAt(seed, 4)),
-  ];
+function buildPlanetPositions(date, observer, ascLongitude) {
+  return PLANET_DEFS.map((planet) => {
+    const longitude = normalizeLongitude(EclipticLongitude(planet.body, date));
+    const longitudeTomorrow = normalizeLongitude(EclipticLongitude(planet.body, new Date(date.getTime() + 86400000)));
+    const signedDelta = signedLongitudeDelta(longitude, longitudeTomorrow);
+    const sign = getSignFromLongitude(longitude);
+    return {
+      code: planet.code,
+      label: planet.label,
+      symbol: planet.symbol,
+      color: planet.color,
+      longitude,
+      sign: sign.code,
+      signLabel: sign.label,
+      signDegree: sign.degree,
+      degreeText: formatDegree(sign.degree),
+      houseNumber: getWholeSignHouseNumber(longitude, ascLongitude),
+      motion: Math.abs(signedDelta) < 0.01 ? 'stationary' : signedDelta < 0 ? 'retrograde' : 'direct',
+    };
+  });
+}
 
-  if (input.focus === 'relationship') {
-    westernFacts.push(aspectFact('w7', 'VENUS', 'SATURN', 'square'));
-    westernFacts.push(pointFact('w8', 'VENUS', 'cancer', 7));
-  } else if (input.focus === 'career') {
-    westernFacts.push(aspectFact('w7', 'SUN', 'SATURN', 'trine'));
-    westernFacts.push(pointFact('w8', 'MC', 'capricorn', 10));
-  } else if (input.focus === 'self') {
-    westernFacts.push(aspectFact('w7', 'SUN', 'PLUTO', 'square'));
-    westernFacts.push(pointFact('w8', 'PLUTO', 'scorpio', 1));
-  } else if (input.focus === 'wealth') {
-    westernFacts.push(aspectFact('w7', 'VENUS', 'URANUS', 'square'));
-    westernFacts.push(pointFact('w8', 'URANUS', 'aquarius', 2));
+function buildAspectList(planets) {
+  const aspects = [];
+  for (let left = 0; left < planets.length; left += 1) {
+    for (let right = left + 1; right < planets.length; right += 1) {
+      const delta = longitudeDistance(planets[left].longitude, planets[right].longitude);
+      const match = ASPECT_RULES.find((rule) => Math.abs(delta - rule.angle) <= rule.orb);
+      if (!match) continue;
+      const orb = Math.abs(delta - match.angle);
+      aspects.push({
+        code: `${planets[left].code}_${match.type.toUpperCase()}_${planets[right].code}`,
+        type: match.type,
+        label: match.label,
+        left: planets[left],
+        right: planets[right],
+        orb,
+        strengthScore: Number(clampValue(1 - orb / match.orb, 0.35, 1).toFixed(2)),
+      });
+    }
+  }
+  return aspects.sort((a, b) => a.orb - b.orb).slice(0, 12);
+}
+
+function buildDerivedMetrics(planets, ascSignCode) {
+  const relevantPoints = planets.filter((planet) => ['SUN', 'MOON', 'MERCURY', 'VENUS', 'MARS', 'JUPITER', 'SATURN'].includes(planet.code));
+  const elementScores = { fire: 0, earth: 0, air: 0, water: 0 };
+  for (const point of [...relevantPoints, { sign: ascSignCode }]) {
+    const element = ELEMENT_BY_SIGN[point.sign];
+    elementScores[element] += 1;
   }
 
-  const ziweiRefMap = {
-    self: ['ZIWEI_LIFE_MAIN_STAR', 'ZIWEI_ZI_WEI_IN_LIFE'],
-    relationship: ['ZIWEI_SPOUSE_MAIN_STAR', 'ZIWEI_TIAN_LIANG_IN_FU_QI'],
-    career: ['ZIWEI_CAREER_MAIN_STAR', 'ZIWEI_ZI_WEI_IN_CAREER'],
-    wealth: ['ZIWEI_WEALTH_MAIN_STAR', 'ZIWEI_CAI_BO_MAIN_WU_QU'],
-  };
+  const total = Object.values(elementScores).reduce((sum, value) => sum + value, 0) || 1;
+  const dominantElement = Object.entries(elementScores).sort((left, right) => right[1] - left[1])[0][0];
+  const angularCount = planets.filter((planet) => [1, 4, 7, 10].includes(planet.houseNumber)).length;
 
-  const ziweiFacts = (ziweiRefMap[input.focus] || ziweiRefMap.self).map((refCode, index) => crossRefFact(`z${index + 1}`, refCode));
-  if (seed % 2 === 0) ziweiFacts.push(crossRefFact('z9', 'ZIWEI_HUA_JI'));
+  const planetScores = planets.map((planet) => ({
+    code: planet.code,
+    score: ([1, 4, 7, 10].includes(planet.houseNumber) ? 1.2 : 0.75) + (planet.code === 'SUN' || planet.code === 'MOON' ? 0.35 : 0),
+  }));
+  const dominantPlanet = planetScores.sort((left, right) => right.score - left.score)[0]?.code || 'SUN';
+
+  return [
+    { metric_code: 'ELEMENT_FIRE_SCORE', value: Number((elementScores.fire / total).toFixed(2)) },
+    { metric_code: 'ELEMENT_EARTH_SCORE', value: Number((elementScores.earth / total).toFixed(2)) },
+    { metric_code: 'ELEMENT_AIR_SCORE', value: Number((elementScores.air / total).toFixed(2)) },
+    { metric_code: 'ELEMENT_WATER_SCORE', value: Number((elementScores.water / total).toFixed(2)) },
+    { metric_code: 'DOMINANT_ELEMENT', value: dominantElement.toUpperCase() },
+    { metric_code: 'DOMINANT_PLANET', value: dominantPlanet },
+    { metric_code: 'ANGULAR_HOUSE_SCORE', value: Number((angularCount / planets.length).toFixed(2)) },
+  ];
+}
+
+function buildPatternFacts(planets) {
+  const signBuckets = new Map();
+  for (const planet of planets) {
+    const bucket = signBuckets.get(planet.sign) || [];
+    bucket.push(planet.code);
+    signBuckets.set(planet.sign, bucket);
+  }
+  const stellium = [...signBuckets.values()].find((bucket) => bucket.length >= 3);
+  if (!stellium) return [];
+  return [{ pattern_code: 'STELLIUM', value: stellium }];
+}
+
+function pointFact(factId, planet) {
+  return {
+    fact_id: factId,
+    fact_code: `${factId}_${planet.code.toLowerCase()}`,
+    fact_type: 'point',
+    qualifiers: {
+      point_code: planet.code,
+      sign: planet.sign,
+      house_number: planet.houseNumber,
+      motion: planet.motion,
+      longitude_deg: Number(planet.longitude.toFixed(4)),
+      sign_degree: Number(planet.signDegree.toFixed(4)),
+    },
+    confidence: 0.98,
+  };
+}
+
+function houseFact(factId, house) {
+  return {
+    fact_id: factId,
+    fact_code: `${factId}_house_${house.houseNumber}`,
+    fact_type: 'house',
+    qualifiers: {
+      house_number: house.houseNumber,
+      sign: house.sign,
+      cusp_longitude_deg: Number(house.longitude.toFixed(4)),
+    },
+    confidence: 0.96,
+  };
+}
+
+function aspectFact(factId, aspect) {
+  return {
+    fact_id: factId,
+    fact_code: `${factId}_${aspect.code.toLowerCase()}`,
+    fact_type: 'aspect',
+    qualifiers: {
+      point_a_code: aspect.left.code,
+      point_b_code: aspect.right.code,
+      aspect_type: aspect.type,
+      orb_deg: Number(aspect.orb.toFixed(2)),
+      strength_score: aspect.strengthScore,
+      exact: aspect.orb <= 1,
+    },
+    confidence: 0.92,
+  };
+}
+
+function metricFact(factId, metric) {
+  return {
+    fact_id: factId,
+    fact_code: `${factId}_${metric.metric_code.toLowerCase()}`,
+    fact_type: 'derived_metric',
+    qualifiers: {
+      metric_code: metric.metric_code,
+    },
+    value: metric.value,
+    confidence: 0.9,
+  };
+}
+
+function patternFact(factId, pattern) {
+  return {
+    fact_id: factId,
+    fact_code: `${factId}_${pattern.pattern_code.toLowerCase()}`,
+    fact_type: 'pattern',
+    qualifiers: {
+      pattern_code: pattern.pattern_code,
+    },
+    value: pattern.value,
+    confidence: 0.88,
+  };
+}
+
+function buildWesternChart(input) {
+  const city = getCityByKey(input.cityKey);
+  const utcDate = zonedDateTimeToUtc(input.birthDate, input.birthTime, city.timezone);
+  const observer = new Observer(city.latitude, city.longitude, 0);
+  const ascLongitude = calculateAscendantLongitude(utcDate, observer);
+  const ascSign = getSignFromLongitude(ascLongitude);
+  const houses = buildHouseSigns(ascLongitude);
+  const planets = buildPlanetPositions(utcDate, observer, ascLongitude);
+  const aspects = buildAspectList(planets);
+  const metrics = buildDerivedMetrics(planets, ascSign.code);
+  const patterns = buildPatternFacts(planets);
+
+  const westernFacts = [
+    ...planets.map((planet, index) => pointFact(`p${index + 1}`, planet)),
+    pointFact('p_asc', {
+      code: 'ASC',
+      sign: ascSign.code,
+      houseNumber: 1,
+      motion: 'direct',
+      longitude: ascLongitude,
+      signDegree: ascSign.degree,
+    }),
+    ...houses.map((house) => houseFact(`h${house.houseNumber}`, house)),
+    ...aspects.map((aspect, index) => aspectFact(`a${index + 1}`, aspect)),
+    ...metrics.map((metric, index) => metricFact(`m${index + 1}`, metric)),
+    ...patterns.map((pattern, index) => patternFact(`pt${index + 1}`, pattern)),
+  ];
 
   return {
-    chart_id: `prototype-${seed}`,
+    chart_id: `western-${utcDate.getTime()}-${city.key}`,
     chart_type: 'natal',
     subjects: [{ subject_id: 'web-user', birth_input: { time_accuracy: 'exact' } }],
     systems: [
-      { system_code: 'western', confidence: { overall: 0.95, houses: 0.92, aspects: 0.92 }, facts: westernFacts },
-      { system_code: 'ziwei', confidence: { overall: 0.9 }, facts: ziweiFacts },
+      {
+        system_code: 'western',
+        confidence: { overall: 0.97, houses: 0.88, aspects: 0.92 },
+        facts: westernFacts,
+      },
     ],
+    visual: {
+      utcDate,
+      city,
+      observer,
+      ascLongitude,
+      ascSign,
+      houses,
+      planets,
+      aspects,
+      metrics,
+    },
   };
 }
 
@@ -221,58 +541,195 @@ function tagLabel(tagCode) {
 function buildInsightCopy(insight) {
   const preset = INSIGHT_COPY[insight.insight_code];
   if (preset) return preset;
-  return { title: tagLabel(insight.tag_refs?.[0] || insight.insight_code), body: '这条结论已经有结构化依据，后面可以继续扩展成长文报告、问答卡片和更多维度的解释。' };
+  const label = tagLabel(insight.tag_refs?.[0] || insight.insight_code);
+  return {
+    title: label,
+    body: `这条结论已经由结构化规则命中，可继续扩展为更长的报告段落。当前优先级为 ${insight.priority}，置信度约 ${Math.round(insight.confidence * 100)}%。`,
+  };
 }
 
-function buildFallbackResult(reportType, focus) {
-  const reportPreset = REPORT_PRESETS[reportType] || REPORT_PRESETS.personality;
+function getReportOptions() {
+  return Object.entries(REPORT_PRESETS)
+    .filter(([key]) => key !== 'home')
+    .map(([key, value]) => ({ key, title: value.title, focus: value.focus, intro: value.intro }));
+}
+
+function getBirthFormOptions() {
+  const currentYear = new Date().getFullYear();
   return {
-    insights: reportPreset.details.map((item, index) => ({ code: `${reportType}-fallback-${index + 1}`, title: item.title, body: item.body, confidence: 0.76, section: focus })),
-    tags: [
-      { code: `${focus}-anchor-1`, label: focus === 'relationship' ? '关系回应感' : focus === 'wealth' ? '资源结构感' : focus === 'career' ? '成长后劲' : '自我认知', crossSystem: true },
-      { code: `${focus}-anchor-2`, label: focus === 'relationship' ? '边界与信任' : focus === 'wealth' ? '财富节奏' : focus === 'career' ? '责任与结构' : '内在秩序', crossSystem: false },
-      { code: `${focus}-anchor-3`, label: focus === 'relationship' ? '深度连结' : focus === 'wealth' ? '风险边界' : focus === 'career' ? '公众可见度' : '成长课题', crossSystem: true },
-    ],
-    evidence: [
-      { code: 'WESTERN_SIGNAL', label: 'Western chart signal', system: 'western' },
-      { code: 'ZIWEI_SIGNAL', label: 'Ziwei chart signal', system: 'ziwei' },
-      { code: 'CROSS_VALIDATION', label: 'Cross-system agreement', system: 'hybrid' },
-    ],
-    crossSystemCount: 2,
+    years: Array.from({ length: 80 }, (_, index) => String(currentYear - 70 + index)),
+    months: Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0')),
+    hours: Array.from({ length: 24 }, (_, index) => String(index).padStart(2, '0')),
+    minutes: ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'],
+    cities: CITY_OPTIONS,
   };
+}
+
+function getDayOptions(year, month) {
+  const daysInMonth = new Date(Number(year), Number(month), 0).getDate();
+  return Array.from({ length: daysInMonth }, (_, index) => String(index + 1).padStart(2, '0'));
+}
+
+function describePlanetBlend(visual) {
+  const sun = visual.planets.find((planet) => planet.code === 'SUN');
+  const moon = visual.planets.find((planet) => planet.code === 'MOON');
+  return `${sun.signLabel}太阳、${moon.signLabel}月亮、${visual.ascSign.label}上升，整体更偏向 ${ELEMENT_LABELS[visual.metrics.find((metric) => metric.metric_code === 'DOMINANT_ELEMENT')?.value?.toLowerCase?.() || 'fire']}表达。`;
+}
+
+function buildDetailSections(reportType, visual, insights, tags) {
+  const sun = visual.planets.find((planet) => planet.code === 'SUN');
+  const moon = visual.planets.find((planet) => planet.code === 'MOON');
+  const strongestAspect = visual.aspects[0];
+  const topTag = tags[0]?.label || '结构化主题';
+  const topInsight = insights[0]?.title || '主轴判断';
+
+  const sectionA = {
+    title: '盘面底色',
+    body: `${sun.label}落在${sun.signLabel}${sun.degreeText}，月亮落在${moon.signLabel}${moon.degreeText}，上升是${visual.ascSign.label}。这会让你的第一层表现、内在情绪和外部节奏呈现出很清楚的组合感。`,
+  };
+
+  const sectionB = strongestAspect
+    ? {
+        title: '关键结构',
+        body: `当前盘面最醒目的结构之一是 ${strongestAspect.left.label}${strongestAspect.label}${strongestAspect.right.label}，容许度约 ${strongestAspect.orb.toFixed(1)}°。这类相位通常会把某个主题推到更显眼的位置。`,
+      }
+    : {
+        title: '关键结构',
+        body: `这次盘面更偏向宫位和元素分布给出主轴，其中 ${topTag} 是最值得先读的一条。`,
+      };
+
+  const sectionByReport = {
+    'past-life': {
+      title: '前世线索',
+      body: `这一版前世报告先不走神秘叙事，而是从你反复出现的性格主轴和课题切入。${topInsight} 往往说明你带着熟悉的处理方式进入这一生。`,
+    },
+    personality: {
+      title: '性格聚焦',
+      body: `这份性格报告更强调你如何理解自己、如何做决定，以及你在人群里呈现出来的核心气质。当前最醒目的主题是 ${topTag}。`,
+    },
+    relationship: {
+      title: '关系动态',
+      body: `关系报告会优先看月亮、金星、火星和第七宫线索。你更需要的不是表面热闹，而是节奏稳定、回应清楚的互动。`,
+    },
+    monthly: {
+      title: '月度节奏',
+      body: `月度预测页会把当前盘面翻成更可执行的节奏建议。先稳住结构，再推进关键动作，会比全面铺开更有效。`,
+    },
+    compatibility: {
+      title: '兼容观察',
+      body: `兼容性报告当前先用你的单人盘做关系基线：你会如何建立信任、在哪些位置更容易感到消耗、什么样的互动最适合长期发展。`,
+    },
+    wealth: {
+      title: '财富逻辑',
+      body: `财务潜力报告更关注第二宫、金星、木星与土星的组合。比起情绪驱动，长期配置和清晰边界更适合你。`,
+    },
+    evolution: {
+      title: '进化主轴',
+      body: `生命进化报告会把成长主题拉长来看。你现在最重要的不是做更多，而是把已经成熟的部分沉淀成可重复的路径。`,
+    },
+  };
+
+  return [sectionA, sectionB, sectionByReport[reportType] || sectionByReport.personality];
+}
+
+function buildHeadline(reportType, insights, visual) {
+  if (insights[0]?.title) return insights[0].title;
+  const preset = REPORT_PRESETS[reportType] || REPORT_PRESETS.personality;
+  const sun = visual.planets.find((planet) => planet.code === 'SUN');
+  return `${preset.title}：你的 ${sun.signLabel} 太阳正在定义这次结果的主轴`;
+}
+
+function buildSummary(reportType, visual, tags) {
+  const preset = REPORT_PRESETS[reportType] || REPORT_PRESETS.personality;
+  const topTags = tags.slice(0, 3).map((tag) => tag.label).join('、');
+  return `${preset.intro}。这次结果主要由 ${describePlanetBlend(visual)} 当前最值得先看的主题是 ${topTags || '盘面结构'}。`;
+}
+
+function buildFallbackInsights(reportType) {
+  const preset = REPORT_PRESETS[reportType] || REPORT_PRESETS.personality;
+  return [
+    { code: `${reportType}-fallback-1`, title: `${preset.title}主轴`, body: preset.intro, confidence: 0.72 },
+  ];
+}
+
+function buildChartRows(visual) {
+  return visual.planets.slice(0, 8).map((planet) => ({
+    code: planet.code,
+    label: planet.label,
+    symbol: planet.symbol,
+    position: `${planet.signLabel} ${planet.degreeText}`,
+    house: `第 ${planet.houseNumber} 宫`,
+    motion: planet.motion === 'retrograde' ? '逆行' : planet.motion === 'stationary' ? '停滞' : '顺行',
+    longitude: planet.longitude,
+  }));
 }
 
 export function getInterpretationFocusOptions() {
   return FOCUS_OPTIONS;
 }
 
-export function getReportOptions() {
-  return Object.entries(REPORT_PRESETS).map(([key, value]) => ({ key, title: value.title, focus: value.focus }));
-}
+export { getReportOptions, getBirthFormOptions, getDayOptions, CITY_OPTIONS };
 
 export function generateInterpretationPreview(input) {
-  const reportPreset = REPORT_PRESETS[input.reportType] || REPORT_PRESETS.personality;
-  const chart = buildPrototypeChart(input);
-  const pipeline = runInterpretationPipeline(chart);
+  const reportType = input.reportType || 'personality';
+  const reportPreset = REPORT_PRESETS[reportType] || REPORT_PRESETS.personality;
+  const chartBundle = buildWesternChart(input);
+  const pipeline = runInterpretationPipeline(chartBundle);
 
   const derivedInsights = pipeline.insights.slice(0, 3).map((insight) => {
     const copy = buildInsightCopy(insight);
-    return { code: insight.insight_code, title: copy.title, body: copy.body, section: insight.section, confidence: insight.confidence };
+    return {
+      code: insight.insight_code,
+      title: copy.title,
+      body: copy.body,
+      section: insight.section,
+      confidence: insight.confidence,
+    };
   });
-  const derivedTags = pipeline.semantic_items.slice(0, 8).map((item) => ({ code: item.tag_code, label: tagLabel(item.tag_code), crossSystem: item.cross_system_agreement }));
-  const derivedEvidence = pipeline.refs.refs.slice(0, 6).map((ref) => ({ code: ref.ref_code, label: ref.ref_code.replace(/_/g, ' '), system: ref.system_code }));
 
-  const fallback = buildFallbackResult(input.reportType, input.focus);
+  const derivedTags = pipeline.semantic_items.slice(0, 8).map((item) => ({
+    code: item.tag_code,
+    label: tagLabel(item.tag_code),
+    crossSystem: item.cross_system_agreement,
+  }));
+
+  const derivedEvidence = pipeline.refs.refs.slice(0, 8).map((ref) => ({
+    code: ref.ref_code,
+    label: ref.ref_code.replace(/_/g, ' '),
+    system: ref.system_code,
+  }));
+
+  const insights = derivedInsights.length ? derivedInsights : buildFallbackInsights(reportType);
+  const tags = derivedTags.length
+    ? derivedTags
+    : [{ code: 'western.core', label: '西洋盘面主轴', crossSystem: false }];
 
   return {
     reportTitle: reportPreset.title,
-    headline: reportPreset.headline,
-    summary: reportPreset.summary,
-    insights: derivedInsights.length ? derivedInsights : fallback.insights,
-    tags: derivedTags.length ? derivedTags : fallback.tags,
-    evidence: derivedEvidence.length ? derivedEvidence : fallback.evidence,
-    crossSystemCount: pipeline.semantic_items.length ? pipeline.semantic_items.filter((item) => item.cross_system_agreement).length : fallback.crossSystemCount,
-    detailSections: reportPreset.details,
-    chartMeta: { date: input.birthDate, time: input.birthTime, city: input.city },
+    headline: buildHeadline(reportType, insights, chartBundle.visual),
+    summary: buildSummary(reportType, chartBundle.visual, tags),
+    insights,
+    tags,
+    evidence: derivedEvidence,
+    crossSystemCount: pipeline.semantic_items.filter((item) => item.cross_system_agreement).length,
+    detailSections: buildDetailSections(reportType, chartBundle.visual, insights, tags),
+    chartMeta: {
+      date: input.birthDate,
+      time: input.birthTime,
+      city: chartBundle.visual.city.label,
+      timezone: chartBundle.visual.city.timezone,
+    },
+    chartVisual: {
+      ascSign: chartBundle.visual.ascSign.label,
+      ascLongitude: chartBundle.visual.ascLongitude,
+      houses: chartBundle.visual.houses,
+      planets: buildChartRows(chartBundle.visual),
+      aspects: chartBundle.visual.aspects.slice(0, 5).map((aspect) => ({
+        code: aspect.code,
+        label: `${aspect.left.label}${aspect.label}${aspect.right.label}`,
+        orb: `${aspect.orb.toFixed(1)}°`,
+      })),
+      rawPlanets: chartBundle.visual.planets,
+    },
   };
 }
