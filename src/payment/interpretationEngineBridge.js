@@ -11,6 +11,7 @@ import {
   SphereFromVector,
   Vector,
 } from 'astronomy-engine';
+import { CITY_OPTIONS, getCitySearchText } from './generatedCityRegistry';
 import { runInterpretationPipeline } from './interpretation_engine';
 import { TAG_REGISTRY } from './interpretation_engine/tag_matching/tag_registry';
 
@@ -74,7 +75,7 @@ export const ENGINE_INFO = {
   summary: 'Active western chart engine for MingSky web results.',
 };
 
-const CITY_OPTIONS = [
+const LEGACY_CITY_OPTIONS = [
   { key: 'beijing', label: 'Beijing', region: 'China', province: '北京市', timezone: 'Asia/Shanghai', latitude: 39.9042, longitude: 116.4074 },
   { key: 'shanghai', label: 'Shanghai', region: 'China', province: '上海市', timezone: 'Asia/Shanghai', latitude: 31.2304, longitude: 121.4737 },
   { key: 'tianjin', label: 'Tianjin', region: 'China', province: '天津市', timezone: 'Asia/Shanghai', latitude: 39.0842, longitude: 117.2009 },
@@ -223,7 +224,7 @@ const CITY_OPTIONS = [
   { key: 'amsterdam', label: 'Amsterdam', region: 'Netherlands', province: 'North Holland', timezone: 'Europe/Amsterdam', latitude: 52.3676, longitude: 4.9041 },
 ];
 
-const CITY_ALIASES = {
+const LEGACY_CITY_ALIASES = {
   beijing: ['北京', '北京市'],
   shanghai: ['上海', '上海市'],
   tianjin: ['天津', '天津市'],
@@ -560,8 +561,8 @@ function getCityByKey(cityKey) {
   return CITY_OPTIONS.find((city) => city.key === cityKey) || CITY_OPTIONS[0];
 }
 
-export function getCitySearchText(city) {
-  return [city.label, city.nativeLabel, city.province, city.region, city.timezone, ...(CITY_ALIASES[city.key] || [])]
+export function getLegacyCitySearchText(city) {
+  return [city.label, city.nativeLabel, city.province, city.region, city.timezone, ...(LEGACY_CITY_ALIASES[city.key] || [])]
     .filter(Boolean)
     .join(' ')
     .toLowerCase();
@@ -986,7 +987,7 @@ export function getInterpretationFocusOptions() {
   return FOCUS_OPTIONS;
 }
 
-export { getReportOptions, getBirthFormOptions, getDayOptions, CITY_OPTIONS };
+export { getReportOptions, getBirthFormOptions, getDayOptions, CITY_OPTIONS, getCitySearchText };
 
 export function generateInterpretationPreview(input) {
   const reportType = input.reportType || 'personality';
