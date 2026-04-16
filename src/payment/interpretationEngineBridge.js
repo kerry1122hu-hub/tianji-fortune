@@ -92,6 +92,8 @@ const CITY_OPTIONS = [
   { key: 'chengdu', label: 'Chengdu', region: 'China', province: '四川省', timezone: 'Asia/Shanghai', latitude: 30.5728, longitude: 104.0668 },
   { key: 'xian', label: 'Xi’an', region: 'China', province: '陕西省', timezone: 'Asia/Shanghai', latitude: 34.3416, longitude: 108.9398 },
   { key: 'zhengzhou', label: 'Zhengzhou', region: 'China', province: '河南省', timezone: 'Asia/Shanghai', latitude: 34.7466, longitude: 113.6254 },
+  { key: 'luoyang', label: 'Luoyang', region: 'China', province: '河南省', timezone: 'Asia/Shanghai', latitude: 34.6197, longitude: 112.454 },
+  { key: 'xuchang', label: 'Xuchang', region: 'China', province: '河南省', timezone: 'Asia/Shanghai', latitude: 34.0228, longitude: 113.8523 },
   { key: 'jinan', label: 'Jinan', region: 'China', province: '山东省', timezone: 'Asia/Shanghai', latitude: 36.6512, longitude: 117.1201 },
   { key: 'qingdao', label: 'Qingdao', region: 'China', province: '山东省', timezone: 'Asia/Shanghai', latitude: 36.0671, longitude: 120.3826 },
   { key: 'yantai', label: 'Yantai', region: 'China', province: '山东省', timezone: 'Asia/Shanghai', latitude: 37.4638, longitude: 121.4479 },
@@ -103,12 +105,20 @@ const CITY_OPTIONS = [
   { key: 'shijiazhuang', label: 'Shijiazhuang', region: 'China', province: '河北省', timezone: 'Asia/Shanghai', latitude: 38.0428, longitude: 114.5149 },
   { key: 'taiyuan', label: 'Taiyuan', region: 'China', province: '山西省', timezone: 'Asia/Shanghai', latitude: 37.8706, longitude: 112.5489 },
   { key: 'hefei', label: 'Hefei', region: 'China', province: '安徽省', timezone: 'Asia/Shanghai', latitude: 31.8206, longitude: 117.2272 },
+  { key: 'wuhu', label: 'Wuhu', region: 'China', province: '安徽省', timezone: 'Asia/Shanghai', latitude: 31.3525, longitude: 118.4331 },
   { key: 'fuzhou', label: 'Fuzhou', region: 'China', province: '福建省', timezone: 'Asia/Shanghai', latitude: 26.0745, longitude: 119.2965 },
   { key: 'xiamen', label: 'Xiamen', region: 'China', province: '福建省', timezone: 'Asia/Shanghai', latitude: 24.4798, longitude: 118.0894 },
+  { key: 'quanzhou', label: 'Quanzhou', region: 'China', province: '福建省', timezone: 'Asia/Shanghai', latitude: 24.8741, longitude: 118.6757 },
+  { key: 'zhangzhou', label: 'Zhangzhou', region: 'China', province: '福建省', timezone: 'Asia/Shanghai', latitude: 24.5133, longitude: 117.6471 },
   { key: 'nanchang', label: 'Nanchang', region: 'China', province: '江西省', timezone: 'Asia/Shanghai', latitude: 28.6829, longitude: 115.8582 },
+  { key: 'ganzhou', label: 'Ganzhou', region: 'China', province: '江西省', timezone: 'Asia/Shanghai', latitude: 25.8311, longitude: 114.9359 },
   { key: 'nanning', label: 'Nanning', region: 'China', province: '广西壮族自治区', timezone: 'Asia/Shanghai', latitude: 22.817, longitude: 108.3669 },
+  { key: 'guilin', label: 'Guilin', region: 'China', province: '广西壮族自治区', timezone: 'Asia/Shanghai', latitude: 25.2736, longitude: 110.2902 },
+  { key: 'liuzhou', label: 'Liuzhou', region: 'China', province: '广西壮族自治区', timezone: 'Asia/Shanghai', latitude: 24.3264, longitude: 109.4281 },
   { key: 'haikou', label: 'Haikou', region: 'China', province: '海南省', timezone: 'Asia/Shanghai', latitude: 20.044, longitude: 110.1983 },
+  { key: 'sanya', label: 'Sanya', region: 'China', province: '海南省', timezone: 'Asia/Shanghai', latitude: 18.2528, longitude: 109.5119 },
   { key: 'kunming', label: 'Kunming', region: 'China', province: '云南省', timezone: 'Asia/Shanghai', latitude: 24.8797, longitude: 102.8332 },
+  { key: 'dali', label: 'Dali', region: 'China', province: '云南省', timezone: 'Asia/Shanghai', latitude: 25.6075, longitude: 100.2676 },
   { key: 'guiyang', label: 'Guiyang', region: 'China', province: '贵州省', timezone: 'Asia/Shanghai', latitude: 26.647, longitude: 106.6302 },
   { key: 'lanzhou', label: 'Lanzhou', region: 'China', province: '甘肃省', timezone: 'Asia/Shanghai', latitude: 36.0611, longitude: 103.8343 },
   { key: 'xining', label: 'Xining', region: 'China', province: '青海省', timezone: 'Asia/Shanghai', latitude: 36.6171, longitude: 101.7782 },
@@ -116,6 +126,24 @@ const CITY_OPTIONS = [
   { key: 'lhasa', label: 'Lhasa', region: 'China', province: '西藏自治区', timezone: 'Asia/Shanghai', latitude: 29.652, longitude: 91.1721 },
   { key: 'urumqi', label: 'Urumqi', region: 'China', province: '新疆维吾尔自治区', timezone: 'Asia/Urumqi', latitude: 43.8256, longitude: 87.6168 },
   { key: 'kashgar', label: 'Kashgar', region: 'China', province: '新疆维吾尔自治区', timezone: 'Asia/Urumqi', latitude: 39.4677, longitude: 75.9898 },
+  { key: 'wuxi', label: 'Wuxi', region: 'China', province: '江苏省', timezone: 'Asia/Shanghai', latitude: 31.4904, longitude: 120.3119 },
+  { key: 'nantong', label: 'Nantong', region: 'China', province: '江苏省', timezone: 'Asia/Shanghai', latitude: 31.9802, longitude: 120.8943 },
+  { key: 'changzhou', label: 'Changzhou', region: 'China', province: '江苏省', timezone: 'Asia/Shanghai', latitude: 31.8107, longitude: 119.9741 },
+  { key: 'xuzhou', label: 'Xuzhou', region: 'China', province: '江苏省', timezone: 'Asia/Shanghai', latitude: 34.2044, longitude: 117.2858 },
+  { key: 'shaoxing', label: 'Shaoxing', region: 'China', province: '浙江省', timezone: 'Asia/Shanghai', latitude: 30.0303, longitude: 120.5802 },
+  { key: 'jiaxing', label: 'Jiaxing', region: 'China', province: '浙江省', timezone: 'Asia/Shanghai', latitude: 30.7461, longitude: 120.7555 },
+  { key: 'jinhua', label: 'Jinhua', region: 'China', province: '浙江省', timezone: 'Asia/Shanghai', latitude: 29.0781, longitude: 119.6474 },
+  { key: 'taizhou-zj', label: 'Taizhou', region: 'China', province: '浙江省', timezone: 'Asia/Shanghai', latitude: 28.6564, longitude: 121.4208 },
+  { key: 'dongguan', label: 'Dongguan', region: 'China', province: '广东省', timezone: 'Asia/Shanghai', latitude: 23.0207, longitude: 113.7518 },
+  { key: 'zhuhai', label: 'Zhuhai', region: 'China', province: '广东省', timezone: 'Asia/Shanghai', latitude: 22.2707, longitude: 113.5767 },
+  { key: 'zhongshan', label: 'Zhongshan', region: 'China', province: '广东省', timezone: 'Asia/Shanghai', latitude: 22.5176, longitude: 113.3928 },
+  { key: 'huizhou', label: 'Huizhou', region: 'China', province: '广东省', timezone: 'Asia/Shanghai', latitude: 23.1115, longitude: 114.4168 },
+  { key: 'jiangmen', label: 'Jiangmen', region: 'China', province: '广东省', timezone: 'Asia/Shanghai', latitude: 22.5787, longitude: 113.0819 },
+  { key: 'dalian', label: 'Dalian', region: 'China', province: '辽宁省', timezone: 'Asia/Shanghai', latitude: 38.914, longitude: 121.6147 },
+  { key: 'qinhuangdao', label: 'Qinhuangdao', region: 'China', province: '河北省', timezone: 'Asia/Shanghai', latitude: 39.9354, longitude: 119.5996 },
+  { key: 'baoding', label: 'Baoding', region: 'China', province: '河北省', timezone: 'Asia/Shanghai', latitude: 38.8739, longitude: 115.4646 },
+  { key: 'ordos', label: 'Ordos', region: 'China', province: '内蒙古自治区', timezone: 'Asia/Shanghai', latitude: 39.6086, longitude: 109.7813 },
+  { key: 'hohhot', label: 'Hohhot', region: 'China', province: '内蒙古自治区', timezone: 'Asia/Shanghai', latitude: 40.8426, longitude: 111.7492 },
   { key: 'perth', label: 'Perth', region: 'Australia', province: 'Western Australia', timezone: 'Australia/Perth', latitude: -31.9523, longitude: 115.8613 },
   { key: 'sydney', label: 'Sydney', region: 'Australia', province: 'New South Wales', timezone: 'Australia/Sydney', latitude: -33.8688, longitude: 151.2093 },
   { key: 'melbourne', label: 'Melbourne', region: 'Australia', province: 'Victoria', timezone: 'Australia/Melbourne', latitude: -37.8136, longitude: 144.9631 },
@@ -143,6 +171,87 @@ const CITY_OPTIONS = [
   { key: 'vancouver', label: 'Vancouver', region: 'Canada', province: 'British Columbia', timezone: 'America/Vancouver', latitude: 49.2827, longitude: -123.1207 },
   { key: 'amsterdam', label: 'Amsterdam', region: 'Netherlands', province: 'North Holland', timezone: 'Europe/Amsterdam', latitude: 52.3676, longitude: 4.9041 },
 ];
+
+const CITY_ALIASES = {
+  beijing: ['北京', '北京市'],
+  shanghai: ['上海', '上海市'],
+  tianjin: ['天津', '天津市'],
+  chongqing: ['重庆', '重庆市'],
+  guangzhou: ['广州', '广州市'],
+  shenzhen: ['深圳', '深圳市'],
+  foshan: ['佛山', '佛山市'],
+  hangzhou: ['杭州', '杭州市'],
+  ningbo: ['宁波', '宁波市'],
+  wenzhou: ['温州', '温州市'],
+  nanjing: ['南京', '南京市'],
+  suzhou: ['苏州', '苏州市'],
+  wuxi: ['无锡', '无锡市'],
+  nantong: ['南通', '南通市'],
+  changzhou: ['常州', '常州市'],
+  xuzhou: ['徐州', '徐州市'],
+  wuhan: ['武汉', '武汉市'],
+  changsha: ['长沙', '长沙市'],
+  chengdu: ['成都', '成都市'],
+  xian: ['西安', '西安市'],
+  zhengzhou: ['郑州', '郑州市'],
+  luoyang: ['洛阳', '洛阳市'],
+  xuchang: ['许昌', '许昌市'],
+  jinan: ['济南', '济南市'],
+  qingdao: ['青岛', '青岛市'],
+  yantai: ['烟台', '烟台市'],
+  weihai: ['威海', '威海市'],
+  linyi: ['临沂', '临沂市'],
+  haerbin: ['哈尔滨', '哈尔滨市'],
+  changchun: ['长春', '长春市'],
+  shenyang: ['沈阳', '沈阳市'],
+  dalian: ['大连', '大连市'],
+  shijiazhuang: ['石家庄', '石家庄市'],
+  qinhuangdao: ['秦皇岛'],
+  baoding: ['保定'],
+  taiyuan: ['太原', '太原市'],
+  hohhot: ['呼和浩特'],
+  ordos: ['鄂尔多斯'],
+  hefei: ['合肥', '合肥市'],
+  wuhu: ['芜湖'],
+  fuzhou: ['福州', '福州市'],
+  xiamen: ['厦门', '厦门市'],
+  quanzhou: ['泉州', '泉州市'],
+  zhangzhou: ['漳州', '漳州市'],
+  nanchang: ['南昌', '南昌市'],
+  ganzhou: ['赣州', '赣州市'],
+  nanning: ['南宁', '南宁市'],
+  guilin: ['桂林', '桂林市'],
+  liuzhou: ['柳州', '柳州市'],
+  haikou: ['海口', '海口市'],
+  sanya: ['三亚', '三亚市'],
+  kunming: ['昆明', '昆明市'],
+  dali: ['大理'],
+  guiyang: ['贵阳', '贵阳市'],
+  lanzhou: ['兰州', '兰州市'],
+  xining: ['西宁', '西宁市'],
+  yinchuan: ['银川', '银川市'],
+  lhasa: ['拉萨', '拉萨市'],
+  urumqi: ['乌鲁木齐'],
+  kashgar: ['喀什'],
+  dongguan: ['东莞'],
+  zhuhai: ['珠海'],
+  zhongshan: ['中山'],
+  huizhou: ['惠州'],
+  jiangmen: ['江门'],
+  shaoxing: ['绍兴'],
+  jiaxing: ['嘉兴'],
+  jinhua: ['金华'],
+  'taizhou-zj': ['台州'],
+  perth: ['珀斯'],
+  sydney: ['悉尼'],
+  melbourne: ['墨尔本'],
+  singapore: ['新加坡'],
+  'hong-kong': ['香港'],
+  taipei: ['台北'],
+  tokyo: ['东京'],
+  osaka: ['大阪'],
+  seoul: ['首尔'],
+};
 
 const REPORT_PRESETS = {
   home: {
@@ -359,6 +468,13 @@ function zonedDateTimeToUtc(dateString, timeString, timeZone) {
 
 function getCityByKey(cityKey) {
   return CITY_OPTIONS.find((city) => city.key === cityKey) || CITY_OPTIONS[0];
+}
+
+export function getCitySearchText(city) {
+  return [city.label, city.province, city.region, city.timezone, ...(CITY_ALIASES[city.key] || [])]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
 }
 
 function calculateAscendantLongitude(date, observer) {
@@ -713,6 +829,37 @@ function buildDetailSections(reportType, visual, insights, tags) {
   return [sectionA, sectionB, sectionByReport[reportType] || sectionByReport.personality];
 }
 
+function buildReportModules(reportType, visual, insights, tags) {
+  const strongestAspect = visual.aspects[0];
+  return [
+    {
+      key: 'core',
+      title: '核心主题',
+      body: insights[0]?.title || tags[0]?.label || '当前这份报告会先抓主轴主题。',
+    },
+    {
+      key: 'chart',
+      title: '星盘重点',
+      body: strongestAspect ? `${strongestAspect.left.label}${strongestAspect.label}${strongestAspect.right.label}` : `${visual.ascSign.label}上升与行星分布构成底色。`,
+    },
+    {
+      key: 'report',
+      title: '报告方向',
+      body: (REPORT_PRESETS[reportType] || REPORT_PRESETS.personality).intro,
+    },
+  ];
+}
+
+function buildActionItems(reportType, visual, insights) {
+  const topInsight = insights[0]?.title || '先抓住当前主轴';
+  const aspect = visual.aspects[0];
+  return [
+    `先围绕“${topInsight}”记录最近 2-3 次最有感的现实场景。`,
+    aspect ? `优先观察 ${aspect.left.label}${aspect.label}${aspect.right.label} 对情绪、关系或职业推进的影响。` : '先从你最常重复的关系或职业模式开始拆解。',
+    reportType === 'monthly' ? '把本月目标压缩到 1 个主推进事项，避免分散。' : '把这份报告里最强的一条主题转成一个可执行的下周动作。',
+  ];
+}
+
 function buildHeadline(reportType, insights, visual) {
   if (insights[0]?.title) return insights[0].title;
   const preset = REPORT_PRESETS[reportType] || REPORT_PRESETS.personality;
@@ -792,6 +939,8 @@ export function generateInterpretationPreview(input) {
     insights,
     tags,
     evidence: derivedEvidence,
+    reportModules: buildReportModules(reportType, chartBundle.visual, insights, tags),
+    actionItems: buildActionItems(reportType, chartBundle.visual, insights),
     crossSystemCount: pipeline.semantic_items.filter((item) => item.cross_system_agreement).length,
     detailSections: buildDetailSections(reportType, chartBundle.visual, insights, tags),
     chartMeta: {
