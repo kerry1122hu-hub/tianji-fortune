@@ -1,10 +1,13 @@
 import {
   AstroTime,
   Body,
-  EclipticLongitude,
+  Ecliptic,
+  EclipticGeoMoon,
+  GeoVector,
   Observer,
   RotateVector,
   Rotation_HOR_ECL,
+  SunPosition,
   SphereFromVector,
   Vector,
 } from 'astronomy-engine';
@@ -347,10 +350,20 @@ function buildHouseSigns(ascLongitude) {
   });
 }
 
-function buildPlanetPositions(date, observer, ascLongitude) {
+function getGeocentricLongitude(body, date) {
+  if (body === Body.Sun) {
+    return normalizeLongitude(SunPosition(date).elon);
+  }
+  if (body === Body.Moon) {
+    return normalizeLongitude(EclipticGeoMoon(date).lon);
+  }
+  return normalizeLongitude(Ecliptic(GeoVector(body, date, true)).elon);
+}
+
+function buildPlanetPositions(date, ascLongitude) {
   return PLANET_DEFS.map((planet) => {
-    const longitude = normalizeLongitude(EclipticLongitude(planet.body, date));
-    const longitudeTomorrow = normalizeLongitude(EclipticLongitude(planet.body, new Date(date.getTime() + 86400000)));
+    const longitude = getGeocentricLongitude(planet.body, date);
+    const longitudeTomorrow = getGeocentricLongitude(planet.body, new Date(date.getTime() + 86400000));
     const signedDelta = signedLongitudeDelta(longitude, longitudeTomorrow);
     const sign = getSignFromLongitude(longitude);
     return {
@@ -513,7 +526,7 @@ function buildWesternChart(input) {
   const ascLongitude = calculateAscendantLongitude(utcDate, observer);
   const ascSign = getSignFromLongitude(ascLongitude);
   const houses = buildHouseSigns(ascLongitude);
-  const planets = buildPlanetPositions(utcDate, observer, ascLongitude);
+  const planets = buildPlanetPositions(utcDate, ascLongitude);
   const aspects = buildAspectList(planets);
   const metrics = buildDerivedMetrics(planets, ascSign.code);
   const patterns = buildPatternFacts(planets);
