@@ -242,32 +242,70 @@ export default function InterpretationWebApp() {
       <ScrollView style={styles.page} contentContainerStyle={styles.content}>
         <View style={styles.shell}>
           <View style={styles.topNav}>
-            <View style={styles.brandLockup}>
-              <Image source={require('../../assets/mingsky-logo.png')} style={styles.brandLogo} />
-              <View>
-                <Text style={styles.brandTitle}>MingSky Astrology</Text>
-                <Text style={styles.brandSubtitle}>明空星占</Text>
+            <View style={styles.topNavInner}>
+              <View style={styles.brandLockup}>
+                <Image source={require('../../assets/mingsky-logo.png')} style={styles.brandLogo} />
+                <View>
+                  <Text style={styles.brandTitle}>MingSky Astrology</Text>
+                  <Text style={styles.brandSubtitle}>明空星占</Text>
+                </View>
               </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.navRow}>
+                {navItems.map((item) => { const active = item.key === activePage; return <Pressable key={item.key} onPress={() => setActivePage(item.key)} style={styles.navTab}><Text style={[styles.navText, active && styles.navTextActive]}>{item.label}</Text><Text style={[styles.navSub, active && styles.navSubActive]}>{item.sub}</Text></Pressable>; })}
+              </ScrollView>
+              <Pressable style={styles.navCta} onPress={() => setActivePage('account')}>
+                <Text style={styles.navCtaText}>登录/注册</Text>
+              </Pressable>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.navRow}>
-              {navItems.map((item) => { const active = item.key === activePage; return <Pressable key={item.key} onPress={() => setActivePage(item.key)} style={[styles.navTab, active && styles.navTabActive]}><Text style={[styles.navText, active && styles.navTextActive]}>{item.label}</Text><Text style={[styles.navSub, active && styles.navTextActive]}>{item.sub}</Text></Pressable>; })}
-            </ScrollView>
           </View>
 
           {activePage === 'home' ? (
             <>
               <View style={styles.heroBand}>
-                <ImageBackground source={require('../../assets/splash.png')} resizeMode="cover" imageStyle={styles.heroImage} style={styles.heroWrap}>
+                <ImageBackground source={require('../../assets/mingsky-logo.png')} resizeMode="cover" imageStyle={styles.heroImage} style={styles.heroWrap}>
                   <View style={styles.heroOverlay}>
-                    <View style={styles.heroBrandRow}>
-                      <Image source={require('../../assets/mingsky-logo.png')} style={styles.heroLogo} />
-                      <Text style={styles.heroEyebrow}>MingSky Reports</Text>
+                    <View style={styles.heroContent}>
+                      <View style={styles.heroBrandRow}>
+                        <Image source={require('../../assets/mingsky-logo.png')} style={styles.heroLogo} />
+                        <Text style={styles.heroEyebrow}>MingSky Astrology · 明空星占</Text>
+                      </View>
+                      <View style={styles.heroPill}>
+                        <Text style={styles.heroPillText}>已陪伴 393,762+ 次星盘解读</Text>
+                      </View>
+                      <Text style={styles.heroTitle}>你的私人 AI 占星顾问，用一份真正可读的报告理解自己。</Text>
+                      <Text style={styles.heroBody}>明空星占把星盘计算、结构化解释与长篇报告结合在一起。你可以快速生成性格报告、关系报告、月度预测、兼容性、财务潜力、前世报告与生命进化报告，在手机和桌面端都获得清晰、可持续阅读的体验。</Text>
+                      <View style={styles.heroActions}>
+                        <Pressable style={styles.primaryCompact} onPress={() => setActivePage('reports')}><Text style={styles.primaryText}>立即开始</Text></Pressable>
+                        <Pressable style={styles.secondaryBtn} onPress={() => setActivePage('pricing')}><Text style={styles.secondaryText}>免费试用</Text></Pressable>
+                      </View>
                     </View>
-                    <Text style={styles.heroTitle}>把五个主栏目固定在首页顶部，再把热门报告摆到第一屏。</Text>
-                    <Text style={styles.heroBody}>用户先看到前世报告、性格报告、关系报告等关键入口，再进入滚轴式出生信息填写，整体更像正式 APP。</Text>
-                    <View style={styles.heroActions}>
-                      <Pressable style={styles.primaryCompact} onPress={() => setActivePage('reports')}><Text style={styles.primaryText}>开始生成</Text></Pressable>
-                      <Pressable style={styles.secondaryBtn} onPress={() => setActivePage('pricing')}><Text style={styles.secondaryText}>查看会员</Text></Pressable>
+                    <View style={[styles.heroShowcase, isNarrow && styles.heroShowcaseStack]}>
+                      <View style={styles.desktopMock}>
+                        <View style={styles.desktopChrome}>
+                          <View style={styles.chromeDots}>
+                            <View style={[styles.chromeDot, { backgroundColor: '#ff6f62' }]} />
+                            <View style={[styles.chromeDot, { backgroundColor: '#f5bf4f' }]} />
+                            <View style={[styles.chromeDot, { backgroundColor: '#60c554' }]} />
+                          </View>
+                          <Text style={styles.desktopTitle}>YOUR BIRTH CHART</Text>
+                        </View>
+                        <View style={styles.desktopBody}>
+                          <ChartWheel chartVisual={generatedResult.chartVisual} compact={false} />
+                        </View>
+                      </View>
+                      <View style={styles.phoneMock}>
+                        <View style={styles.phoneNotch} />
+                        <Text style={styles.phoneTitle}>明空星占</Text>
+                        <Text style={styles.phoneMeta}>{year}-{month}-{day} {hour}:{minute}</Text>
+                        <View style={styles.phoneList}>
+                          {homeCards.slice(0, 4).map((item) => (
+                            <View key={item[0]} style={styles.phoneListItem}>
+                              <Text style={styles.phoneListTitle}>{item[0]}</Text>
+                              <Text style={styles.phoneListBody}>{item[1]}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </View>
                     </View>
                   </View>
                 </ImageBackground>
@@ -287,9 +325,32 @@ export default function InterpretationWebApp() {
                     <Pressable style={styles.primaryBtn} onPress={onGenerate}><Text style={styles.primaryText}>生成解读</Text></Pressable>
                   </View>
                 </View>
-                <Text style={styles.sectionEyebrow}>Featured Reports</Text>
-                <Text style={styles.sectionTitle}>首页先展示真正吸引人的报告</Text>
-                <View style={styles.grid}>{homeCards.map((item) => <View key={item[0]} style={styles.card}><Text style={styles.cardTitle}>{item[0]}</Text><Text style={styles.cardBody}>{item[1]}</Text></View>)}</View>
+                <View style={styles.reportShelfHeader}>
+                  <View>
+                    <Text style={styles.sectionEyebrow}>Featured Reports</Text>
+                    <Text style={styles.sectionTitle}>先看最吸引人的报告入口，再决定从哪一份开始。</Text>
+                    <Text style={styles.sectionBody}>首页优先展示最容易转化的报告类型，尤其是前世报告、性格报告和兼容性报告，让用户一眼知道这款应用能带来什么。</Text>
+                  </View>
+                  <Pressable style={styles.reportShelfAction} onPress={() => setActivePage('reports')}>
+                    <Text style={styles.reportShelfActionText}>查看全部报告</Text>
+                  </Pressable>
+                </View>
+                <View style={styles.reportShelfGrid}>
+                  {homeCards.map((item, index) => (
+                    <Pressable key={item[0]} onPress={() => setActivePage('reports')} style={[styles.reportFeatureCard, index === 0 && styles.reportFeatureCardPrimary, index > 0 && index < 3 && styles.reportFeatureCardWide]}>
+                      <View style={styles.reportFeatureTop}>
+                        <Text style={[styles.reportFeatureKicker, index === 0 && styles.reportFeatureKickerPrimary]}>{index === 0 ? '热门主推' : '精选报告'}</Text>
+                        {index === 0 ? <Text style={styles.reportFeatureBadge}>推荐</Text> : null}
+                      </View>
+                      <Text style={[styles.reportFeatureTitle, index === 0 && styles.reportFeatureTitlePrimary]}>{item[0]}</Text>
+                      <Text style={[styles.reportFeatureBody, index === 0 && styles.reportFeatureBodyPrimary]}>{item[1]}</Text>
+                      <View style={styles.reportFeatureFooter}>
+                        <Text style={[styles.reportFeatureLink, index === 0 && styles.reportFeatureLinkPrimary]}>进入报告</Text>
+                        <Text style={[styles.reportFeatureArrow, index === 0 && styles.reportFeatureLinkPrimary]}>→</Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
             </>
           ) : null}
@@ -353,9 +414,9 @@ export default function InterpretationWebApp() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#edf2ee' }, content: { paddingBottom: 36 }, shell: { width: '100%' }, rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
-  topNav: { position: 'sticky', top: 0, zIndex: 30, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 10, gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(17,39,34,0.08)', backgroundColor: 'rgba(237,242,238,0.97)' }, brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 12 }, brandLogo: { width: 52, height: 52, borderRadius: 14, backgroundColor: '#0d1930' }, brandTitle: { color: '#112722', fontSize: 24, lineHeight: 28, fontWeight: '800' }, brandSubtitle: { color: '#61776d', fontSize: 14, lineHeight: 18, fontWeight: '700' }, navRow: { gap: 10, paddingRight: 20 }, navTab: { width: 100, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(17,39,34,0.12)', backgroundColor: '#fff', alignItems: 'center' }, navTabActive: { backgroundColor: '#112722', borderColor: '#112722' }, navText: { color: '#1f342d', fontSize: 14, lineHeight: 18, fontWeight: '800' }, navSub: { marginTop: 2, color: '#70837c', fontSize: 11, lineHeight: 14, fontWeight: '700' }, navTextActive: { color: '#f7faf8' },
-  heroBand: { paddingHorizontal: 20, paddingTop: 8 }, heroWrap: { minHeight: 320, justifyContent: 'flex-end' }, heroImage: { borderRadius: 8 }, heroOverlay: { borderRadius: 8, paddingHorizontal: 24, paddingVertical: 28, backgroundColor: 'rgba(10,20,22,0.58)' }, heroBrandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 }, heroLogo: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#0d1930' }, heroEyebrow: { color: '#e7c36c', fontSize: 13, lineHeight: 18, fontWeight: '800' }, heroTitle: { marginTop: 10, color: '#f7faf8', fontSize: 34, lineHeight: 40, fontWeight: '800', maxWidth: 760 }, heroBody: { marginTop: 12, color: 'rgba(247,250,248,0.88)', fontSize: 16, lineHeight: 24, maxWidth: 760 }, heroActions: { marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, primaryCompact: { minWidth: 132, height: 46, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#c9893f', paddingHorizontal: 20 }, primaryBtn: { marginTop: 22, height: 54, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#c9893f' }, primaryText: { color: '#fffaf3', fontSize: 16, lineHeight: 20, fontWeight: '800' }, secondaryBtn: { minWidth: 132, height: 46, borderRadius: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(17,39,34,0.12)' }, secondaryText: { color: '#17362f', fontSize: 15, lineHeight: 18, fontWeight: '800' },
-  section: { paddingHorizontal: 20, paddingTop: 24 }, sectionEyebrow: { color: '#516b62', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, sectionTitle: { marginTop: 6, color: '#17221d', fontSize: 28, lineHeight: 34, fontWeight: '800', maxWidth: 760 }, sectionBody: { marginTop: 10, color: '#5a6b64', fontSize: 15, lineHeight: 22, maxWidth: 640 }, homeIntake: { marginBottom: 18, flexDirection: 'row', gap: 18, alignItems: 'flex-start', borderRadius: 8, backgroundColor: '#fbfdfc', borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', padding: 18 }, homeIntakeText: { flex: 1, minWidth: 240 }, homeIntakeForm: { flex: 1.1, minWidth: 300 }, grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 14 }, card: { minWidth: 240, flexGrow: 1, flexBasis: 240, borderRadius: 8, backgroundColor: '#fbfdfc', borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', padding: 18 }, cardTitle: { color: '#17221d', fontSize: 20, lineHeight: 24, fontWeight: '800' }, cardBody: { marginTop: 10, color: '#5a6b64', fontSize: 15, lineHeight: 22 },
+  topNav: { position: 'sticky', top: 0, zIndex: 30, borderBottomWidth: 1, borderBottomColor: 'rgba(21,29,51,0.08)', backgroundColor: 'rgba(255,255,255,0.97)' }, topNavInner: { minHeight: 82, paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 18 }, brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 240 }, brandLogo: { width: 52, height: 52, borderRadius: 14, backgroundColor: '#0d1930' }, brandTitle: { color: '#171b31', fontSize: 24, lineHeight: 28, fontWeight: '800' }, brandSubtitle: { color: '#69708b', fontSize: 14, lineHeight: 18, fontWeight: '700' }, navRow: { flexGrow: 1, justifyContent: 'center', gap: 24, paddingHorizontal: 16 }, navTab: { minWidth: 82, alignItems: 'center', justifyContent: 'center', paddingVertical: 6 }, navText: { color: '#1d2140', fontSize: 16, lineHeight: 20, fontWeight: '700' }, navSub: { marginTop: 4, color: '#9aa0b6', fontSize: 11, lineHeight: 14, fontWeight: '700' }, navTextActive: { color: '#6b54d4' }, navSubActive: { color: '#6b54d4' }, navCta: { minWidth: 118, height: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#7d38d7', paddingHorizontal: 18 }, navCtaText: { color: '#ffffff', fontSize: 14, lineHeight: 18, fontWeight: '800' },
+  heroBand: { paddingHorizontal: 20, paddingTop: 8 }, heroWrap: { minHeight: 760, justifyContent: 'space-between' }, heroImage: { borderRadius: 8, opacity: 0.2 }, heroOverlay: { flex: 1, borderRadius: 8, paddingHorizontal: 24, paddingTop: 36, paddingBottom: 0, backgroundColor: 'rgba(12,8,32,0.92)', alignItems: 'center' }, heroContent: { width: '100%', maxWidth: 980, alignItems: 'center' }, heroBrandRow: { flexDirection: 'row', alignItems: 'center', gap: 10 }, heroLogo: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#0d1930' }, heroEyebrow: { color: '#e7c36c', fontSize: 13, lineHeight: 18, fontWeight: '800' }, heroPill: { marginTop: 18, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(129,101,255,0.35)' }, heroPillText: { color: '#7448ff', fontSize: 13, lineHeight: 16, fontWeight: '800' }, heroTitle: { marginTop: 22, color: '#f7faf8', fontSize: 52, lineHeight: 60, fontWeight: '800', maxWidth: 920, textAlign: 'center' }, heroBody: { marginTop: 16, color: 'rgba(247,250,248,0.88)', fontSize: 18, lineHeight: 28, maxWidth: 860, textAlign: 'center' }, heroActions: { marginTop: 24, flexDirection: 'row', flexWrap: 'wrap', gap: 16, justifyContent: 'center' }, heroShowcase: { width: '100%', maxWidth: 1080, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: 18, marginTop: 48, paddingBottom: 0 }, heroShowcaseStack: { flexDirection: 'column', alignItems: 'center' }, desktopMock: { flex: 1, minWidth: 320, maxWidth: 820, borderTopLeftRadius: 18, borderTopRightRadius: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)', backgroundColor: '#f8f6ff', overflow: 'hidden', shadowColor: '#0d0b28', shadowOpacity: 0.24, shadowRadius: 24, shadowOffset: { width: 0, height: 16 } }, desktopChrome: { height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, backgroundColor: '#e8e5f7', borderBottomWidth: 1, borderBottomColor: 'rgba(53,38,103,0.12)' }, chromeDots: { flexDirection: 'row', gap: 8 }, chromeDot: { width: 10, height: 10, borderRadius: 5 }, desktopTitle: { color: '#6b54d4', fontSize: 13, lineHeight: 16, fontWeight: '800' }, desktopBody: { alignItems: 'center', justifyContent: 'center', paddingVertical: 22, paddingHorizontal: 18 }, phoneMock: { width: 220, borderRadius: 28, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(255,255,255,0.24)', paddingHorizontal: 18, paddingTop: 14, paddingBottom: 18, marginBottom: 18, shadowColor: '#0d0b28', shadowOpacity: 0.24, shadowRadius: 18, shadowOffset: { width: 0, height: 12 } }, phoneNotch: { alignSelf: 'center', width: 78, height: 10, borderRadius: 999, backgroundColor: '#dfe1ef' }, phoneTitle: { marginTop: 14, color: '#6b54d4', fontSize: 18, lineHeight: 22, fontWeight: '800', textAlign: 'center' }, phoneMeta: { marginTop: 6, color: '#7a7f95', fontSize: 11, lineHeight: 15, textAlign: 'center' }, phoneList: { marginTop: 16, gap: 10 }, phoneListItem: { borderRadius: 8, backgroundColor: '#f5f4fb', padding: 10 }, phoneListTitle: { color: '#1d2140', fontSize: 13, lineHeight: 16, fontWeight: '800' }, phoneListBody: { marginTop: 5, color: '#747b92', fontSize: 11, lineHeight: 16 }, primaryCompact: { minWidth: 180, height: 54, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: '#8c33db', paddingHorizontal: 26 }, primaryBtn: { marginTop: 22, height: 54, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#c9893f' }, primaryText: { color: '#fffaf3', fontSize: 16, lineHeight: 20, fontWeight: '800' }, secondaryBtn: { minWidth: 180, height: 54, borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 26, backgroundColor: '#5450f6', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)' }, secondaryText: { color: '#f7faf8', fontSize: 15, lineHeight: 18, fontWeight: '800' },
+  section: { paddingHorizontal: 20, paddingTop: 24 }, sectionEyebrow: { color: '#6b54d4', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, sectionTitle: { marginTop: 6, color: '#171b31', fontSize: 32, lineHeight: 38, fontWeight: '800', maxWidth: 760 }, sectionBody: { marginTop: 10, color: '#626a84', fontSize: 15, lineHeight: 24, maxWidth: 640 }, homeIntake: { marginBottom: 24, flexDirection: 'row', gap: 18, alignItems: 'flex-start', borderRadius: 16, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(33,39,67,0.08)', padding: 22, shadowColor: '#1d2140', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 8 } }, homeIntakeText: { flex: 1, minWidth: 240 }, homeIntakeForm: { flex: 1.1, minWidth: 300 }, grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginTop: 14 }, card: { minWidth: 240, flexGrow: 1, flexBasis: 240, borderRadius: 8, backgroundColor: '#fbfdfc', borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', padding: 18 }, cardTitle: { color: '#17221d', fontSize: 20, lineHeight: 24, fontWeight: '800' }, cardBody: { marginTop: 10, color: '#5a6b64', fontSize: 15, lineHeight: 22 }, reportShelfHeader: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, marginTop: 4, marginBottom: 18, flexWrap: 'wrap' }, reportShelfAction: { minWidth: 130, height: 44, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(107,84,212,0.2)', backgroundColor: '#ffffff', paddingHorizontal: 16 }, reportShelfActionText: { color: '#6b54d4', fontSize: 14, lineHeight: 18, fontWeight: '800' }, reportShelfGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, reportFeatureCard: { flexGrow: 1, flexBasis: 260, minWidth: 250, borderRadius: 18, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(33,39,67,0.08)', padding: 20, shadowColor: '#1d2140', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } }, reportFeatureCardPrimary: { flexBasis: 540, minWidth: 320, backgroundColor: '#111331', borderColor: '#111331' }, reportFeatureCardWide: { flexBasis: 320 }, reportFeatureTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }, reportFeatureKicker: { color: '#7a80a0', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, reportFeatureKickerPrimary: { color: 'rgba(255,255,255,0.72)' }, reportFeatureBadge: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999, backgroundColor: '#f6bf45', color: '#3e2c00', fontSize: 11, lineHeight: 14, fontWeight: '800' }, reportFeatureTitle: { marginTop: 14, color: '#171b31', fontSize: 24, lineHeight: 30, fontWeight: '800' }, reportFeatureTitlePrimary: { color: '#ffffff' }, reportFeatureBody: { marginTop: 10, color: '#69708b', fontSize: 15, lineHeight: 24 }, reportFeatureBodyPrimary: { color: 'rgba(255,255,255,0.82)' }, reportFeatureFooter: { marginTop: 22, flexDirection: 'row', alignItems: 'center', gap: 8 }, reportFeatureLink: { color: '#6b54d4', fontSize: 14, lineHeight: 18, fontWeight: '800' }, reportFeatureLinkPrimary: { color: '#f6bf45' }, reportFeatureArrow: { color: '#6b54d4', fontSize: 18, lineHeight: 18, fontWeight: '800' },
   searchInput: { marginTop: 14, height: 52, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.14)', backgroundColor: '#fff', paddingHorizontal: 16, color: '#17221d', fontSize: 15, maxWidth: 420 }, reportCard: { minWidth: 220, flexGrow: 1, flexBasis: 220, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', backgroundColor: '#f8fbf9', padding: 18 }, reportCardFeatured: { backgroundColor: '#112722', borderColor: '#112722' }, reportCardActive: { borderColor: '#d69a3b', borderWidth: 2 }, reportTitle: { color: '#17221d', fontSize: 19, lineHeight: 24, fontWeight: '800' }, reportTitleFeatured: { color: '#f7faf8' }, badge: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: '#d69a3b', color: '#fffaf1', fontSize: 11, fontWeight: '800' }, reportBody: { marginTop: 14, color: '#51615a', fontSize: 14, lineHeight: 20 }, reportBodyFeatured: { color: 'rgba(247,250,248,0.84)' },
   workspace: { flexDirection: 'row', gap: 22, paddingHorizontal: 20, paddingTop: 24 }, workspaceStack: { flexDirection: 'column' }, formPanel: { flex: 0.96, minWidth: 320, borderRadius: 8, backgroundColor: '#fbfdfc', padding: 18, borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)' }, panelTitle: { color: '#17221d', fontSize: 28, lineHeight: 34, fontWeight: '800' }, panelBody: { marginTop: 8, color: '#5a6b64', fontSize: 15, lineHeight: 22 }, label: { marginTop: 18, color: '#2a3732', fontSize: 13, lineHeight: 18, fontWeight: '700' }, activeText: { marginTop: 8, color: '#17362f', fontSize: 16, lineHeight: 22, fontWeight: '800' },
   wheelRow: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, birthMomentRow: { marginTop: 10, gap: 10, paddingRight: 12 }, wheelColumn: { gap: 8 }, wheelLabel: { color: '#5a6b64', fontSize: 12, lineHeight: 16, fontWeight: '700' }, wheelShell: { position: 'relative' }, wheelViewport: { height: 192, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.12)', backgroundColor: '#fff' }, wheelContent: { paddingVertical: 52 }, wheelItem: { minHeight: 42, alignItems: 'center', justifyContent: 'center', marginHorizontal: 8, marginVertical: 4, borderRadius: 8 }, wheelItemActive: { backgroundColor: '#17362f' }, wheelText: { color: '#264038', fontSize: 15, lineHeight: 18, fontWeight: '700' }, wheelTextActive: { color: '#f7faf8' }, wheelSelectionBand: { position: 'absolute', left: 6, right: 6, top: 73, height: 46, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(201,137,63,0.42)', backgroundColor: 'rgba(201,137,63,0.08)' }, wheelFadeTop: { position: 'absolute', left: 1, right: 1, top: 1, height: 38, borderTopLeftRadius: 8, borderTopRightRadius: 8, backgroundColor: 'rgba(251,253,252,0.82)' }, wheelFadeBottom: { position: 'absolute', left: 1, right: 1, bottom: 1, height: 38, borderBottomLeftRadius: 8, borderBottomRightRadius: 8, backgroundColor: 'rgba(251,253,252,0.82)' },
