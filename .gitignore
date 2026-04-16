@@ -42,3 +42,6 @@ yarn-error.*
 
 # interpretation engine generated artifacts
 src/payment/interpretation_engine/golden/artifacts/
+
+# expo web export output
+.expo-web-check/

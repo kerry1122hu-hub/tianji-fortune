@@ -1,7 +1,7 @@
 ﻿{
   "expo": {
-    "name": "MingMe",
-    "slug": "mingme",
+    "name": "MingSky Astrology",
+    "slug": "mingsky-astrology",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -44,7 +44,9 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "MingSky Astrology",
+      "shortName": "MingSky"
     },
     "extra": {
       "openaiApiKey": "",
@@ -66,7 +68,7 @@
       "expo-font",
       "expo-router"
     ],
-    "description": "Know Yourself, Seize the Moment",
+    "description": "MingSky Astrology / 明空星占",
     "primaryColor": "#d4af37"
   }
 }

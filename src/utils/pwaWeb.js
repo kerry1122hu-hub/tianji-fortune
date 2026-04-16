@@ -91,7 +91,7 @@ export function ensurePwaHead() {
   ensureTag('meta[name="apple-mobile-web-app-title"]', () => {
     const meta = document.createElement('meta');
     meta.name = 'apple-mobile-web-app-title';
-    meta.content = 'MingMe';
+    meta.content = 'MingSky Astrology';
     return meta;
   });
 
