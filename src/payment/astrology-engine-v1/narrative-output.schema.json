@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mingme.app/schemas/narrative-output.schema.json",
+  "title": "NarrativeOutput",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "narrative_id",
+    "chart_id",
+    "interpretation_id",
+    "generated_at",
+    "locale",
+    "persona_id",
+    "template_set_version",
+    "output_type",
+    "title",
+    "summary",
+    "sections",
+    "cards",
+    "qa_ready_facts",
+    "disclaimers",
+    "follow_up_prompts",
+    "versions"
+  ],
+  "properties": {
+    "narrative_id": { "type": "string", "format": "uuid" },
+    "chart_id": { "type": "string", "format": "uuid" },
+    "interpretation_id": { "type": "string", "format": "uuid" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "locale": { "type": "string", "minLength": 2 },
+    "persona_id": { "type": "string", "minLength": 1 },
+    "template_set_version": { "type": "string", "minLength": 1 },
+    "output_type": {
+      "type": "string",
+      "enum": [
+        "preview",
+        "full_report",
+        "chat_seed",
+        "paywall_preview",
+        "push_snippet"
+      ]
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "summary": { "$ref": "#/$defs/TextBlock" },
+    "sections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Section" }
+    },
+    "cards": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Card" }
+    },
+    "qa_ready_facts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/QAReadyFact" }
+    },
+    "disclaimers": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Disclaimer" }
+    },
+    "follow_up_prompts": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "versions": { "$ref": "#/$defs/VersionBundle" }
+  },
+  "$defs": {
+    "TextBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["content", "content_format", "semantic_refs"],
+      "properties": {
+        "content": { "type": "string", "minLength": 1 },
+        "content_format": {
+          "type": "string",
+          "enum": ["plaintext", "markdown"]
+        },
+        "claim_type": {
+          "type": "string",
+          "enum": ["factual", "advisory", "reflective"]
+        },
+        "semantic_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "confidence": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "Section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["section_id", "type", "title", "content"],
+      "properties": {
+        "section_id": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "enum": [
+            "summary",
+            "self",
+            "career",
+            "relationship",
+            "wealth",
+            "health",
+            "timing",
+            "purpose",
+            "spirit",
+            "faq",
+            "comparison"
+          ]
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "content": { "$ref": "#/$defs/TextBlock" },
+        "disclaimer_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "visibility": {
+          "type": "string",
+          "enum": ["public", "paywalled", "internal"]
+        }
+      }
+    },
+    "Card": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["card_id", "card_type", "title", "body", "semantic_refs"],
+      "properties": {
+        "card_id": { "type": "string", "minLength": 1 },
+        "card_type": {
+          "type": "string",
+          "enum": [
+            "highlight",
+            "strength",
+            "tension",
+            "opportunity",
+            "timing",
+            "comparison",
+            "cta"
+          ]
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "body": { "type": "string", "minLength": 1 },
+        "claim_type": {
+          "type": "string",
+          "enum": ["factual", "advisory", "reflective"]
+        },
+        "semantic_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "disclaimer_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "QAReadyFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "label", "value", "confidence", "semantic_refs"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+        "label": { "type": "string", "minLength": 1 },
+        "value": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "number" },
+            { "type": "boolean" },
+            { "type": "array" },
+            { "type": "object" }
+          ]
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "semantic_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "Disclaimer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "severity"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+        "message": { "type": "string", "minLength": 1 },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warning", "critical"]
+        }
+      }
+    },
+    "VersionBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain_model",
+        "engine",
+        "rulesets",
+        "schemas",
+        "persona",
+        "template_set",
+        "locale"
+      ],
+      "properties": {
+        "domain_model": { "type": "string", "minLength": 1 },
+        "engine": { "type": "string", "minLength": 1 },
+        "rulesets": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "schemas": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "chart_result",
+            "semantic_interpretation",
+            "narrative_output"
+          ],
+          "properties": {
+            "chart_result": { "type": "string", "minLength": 1 },
+            "semantic_interpretation": { "type": "string", "minLength": 1 },
+            "narrative_output": { "type": "string", "minLength": 1 }
+          }
+        },
+        "persona": { "type": "string", "minLength": 1 },
+        "template_set": { "type": "string", "minLength": 1 },
+        "locale": { "type": "string", "minLength": 2 }
+      }
+    }
+  }
+}

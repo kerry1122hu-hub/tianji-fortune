@@ -1,0 +1,730 @@
+﻿import type { SemanticCategory, TagSeed } from '../types';
+
+export interface TagRegistry {
+  version: string;
+  status: string;
+  owner: string;
+  naming_rule: string;
+  description: string;
+  categories: SemanticCategory[];
+  notes: string[];
+  tags: TagSeed[];
+}
+
+export const TAG_REGISTRY: TagRegistry = {
+  version: '0.3.0',
+  status: 'draft',
+  owner: 'core-platform',
+  naming_rule: 'domain.subdomain.specific',
+  description: 'v1 semantic tag seeds for the interpretation engine under the eight-domain taxonomy.',
+  categories: [
+    "self",
+    "career",
+    "relationship",
+    "wealth",
+    "health",
+    "timing",
+    "purpose",
+    "spirit"
+] as SemanticCategory[],
+  notes: [
+    "All tag codes are system-agnostic.",
+    "Display copy is intentionally excluded from the engine contract.",
+    "Labels and render hints are included here as seed metadata for rules and narrative tooling.",
+    "Legacy snake_case tags should be resolved through tag-migration-map.v1.json."
+],
+  tags: [
+    {
+        "tag_code":  "self.values.self_definition",
+        "category":  "self",
+        "polarity_default":  "neutral_positive",
+        "label_zh":  "Self Definition",
+        "label_en":  "Self Definition",
+        "description":  "Tends to define identity through stable inner standards, role clarity, or a coherent sense of self.",
+        "render_hints":  {
+                             "tone":  "encouraging",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SUN_IN_SAGITTARIUS",
+                                          "SUN_IN_HOUSE_9",
+                                          "SUN_TRINE_JUPITER",
+                                          "ZIWEI_LIFE_MAIN_STAR"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "self.growth_pattern.self_reinvention",
+        "category":  "self",
+        "polarity_default":  "mixed",
+        "label_zh":  "Self Reinvention",
+        "label_en":  "Self Reinvention",
+        "description":  "Identity evolves through major transitions, resets, or periodic redefinition.",
+        "render_hints":  {
+                             "tone":  "reflective",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SUN_CONJUNCTION_PLUTO",
+                                          "SUN_SQUARE_PLUTO",
+                                          "ZIWEI_HUA_JI",
+                                          "ZIWEI_LIFE_MAIN_STAR"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "self.temperament.magnetic_visibility",
+        "category":  "self",
+        "polarity_default":  "supportive",
+        "label_zh":  "Magnetic Visibility",
+        "label_en":  "Magnetic Visibility",
+        "description":  "Carries a noticeable presence that attracts attention, projection, or influence.",
+        "render_hints":  {
+                             "tone":  "encouraging",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SUN_IN_LEO",
+                                          "SUN_IN_HOUSE_5",
+                                          "ANGULAR_HOUSE_SCORE",
+                                          "ZIWEI_ZI_WEI_IN_LIFE"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "self.temperament.deep_internalization",
+        "category":  "self",
+        "polarity_default":  "mixed",
+        "label_zh":  "Deep Internalization",
+        "label_en":  "Deep Internalization",
+        "description":  "Processes emotion inwardly and may contain, compress, or delay expression.",
+        "render_hints":  {
+                             "tone":  "reflective",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "MOON_IN_CAPRICORN",
+                                          "MOON_SQUARE_SATURN",
+                                          "MOON_OPPOSITION_SATURN",
+                                          "ZIWEI_FORTUNE_AUXILIARY_STARS"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "self.temperament.fast_reactivity",
+        "category":  "self",
+        "polarity_default":  "challenging",
+        "label_zh":  "Fast Reactivity",
+        "label_en":  "Fast Reactivity",
+        "description":  "Internal responses can move quickly into urgency, defensiveness, or emotional swings.",
+        "render_hints":  {
+                             "tone":  "warm",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "MOON_SQUARE_URANUS",
+                                          "MOON_CONJUNCTION_URANUS",
+                                          "MARS_ANGULAR",
+                                          "ZIWEI_HUO_XING_IN_LIFE"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "self.decision_style.analytic_patterning",
+        "category":  "self",
+        "polarity_default":  "supportive",
+        "label_zh":  "Analytic Patterning",
+        "label_en":  "Analytic Patterning",
+        "description":  "Reads systems, structure, and pattern quickly and tends to process through analysis.",
+        "render_hints":  {
+                             "tone":  "neutral",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "MERCURY_IN_GEMINI",
+                                          "MERCURY_IN_VIRGO",
+                                          "ELEMENT_AIR_SCORE",
+                                          "ZIWEI_TIAN_JI_IN_LIFE"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "self.decision_style.strategic_indirection",
+        "category":  "self",
+        "polarity_default":  "neutral_positive",
+        "label_zh":  "Strategic Indirection",
+        "label_en":  "Strategic Indirection",
+        "description":  "Prefers leverage, timing, and positioning over direct confrontation.",
+        "render_hints":  {
+                             "tone":  "clinical",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "MERCURY_IN_SCORPIO",
+                                          "MERCURY_CONJUNCTION_PLUTO",
+                                          "PLUTO_ANGULAR",
+                                          "ZIWEI_TIAN_JI_IN_CAREER"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "self.decision_style.dual_track_thinking",
+        "category":  "self",
+        "polarity_default":  "mixed",
+        "label_zh":  "Dual Track Thinking",
+        "label_en":  "Dual Track Thinking",
+        "description":  "Can hold multiple possible frames at once, which helps complexity but may increase overprocessing.",
+        "render_hints":  {
+                             "tone":  "neutral",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "MERCURY_IN_GEMINI",
+                                          "MERCURY_OPPOSITION_MOON",
+                                          "MODALITY_MUTABLE_SCORE",
+                                          "ZIWEI_JU_MEN_IN_LIFE"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "self.shadow.control_through_withdrawal",
+        "category":  "self",
+        "polarity_default":  "challenging",
+        "label_zh":  "Control Through Withdrawal",
+        "label_en":  "Control Through Withdrawal",
+        "description":  "May respond to uncertainty by pulling back, withholding, or reducing transparency.",
+        "render_hints":  {
+                             "tone":  "reflective",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SUN_SQUARE_PLUTO",
+                                          "MOON_CONJUNCTION_PLUTO",
+                                          "PLUTO_ANGULAR",
+                                          "ZIWEI_HUA_JI"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "self.shadow.overresponsibility",
+        "category":  "self",
+        "polarity_default":  "challenging",
+        "label_zh":  "Overresponsibility",
+        "label_en":  "Overresponsibility",
+        "description":  "Can tie self-worth to duty, proof, or carrying more than is sustainable.",
+        "render_hints":  {
+                             "tone":  "warm",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SUN_IN_HOUSE_10",
+                                          "SUN_TRINE_SATURN",
+                                          "SATURN_ANGULAR",
+                                          "ZIWEI_CAREER_HUA_JI"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "relationship.attachment_style.reassurance_hunger",
+        "category":  "relationship",
+        "polarity_default":  "mixed",
+        "label_zh":  "Reassurance Hunger",
+        "label_en":  "Reassurance Hunger",
+        "description":  "Needs relational steadiness, emotional confirmation, or reliable responses to settle fully.",
+        "render_hints":  {
+                             "tone":  "warm",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "MOON_IN_WATER_SIGN",
+                                          "MOON_IN_HOUSE_4",
+                                          "VENUS_IN_CANCER",
+                                          "ZIWEI_SPOUSE_MAIN_STAR"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "relationship.attachment_style.high_selectivity",
+        "category":  "relationship",
+        "polarity_default":  "neutral_positive",
+        "label_zh":  "High Selectivity",
+        "label_en":  "High Selectivity",
+        "description":  "Chooses closeness carefully and does not easily grant trust or access.",
+        "render_hints":  {
+                             "tone":  "reflective",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SATURN_IN_HOUSE_7",
+                                          "VENUS_SQUARE_SATURN",
+                                          "MOON_TRINE_SATURN",
+                                          "ZIWEI_SPOUSE_HUA_JI"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "relationship.attachment_style.slow_to_trust",
+        "category":  "relationship",
+        "polarity_default":  "mixed",
+        "label_zh":  "Slow To Trust",
+        "label_en":  "Slow To Trust",
+        "description":  "Trust builds over time and usually after proof, consistency, or repetition.",
+        "render_hints":  {
+                             "tone":  "reflective",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "VENUS_CONJUNCTION_SATURN",
+                                          "VENUS_SQUARE_SATURN",
+                                          "SATURN_IN_HOUSE_7",
+                                          "ZIWEI_SPOUSE_MAIN_STAR"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "relationship.partnership_dynamics.intense_bonding",
+        "category":  "relationship",
+        "polarity_default":  "mixed",
+        "label_zh":  "Intense Bonding",
+        "label_en":  "Intense Bonding",
+        "description":  "Relationships can carry high attraction, fusion, control, or transformative pressure.",
+        "render_hints":  {
+                             "tone":  "reflective",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "VENUS_CONJUNCTION_PLUTO",
+                                          "VENUS_SQUARE_PLUTO",
+                                          "PLUTO_IN_HOUSE_7",
+                                          "ZIWEI_SPOUSE_HUA_JI"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "relationship.family_patterns.early_responsibility",
+        "category":  "relationship",
+        "polarity_default":  "mixed",
+        "label_zh":  "Early Responsibility",
+        "label_en":  "Early Responsibility",
+        "description":  "Family systems may place duty, mediation, or emotional labor on the person early.",
+        "render_hints":  {
+                             "tone":  "warm",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "MOON_IN_HOUSE_4",
+                                          "SATURN_IN_HOUSE_4",
+                                          "IC_IN_CANCER",
+                                          "ZIWEI_PARENTS_MAIN_STAR"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "relationship.social_mode.selective_visibility",
+        "category":  "relationship",
+        "polarity_default":  "neutral_positive",
+        "label_zh":  "Selective Visibility",
+        "label_en":  "Selective Visibility",
+        "description":  "Can be seen and influential without fully opening access or emotional availability.",
+        "render_hints":  {
+                             "tone":  "neutral",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SUN_IN_HOUSE_11",
+                                          "ASC_IN_LIBRA",
+                                          "ELEMENT_AIR_SCORE",
+                                          "ZIWEI_FRIENDS_MAIN_STAR"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "relationship.social_mode.networked_support",
+        "category":  "relationship",
+        "polarity_default":  "supportive",
+        "label_zh":  "Networked Support",
+        "label_en":  "Networked Support",
+        "description":  "Allies, networks, or well-timed group support amplify progress.",
+        "render_hints":  {
+                             "tone":  "encouraging",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "JUPITER_IN_HOUSE_11",
+                                          "SUN_IN_HOUSE_11",
+                                          "URANUS_IN_HOUSE_11",
+                                          "ZIWEI_ZUO_FU_IN_FRIENDS"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "career.strengths.earned_respect",
+        "category":  "career",
+        "polarity_default":  "supportive",
+        "label_zh":  "Earned Respect",
+        "label_en":  "Earned Respect",
+        "description":  "Professional authority grows through discipline, reliability, and long-term credibility.",
+        "render_hints":  {
+                             "tone":  "clinical",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SATURN_IN_HOUSE_10",
+                                          "MC_IN_CAPRICORN",
+                                          "SUN_TRINE_SATURN",
+                                          "ZIWEI_CAREER_MAIN_STAR"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "career.trajectory.late_bloomer",
+        "category":  "career",
+        "polarity_default":  "neutral_positive",
+        "label_zh":  "Late Bloomer",
+        "label_en":  "Late Bloomer",
+        "description":  "Professional strength matures over time and becomes clearer after delay, detour, or long preparation.",
+        "render_hints":  {
+                             "tone":  "encouraging",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SATURN_IN_HOUSE_10",
+                                          "SUN_TRINE_SATURN",
+                                          "TIMING_LIMITED",
+                                          "ZIWEI_CAREER_HUA_JI"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "career.leadership_style.public_leadership",
+        "category":  "career",
+        "polarity_default":  "supportive",
+        "label_zh":  "Public Leadership",
+        "label_en":  "Public Leadership",
+        "description":  "Work expression favors visibility, coordination, responsibility, or public authority.",
+        "render_hints":  {
+                             "tone":  "encouraging",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SUN_IN_HOUSE_10",
+                                          "MC_IN_LEO",
+                                          "JUPITER_IN_HOUSE_10",
+                                          "ZIWEI_ZI_WEI_IN_CAREER"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "career.strengths.specialist_mastery",
+        "category":  "career",
+        "polarity_default":  "supportive",
+        "label_zh":  "Specialist Mastery",
+        "label_en":  "Specialist Mastery",
+        "description":  "Career advantage comes through precision, craft, technical depth, or specialist reputation.",
+        "render_hints":  {
+                             "tone":  "clinical",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "MERCURY_IN_VIRGO",
+                                          "DOMINANT_PLANET",
+                                          "ELEMENT_EARTH_SCORE",
+                                          "ZIWEI_WU_QU_IN_CAREER"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "wealth.earning_style.volatile_growth",
+        "category":  "wealth",
+        "polarity_default":  "mixed",
+        "label_zh":  "Volatile Growth",
+        "label_en":  "Volatile Growth",
+        "description":  "Resource flow may rise unevenly, with swings or bursts rather than a smooth accumulation path.",
+        "render_hints":  {
+                             "tone":  "clinical",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "URANUS_IN_HOUSE_2",
+                                          "JUPITER_SQUARE_URANUS",
+                                          "VENUS_SQUARE_URANUS",
+                                          "ZIWEI_WEALTH_HUA_JI"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "wealth.earning_style.accumulative_discipline",
+        "category":  "wealth",
+        "polarity_default":  "supportive",
+        "label_zh":  "Accumulative Discipline",
+        "label_en":  "Accumulative Discipline",
+        "description":  "Resources grow best through consistency, planning, and structure rather than improvisation.",
+        "render_hints":  {
+                             "tone":  "clinical",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "VENUS_IN_TAURUS",
+                                          "JUPITER_IN_HOUSE_2",
+                                          "ELEMENT_EARTH_SCORE",
+                                          "ZIWEI_WEALTH_MAIN_STAR"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "health.vitality.fluctuating_reserves",
+        "category":  "health",
+        "polarity_default":  "mixed",
+        "label_zh":  "Fluctuating Reserves",
+        "label_en":  "Fluctuating Reserves",
+        "description":  "Energy may come in waves and benefit from pacing, rhythm awareness, and recovery discipline.",
+        "render_hints":  {
+                             "tone":  "warm",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "NEPTUNE_IN_HOUSE_6",
+                                          "MOON_SQUARE_NEPTUNE",
+                                          "SUN_SQUARE_NEPTUNE",
+                                          "ZIWEI_HEALTH_MAIN_STAR"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "timing.upcoming_cycle.visibility_rise",
+        "category":  "timing",
+        "polarity_default":  "supportive",
+        "label_zh":  "Visibility Rise",
+        "label_en":  "Visibility Rise",
+        "description":  "An upcoming phase may open more recognition, exposure, or outward momentum.",
+        "render_hints":  {
+                             "tone":  "encouraging",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "TRANSIT_JUPITER_TO_ASC",
+                                          "TRANSIT_URANUS_TO_SUN",
+                                          "SOLAR_RETURN_ANGULAR_SUN",
+                                          "ZIWEI_CAREER_MAIN_STAR"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "timing.current_season.consolidation_phase",
+        "category":  "timing",
+        "polarity_default":  "neutral",
+        "label_zh":  "Consolidation Phase",
+        "label_en":  "Consolidation Phase",
+        "description":  "A phase that favors structure, tightening, and reality adjustment over raw expansion.",
+        "render_hints":  {
+                             "tone":  "reflective",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "TRANSIT_SATURN_TO_SUN",
+                                          "TRANSIT_SATURN_TO_MC",
+                                          "SATURN_RETURN",
+                                          "ZIWEI_HUA_JI"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "purpose.lessons.delayed_maturation",
+        "category":  "purpose",
+        "polarity_default":  "neutral_positive",
+        "label_zh":  "Delayed Maturation",
+        "label_en":  "Delayed Maturation",
+        "description":  "Growth deepens through time, discipline, reality testing, and long-wave development.",
+        "render_hints":  {
+                             "tone":  "reflective",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SUN_TRINE_SATURN",
+                                          "MARS_TRINE_SATURN",
+                                          "SATURN_ANGULAR",
+                                          "ZIWEI_CAREER_MAIN_STAR"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "purpose.lessons.crisis_repatterning",
+        "category":  "purpose",
+        "polarity_default":  "mixed",
+        "label_zh":  "Crisis Repatterning",
+        "label_en":  "Crisis Repatterning",
+        "description":  "Growth may require shedding old patterns after rupture, pressure, or forced reorganization.",
+        "render_hints":  {
+                             "tone":  "reflective",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SUN_SQUARE_PLUTO",
+                                          "PLUTO_ANGULAR",
+                                          "MARS_CONJUNCTION_PLUTO",
+                                          "ZIWEI_HUA_JI"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "spirit.archetypes.sovereign_presence",
+        "category":  "spirit",
+        "polarity_default":  "supportive",
+        "label_zh":  "Sovereign Presence",
+        "label_en":  "Sovereign Presence",
+        "description":  "Carries an archetypal tone of dignity, centered presence, or symbolic authority.",
+        "render_hints":  {
+                             "tone":  "encouraging",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "SUN_IN_LEO",
+                                          "SUN_IN_HOUSE_10",
+                                          "MC_IN_LEO",
+                                          "ZIWEI_ZI_WEI_IN_LIFE"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    },
+    {
+        "tag_code":  "spirit.symbolic_themes.inner_refinement",
+        "category":  "spirit",
+        "polarity_default":  "neutral_positive",
+        "label_zh":  "Inner Refinement",
+        "label_en":  "Inner Refinement",
+        "description":  "Inner life develops through symbolic sensitivity, reflection, and subtle cultivation.",
+        "render_hints":  {
+                             "tone":  "reflective",
+                             "avoid_absolutes":  true
+                         },
+        "typical_evidence_patterns":  [
+                                          "NEPTUNE_IN_HOUSE_5",
+                                          "VENUS_TRINE_NEPTUNE",
+                                          "MOON_TRINE_NEPTUNE",
+                                          "ZIWEI_FORTUNE_MAIN_STAR"
+                                      ],
+        "systems_supported":  [
+                                  "western",
+                                  "ziwei"
+                              ],
+        "deprecated":  false
+    }
+] as TagSeed[],
+};
+
+export const TAG_SEEDS: TagSeed[] = TAG_REGISTRY.tags.filter((tag) => !tag.deprecated);

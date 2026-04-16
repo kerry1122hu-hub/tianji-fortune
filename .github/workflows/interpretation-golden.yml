@@ -1,0 +1,88 @@
+name: Interpretation Golden
+
+on:
+  pull_request:
+    paths:
+      - 'src/payment/interpretation_engine/**'
+      - '.github/workflows/interpretation-golden.yml'
+  workflow_dispatch:
+
+jobs:
+  golden:
+    name: Golden Regression
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run subset golden
+        id: subset
+        continue-on-error: true
+        shell: pwsh
+        run: npm run interpretation:golden
+
+      - name: Run strict golden
+        id: strict
+        continue-on-error: true
+        shell: pwsh
+        run: npm run interpretation:golden:strict
+
+      - name: Upload golden artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: interpretation-golden-artifacts
+          path: src/payment/interpretation_engine/golden/artifacts
+          if-no-files-found: error
+
+      - name: Append subset summary
+        if: always()
+        shell: pwsh
+        run: |
+          $summaryPath = 'src/payment/interpretation_engine/golden/artifacts/subset-summary.md'
+          if (Test-Path -LiteralPath $summaryPath) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Subset Golden"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Get-Content -Path $summaryPath | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          } else {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Subset Golden"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "Summary file not found."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          }
+
+      - name: Append strict summary
+        if: always()
+        shell: pwsh
+        run: |
+          $summaryPath = 'src/payment/interpretation_engine/golden/artifacts/strict-summary.md'
+          if (Test-Path -LiteralPath $summaryPath) {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Strict Golden"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Get-Content -Path $summaryPath | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          } else {
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Strict Golden"
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "Summary file not found."
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+          }
+
+      - name: Fail if golden checks failed
+        if: always()
+        shell: pwsh
+        run: |
+          if ('${{ steps.subset.outcome }}' -ne 'success' -or '${{ steps.strict.outcome }}' -ne 'success') {
+            throw 'Interpretation golden checks failed.'
+          }
