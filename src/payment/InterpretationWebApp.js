@@ -16,6 +16,12 @@ const navItems = [
   { key: 'pricing', label: '定价', sub: 'Pricing' },
   { key: 'account', label: '我的', sub: '登录/注册' },
 ];
+const genderOptions = ['女', '男', '其他'];
+const pricingPlans = [
+  { key: 'trial', title: '免费试用', price: '¥0', body: '先体验基础信息填写、报告入口浏览与首版解读结果。', cta: '正在使用' },
+  { key: 'monthly', title: '明空会员月卡', price: '¥68 / 月', body: '解锁完整长报告、月度更新、关系与财运专题。', cta: '开通月卡' },
+  { key: 'yearly', title: '明空会员年卡', price: '¥588 / 年', body: '适合长期跟踪人格、关系与年度节奏变化。', cta: '开通年卡' },
+];
 const resultTabs = [
   { key: 'overview', label: '总览' },
   { key: 'report', label: '报告' },
@@ -279,6 +285,15 @@ function BirthMomentRow({ year, month, day, hour, minute, setYear, setMonth, set
   );
 }
 
+function AccountField({ label, children }) {
+  return (
+    <View style={styles.accountField}>
+      <Text style={styles.accountLabel}>{label}</Text>
+      {children}
+    </View>
+  );
+}
+
 function CityPickerModal({ visible, onClose, selectedCityKey, onSelect }) {
   const [search, setSearch] = useState('');
   const selectedCity = useMemo(() => CITY_OPTIONS.find((city) => city.key === selectedCityKey) || CITY_OPTIONS[0], [selectedCityKey]);
@@ -348,6 +363,7 @@ function CityPickerModal({ visible, onClose, selectedCityKey, onSelect }) {
 
 export default function InterpretationWebApp() {
   const [activePage, setActivePage] = useState('home');
+  const [accountMode, setAccountMode] = useState('register');
   const [reportSearch, setReportSearch] = useState('');
   const [reportType, setReportType] = useState('past-life');
   const [focus, setFocus] = useState('self');
@@ -359,6 +375,13 @@ export default function InterpretationWebApp() {
   const [cityKey, setCityKey] = useState('beijing');
   const [citySearch, setCitySearch] = useState('');
   const [recentCityKeys, setRecentCityKeys] = useState([]);
+  const [accountName, setAccountName] = useState('');
+  const [accountGender, setAccountGender] = useState('女');
+  const [accountPhone, setAccountPhone] = useState('');
+  const [accountEmail, setAccountEmail] = useState('');
+  const [accountPassword, setAccountPassword] = useState('');
+  const [accountNotice, setAccountNotice] = useState('');
+  const [registrationComplete, setRegistrationComplete] = useState(false);
   const [resultTab, setResultTab] = useState('overview');
   const [reportChapterIndex, setReportChapterIndex] = useState(0);
   const [cityPickerVisible, setCityPickerVisible] = useState(false);
@@ -402,6 +425,15 @@ export default function InterpretationWebApp() {
       return next;
     });
   };
+  const onRegister = () => {
+    if (!accountName.trim() || !accountGender || !accountPhone.trim() || !accountEmail.trim() || !accountPassword.trim()) {
+      setAccountNotice('请先完整填写姓名、性别、出生日期、电话、邮箱和密码。');
+      setRegistrationComplete(false);
+      return;
+    }
+    setRegistrationComplete(true);
+    setAccountNotice('注册资料已保存，可以继续前往定价页开通会员。');
+  };
   const onGenerate = () => { setGeneratedResult(generateInterpretationPreview(buildInput({ reportType, year, month, day, hour, minute, cityKey, focus }))); setActivePage('reports'); setResultTab('overview'); setReportChapterIndex(0); };
 
   return (
@@ -443,8 +475,8 @@ export default function InterpretationWebApp() {
                       <Text style={styles.heroTitle}>你的私人 AI 占星顾问，用一份真正可读的报告理解自己。</Text>
                       <Text style={styles.heroBody}>明空星占把星盘计算、结构化解释与长篇报告结合在一起。你可以快速生成性格报告、关系报告、月度预测、兼容性、财务潜力、前世报告与生命进化报告，在手机和桌面端都获得清晰、可持续阅读的体验。</Text>
                       <View style={styles.heroActions}>
-                        <Pressable style={styles.primaryCompact} onPress={() => setActivePage('reports')}><Text style={styles.primaryText}>立即开始</Text></Pressable>
-                        <Pressable style={styles.secondaryBtn} onPress={() => setActivePage('pricing')}><Text style={styles.secondaryText}>免费试用</Text></Pressable>
+                        <Pressable style={styles.primaryCompact} onPress={() => { setAccountMode('register'); setActivePage('account'); }}><Text style={styles.primaryText}>立即开始</Text></Pressable>
+                        <Pressable style={styles.secondaryBtn} onPress={() => setActivePage('reports')}><Text style={styles.secondaryText}>免费试用</Text></Pressable>
                       </View>
                     </View>
                     <View style={[styles.heroShowcase, isNarrow && styles.heroShowcaseStack]}>
@@ -587,8 +619,82 @@ export default function InterpretationWebApp() {
           ) : null}
 
           {activePage === 'tools' ? <View style={styles.simplePage}><Text style={styles.sectionEyebrow}>Tools</Text><Text style={styles.sectionTitle}>工具页</Text></View> : null}
-          {activePage === 'pricing' ? <View style={styles.simplePage}><Text style={styles.sectionEyebrow}>Pricing</Text><Text style={styles.sectionTitle}>定价页</Text></View> : null}
-          {activePage === 'account' ? <View style={styles.simplePage}><Text style={styles.sectionEyebrow}>Account</Text><Text style={styles.sectionTitle}>登录 / 注册</Text></View> : null}
+          {activePage === 'pricing' ? (
+            <View style={styles.simplePage}>
+              <Text style={styles.sectionEyebrow}>Pricing</Text>
+              <Text style={styles.sectionTitle}>选择适合你的明空会员方案</Text>
+              <Text style={styles.sectionBody}>注册完成后即可从这里继续开通会员，解锁完整长报告、专题报告和更多持续更新内容。</Text>
+              <View style={styles.pricingGrid}>
+                {pricingPlans.map((plan) => (
+                  <View key={plan.key} style={styles.pricingCard}>
+                    <Text style={styles.pricingTitle}>{plan.title}</Text>
+                    <Text style={styles.pricingPrice}>{plan.price}</Text>
+                    <Text style={styles.pricingBody}>{plan.body}</Text>
+                    <Pressable style={styles.pricingCta}><Text style={styles.pricingCtaText}>{plan.cta}</Text></Pressable>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+          {activePage === 'account' ? (
+            <View style={styles.simplePage}>
+              <Text style={styles.sectionEyebrow}>Account</Text>
+              <Text style={styles.sectionTitle}>注册后继续进入会员定价与完整报告</Text>
+              <Text style={styles.sectionBody}>立即开始会先完成基础账号注册。注册页要求填写姓名、性别、出生日期、电话、邮箱与密码；完成后可直接前往定价页。</Text>
+              <View style={styles.accountPanel}>
+                <View style={styles.accountTabs}>
+                  <Pressable style={[styles.accountTab, accountMode === 'register' && styles.accountTabActive]} onPress={() => setAccountMode('register')}><Text style={[styles.accountTabText, accountMode === 'register' && styles.accountTabTextActive]}>注册</Text></Pressable>
+                  <Pressable style={[styles.accountTab, accountMode === 'login' && styles.accountTabActive]} onPress={() => setAccountMode('login')}><Text style={[styles.accountTabText, accountMode === 'login' && styles.accountTabTextActive]}>登录</Text></Pressable>
+                </View>
+                {accountMode === 'register' ? (
+                  <>
+                    <View style={styles.accountGrid}>
+                      <AccountField label="姓名">
+                        <TextInput value={accountName} onChangeText={setAccountName} style={styles.accountInput} placeholder="请输入姓名" placeholderTextColor="#8c92ad" />
+                      </AccountField>
+                      <AccountField label="性别">
+                        <View style={styles.genderRow}>
+                          {genderOptions.map((option) => {
+                            const active = option === accountGender;
+                            return <Pressable key={option} style={[styles.genderChip, active && styles.genderChipActive]} onPress={() => setAccountGender(option)}><Text style={[styles.genderChipText, active && styles.genderChipTextActive]}>{option}</Text></Pressable>;
+                          })}
+                        </View>
+                      </AccountField>
+                      <AccountField label="出生日期 / 时间">
+                        <BirthMomentRow year={year} month={month} day={day} hour={hour} minute={minute} setYear={setYear} setMonth={setMonth} setDay={setDay} setHour={setHour} setMinute={setMinute} dayOptions={dayOptions} />
+                      </AccountField>
+                      <AccountField label="手机号码">
+                        <TextInput value={accountPhone} onChangeText={setAccountPhone} style={styles.accountInput} placeholder="请输入手机号码" placeholderTextColor="#8c92ad" keyboardType="phone-pad" />
+                      </AccountField>
+                      <AccountField label="邮箱">
+                        <TextInput value={accountEmail} onChangeText={setAccountEmail} style={styles.accountInput} placeholder="请输入邮箱" placeholderTextColor="#8c92ad" keyboardType="email-address" autoCapitalize="none" />
+                      </AccountField>
+                      <AccountField label="设置密码">
+                        <TextInput value={accountPassword} onChangeText={setAccountPassword} style={styles.accountInput} placeholder="请设置密码" placeholderTextColor="#8c92ad" secureTextEntry autoCapitalize="none" />
+                      </AccountField>
+                    </View>
+                    <Pressable style={styles.primaryBtn} onPress={onRegister}><Text style={styles.primaryText}>完成注册</Text></Pressable>
+                    {accountNotice ? <Text style={styles.accountNotice}>{accountNotice}</Text> : null}
+                    {registrationComplete ? (
+                      <Pressable style={styles.secondaryWideBtn} onPress={() => setActivePage('pricing')}>
+                        <Text style={styles.secondaryText}>前往定价页</Text>
+                      </Pressable>
+                    ) : null}
+                  </>
+                ) : (
+                  <View style={styles.loginPanel}>
+                    <AccountField label="邮箱 / 手机号">
+                      <TextInput value={accountEmail} onChangeText={setAccountEmail} style={styles.accountInput} placeholder="请输入邮箱或手机号" placeholderTextColor="#8c92ad" />
+                    </AccountField>
+                    <AccountField label="密码">
+                      <TextInput value={accountPassword} onChangeText={setAccountPassword} style={styles.accountInput} placeholder="请输入密码" placeholderTextColor="#8c92ad" secureTextEntry />
+                    </AccountField>
+                    <Pressable style={styles.primaryBtn} onPress={() => setActivePage('pricing')}><Text style={styles.primaryText}>登录并查看定价</Text></Pressable>
+                  </View>
+                )}
+              </View>
+            </View>
+          ) : null}
         </View>
       </ScrollView>
     </>
@@ -610,5 +716,5 @@ const styles = StyleSheet.create({
   wheel: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#fafcfb', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)' }, wheelOuter: { position: 'absolute', borderWidth: 16, borderColor: '#263f38' }, wheelInner: { position: 'absolute', borderWidth: 1, borderColor: 'rgba(23,34,29,0.18)' }, wheelSign: { position: 'absolute', color: '#17362f', fontSize: 12, lineHeight: 14, fontWeight: '800' }, houseDot: { position: 'absolute', width: 24, height: 24, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(23,34,29,0.12)' }, houseDotText: { color: '#17362f', fontSize: 12, lineHeight: 14, fontWeight: '800' }, planetDot: { position: 'absolute', width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, planetDotText: { color: '#fff', fontSize: 16, lineHeight: 18, fontWeight: '800' }, planetTable: { flex: 1, minWidth: 250, gap: 10 }, planetRow: { borderRadius: 8, backgroundColor: '#f6faf8', borderWidth: 1, borderColor: 'rgba(23,34,29,0.08)', padding: 12 }, planetName: { color: '#17221d', fontSize: 15, lineHeight: 18, fontWeight: '800' }, planetPos: { marginTop: 6, color: '#264038', fontSize: 14, lineHeight: 18, fontWeight: '700' }, planetMeta: { marginTop: 4, color: '#70837c', fontSize: 12, lineHeight: 16, fontWeight: '700' },
   miniCard: { marginTop: 16, borderRadius: 16, backgroundColor: '#f7f7fd', borderWidth: 1, borderColor: 'rgba(107,84,212,0.08)', padding: 16 }, miniTitle: { color: '#171b31', fontSize: 18, lineHeight: 24, fontWeight: '800' }, miniBody: { marginTop: 8, color: '#626a84', fontSize: 15, lineHeight: 24 }, moduleGrid: { marginTop: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 14 }, moduleCard: { flexGrow: 1, flexBasis: 180, minWidth: 180, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(107,84,212,0.08)', backgroundColor: '#f7f7fd', padding: 16 }, moduleTitle: { color: '#171b31', fontSize: 15, lineHeight: 18, fontWeight: '800' }, moduleBody: { marginTop: 8, color: '#626a84', fontSize: 14, lineHeight: 22 }, reportCover: { borderRadius: 22, padding: 24, backgroundColor: '#171338' }, reportCoverEyebrow: { color: '#b8a4ff', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, reportCoverTitle: { marginTop: 10, color: '#ffffff', fontSize: 32, lineHeight: 38, fontWeight: '800', maxWidth: 760 }, reportCoverBody: { marginTop: 12, color: 'rgba(255,255,255,0.84)', fontSize: 15, lineHeight: 24, maxWidth: 760 }, reportCoverMetaRow: { marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, reportMetaChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' }, reportMetaChipText: { color: '#f4f2ff', fontSize: 13, lineHeight: 16, fontWeight: '700' }, reportToc: { marginTop: 18, borderRadius: 18, backgroundColor: '#f7f7fd', borderWidth: 1, borderColor: 'rgba(107,84,212,0.08)', padding: 18 }, reportTocTitle: { color: '#171b31', fontSize: 18, lineHeight: 24, fontWeight: '800' }, sectionRail: { marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, sectionPill: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(107,84,212,0.12)' }, sectionPillActive: { backgroundColor: '#6b54d4', borderColor: '#6b54d4' }, sectionPillNumber: { color: '#6b54d4', fontSize: 12, lineHeight: 14, fontWeight: '800' }, sectionPillNumberActive: { color: '#ffffff' }, sectionPillText: { color: '#3c4260', fontSize: 13, lineHeight: 16, fontWeight: '700' }, sectionPillTextActive: { color: '#ffffff' }, reportBodyWrap: { marginTop: 8, gap: 16 }, reportSectionCard: { marginTop: 14, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(33,39,67,0.08)', backgroundColor: '#ffffff', padding: 20 }, reportSectionCardFeatured: { borderColor: 'rgba(107,84,212,0.24)', backgroundColor: '#faf8ff', shadowColor: '#6b54d4', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } }, reportSectionIndex: { color: '#6b54d4', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, reportSectionTitle: { marginTop: 8, color: '#171b31', fontSize: 22, lineHeight: 28, fontWeight: '800' }, reportSectionLead: { marginTop: 10, color: '#313754', fontSize: 15, lineHeight: 24, fontWeight: '700' }, reportSectionBody: { marginTop: 10, color: '#626a84', fontSize: 15, lineHeight: 25 }, reportCallout: { marginTop: 14, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(246,191,69,0.28)', backgroundColor: '#fff9ec', padding: 16 }, reportCalloutLabel: { color: '#a36b24', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, reportCalloutText: { marginTop: 8, color: '#6a4a21', fontSize: 14, lineHeight: 22, fontWeight: '600' }, actionRow: { marginTop: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 12, borderRadius: 16, backgroundColor: '#f7f7fd', borderWidth: 1, borderColor: 'rgba(107,84,212,0.08)', padding: 16 }, actionIndex: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#6b54d4', alignItems: 'center', justifyContent: 'center' }, actionIndexText: { color: '#ffffff', fontSize: 13, lineHeight: 16, fontWeight: '800' }, actionText: { flex: 1, color: '#3c4260', fontSize: 15, lineHeight: 24, fontWeight: '600' }, engineNote: { marginTop: 16, borderRadius: 16, backgroundColor: '#f7f7fd', borderWidth: 1, borderColor: 'rgba(107,84,212,0.08)', padding: 16 }, engineTitle: { color: '#171b31', fontSize: 15, lineHeight: 18, fontWeight: '800' }, engineBody: { marginTop: 6, color: '#626a84', fontSize: 13, lineHeight: 20 }, detailRow: { paddingTop: 14, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(107,84,212,0.08)' }, detailTitle: { color: '#171b31', fontSize: 17, lineHeight: 22, fontWeight: '800' }, detailBody: { marginTop: 8, color: '#626a84', fontSize: 15, lineHeight: 22 }, tagWrap: { marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, tag: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#f3efff', borderWidth: 1, borderColor: 'rgba(107,84,212,0.12)' }, tagText: { color: '#4c3eb1', fontSize: 14, lineHeight: 18, fontWeight: '700' },
   modalScrim: { flex: 1, backgroundColor: 'rgba(9,16,14,0.48)', alignItems: 'center', justifyContent: 'center', padding: 18 }, modalCard: { width: '100%', maxWidth: 920, height: '88%', maxHeight: 780, borderRadius: 18, backgroundColor: '#fbfdfc', overflow: 'hidden' }, modalHeader: { paddingHorizontal: 18, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, modalTitle: { color: '#17221d', fontSize: 22, lineHeight: 26, fontWeight: '800' }, modalDone: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: '#eef3ef' }, modalDoneText: { color: '#17362f', fontSize: 14, lineHeight: 18, fontWeight: '800' }, modalSearchWrap: { padding: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' }, modalSearchInput: { height: 52, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(23,34,29,0.14)', backgroundColor: '#fff', paddingHorizontal: 14, color: '#17221d', fontSize: 15 }, modalBody: { paddingHorizontal: 18 }, searchRow: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' }, searchRowActive: { backgroundColor: '#f4f8f5' }, searchTitle: { color: '#17221d', fontSize: 15, lineHeight: 18, fontWeight: '800' }, searchTitleActive: { color: '#17362f' }, searchMeta: { marginTop: 4, color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityModeHint: { paddingHorizontal: 18, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)', backgroundColor: '#f6faf8' }, cityModeText: { color: '#5c6f67', fontSize: 13, lineHeight: 18, fontWeight: '700' }, cityColumns: { flex: 1, flexDirection: 'row', minHeight: 0 }, regionList: { width: 220, flexGrow: 0, flexShrink: 0, borderRightWidth: 1, borderRightColor: 'rgba(23,34,29,0.08)', backgroundColor: '#f3f7f4' }, regionItem: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.05)' }, regionItemActive: { backgroundColor: '#17362f' }, regionText: { color: '#264038', fontSize: 14, lineHeight: 18, fontWeight: '700' }, regionTextActive: { color: '#f7faf8' }, regionCount: { marginTop: 4, color: '#95a8a0', fontSize: 11, lineHeight: 14, fontWeight: '700' }, regionCountActive: { color: 'rgba(247,250,248,0.72)' }, regionHint: { paddingHorizontal: 16, paddingVertical: 8 }, regionHintText: { color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityList: { flex: 1, minHeight: 0, paddingHorizontal: 18 }, cityPaneHeader: { paddingTop: 12, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' }, cityPaneTitle: { color: '#17221d', fontSize: 16, lineHeight: 20, fontWeight: '800' }, cityPaneMeta: { marginTop: 4, color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityListItem: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(23,34,29,0.08)' }, cityListItemActive: { backgroundColor: '#f4f8f5' }, cityListTitle: { color: '#17221d', fontSize: 15, lineHeight: 18, fontWeight: '800' }, cityListTitleActive: { color: '#17362f' }, cityListMeta: { marginTop: 4, color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityListMetaActive: { color: '#406257' }, cityListMetaSub: { marginTop: 4, color: '#98a9a2', fontSize: 11, lineHeight: 15, fontWeight: '700' }, cityListMetaSubActive: { color: '#5d7d72' }, cityEmpty: { paddingVertical: 28, alignItems: 'center', justifyContent: 'center' }, cityEmptyText: { maxWidth: 320, color: '#72857d', fontSize: 13, lineHeight: 20, fontWeight: '700', textAlign: 'center' },
-  simplePage: { paddingHorizontal: 20, paddingTop: 24, gap: 14 },
+  simplePage: { paddingHorizontal: 20, paddingTop: 24, gap: 14 }, pricingGrid: { marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, pricingCard: { flexGrow: 1, flexBasis: 240, minWidth: 240, borderRadius: 18, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(33,39,67,0.08)', padding: 22, shadowColor: '#1d2140', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } }, pricingTitle: { color: '#171b31', fontSize: 22, lineHeight: 28, fontWeight: '800' }, pricingPrice: { marginTop: 12, color: '#6b54d4', fontSize: 30, lineHeight: 34, fontWeight: '800' }, pricingBody: { marginTop: 10, color: '#626a84', fontSize: 14, lineHeight: 22 }, pricingCta: { marginTop: 18, height: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#171338' }, pricingCtaText: { color: '#ffffff', fontSize: 14, lineHeight: 18, fontWeight: '800' }, accountPanel: { marginTop: 18, borderRadius: 22, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(33,39,67,0.08)', padding: 22, shadowColor: '#1d2140', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } }, accountTabs: { flexDirection: 'row', gap: 10 }, accountTab: { minWidth: 112, height: 42, borderRadius: 999, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(107,84,212,0.16)', backgroundColor: '#ffffff' }, accountTabActive: { backgroundColor: '#6b54d4', borderColor: '#6b54d4' }, accountTabText: { color: '#535a77', fontSize: 14, lineHeight: 18, fontWeight: '800' }, accountTabTextActive: { color: '#ffffff' }, accountGrid: { marginTop: 18, gap: 16 }, accountField: { gap: 8 }, accountLabel: { color: '#4d5370', fontSize: 13, lineHeight: 18, fontWeight: '700' }, accountInput: { height: 50, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(107,84,212,0.14)', backgroundColor: '#fbfaff', paddingHorizontal: 14, color: '#171b31', fontSize: 15 }, genderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, genderChip: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: 'rgba(107,84,212,0.14)', backgroundColor: '#ffffff' }, genderChipActive: { backgroundColor: '#6b54d4', borderColor: '#6b54d4' }, genderChipText: { color: '#535a77', fontSize: 14, lineHeight: 18, fontWeight: '800' }, genderChipTextActive: { color: '#ffffff' }, accountNotice: { marginTop: 12, color: '#6b54d4', fontSize: 14, lineHeight: 22, fontWeight: '700' }, secondaryWideBtn: { marginTop: 14, height: 50, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#5450f6' }, loginPanel: { marginTop: 18, gap: 16 },
 });
