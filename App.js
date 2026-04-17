@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import React, { useEffect } from 'react';
 import { Platform, Text, View } from 'react-native';
-import MingMeV2App from './src/v2/MingMeV2App';
+import MingSkyNativeApp from './src/v2/MingMeV2App';
 import InterpretationWebApp from './src/payment/InterpretationWebApp';
 import { ensurePwaHead, forcePwaRefresh, registerPwaServiceWorker, trackPwaEvent } from './src/utils/pwaWeb';
 
@@ -101,7 +101,7 @@ export default function App() {
 
   return (
     <MingSkyErrorBoundary>
-      {Platform.OS === 'web' ? <InterpretationWebApp /> : <MingMeV2App />}
+      {Platform.OS === 'web' ? <InterpretationWebApp /> : <MingSkyNativeApp />}
     </MingSkyErrorBoundary>
   );
 }
