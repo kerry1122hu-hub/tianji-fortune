@@ -1,0 +1,57 @@
+{
+  "pack_version": "1.0.0",
+  "product_name": "MingSky Astrology",
+  "product_name_zh": "明空星占",
+  "source_commit": "ad9d09f",
+  "description": "Extract the MingSky app shell, branding assets, interpretation UI, city registry, and interpretation engine foundation from the mixed repository history.",
+  "include_paths": [
+    "App.js",
+    "app.json",
+    "babel.config.js",
+    "index.js",
+    "package.json",
+    "package-lock.json",
+    "tsconfig.json",
+    "assets/adaptive-icon.png",
+    "assets/android-icon-background.png",
+    "assets/android-icon-foreground.png",
+    "assets/android-icon-monochrome.png",
+    "assets/favicon.png",
+    "assets/icon.png",
+    "assets/mingsky-logo.png",
+    "assets/splash-icon.png",
+    "assets/splash.png",
+    "public/app.webmanifest",
+    "public/apple-touch-icon.png",
+    "public/manifest.json",
+    "public/offline.html",
+    "public/service-worker.js",
+    "public/icons/apple-touch-icon.png",
+    "public/icons/icon-192.png",
+    "public/icons/icon-512.png",
+    "public/icons/icon-512-maskable.png",
+    "src/payment/InterpretationWebApp.js",
+    "src/payment/calculationAdapter.js",
+    "src/payment/generatedCityRegistry.js",
+    "src/payment/interpretationEngineBridge.js",
+    "src/payment/astrology-engine-v1",
+    "src/payment/interpretation_engine",
+    "src/payment/scripts",
+    "src/services/aiBackendConnector.js",
+    "src/utils/pwaWeb.js"
+  ],
+  "excluded_paths": [
+    "src/v2",
+    "src/components/MingMeV2_UI.tsx",
+    "src/utils/aiService.js",
+    "src/utils/aiReading.js",
+    "src/services/aiCompanion.js",
+    "src/payment/PaywallScreen.js"
+  ],
+  "notes": [
+    "This pack is a code provenance bundle, not a guarantee that every environment variable is already product-safe.",
+    "Bundle ids, package ids, deployment targets, tracking namespaces, and backend credentials must be separated after extraction.",
+    "Do not continue MingSky development in the MingMe repository."
+  ]
+}
+
