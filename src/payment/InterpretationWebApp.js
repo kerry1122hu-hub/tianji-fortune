@@ -8,6 +8,7 @@ const birthOptions = getBirthFormOptions();
 const WHEEL_ITEM_HEIGHT = 48;
 const WHEEL_VIEWPORT_HEIGHT = 176;
 const WHEEL_VERTICAL_PADDING = (WHEEL_VIEWPORT_HEIGHT - WHEEL_ITEM_HEIGHT) / 2;
+const RECENT_CITY_STORAGE_KEY = 'mingsky_recent_cities_v1';
 const navItems = [
   { key: 'home', label: '家', sub: 'Home' },
   { key: 'reports', label: '报告', sub: 'Reports' },
@@ -45,6 +46,27 @@ function cityMatchesQuery(city, rawQuery) {
   const compactHaystack = haystack.replace(/\s+/g, '');
   const compactQuery = query.replace(/\s+/g, '');
   return haystack.includes(query) || compactHaystack.includes(compactQuery);
+}
+
+function readRecentCityKeys() {
+  try {
+    const storage = globalThis?.localStorage;
+    if (!storage) return [];
+    const parsed = JSON.parse(storage.getItem(RECENT_CITY_STORAGE_KEY) || '[]');
+    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function writeRecentCityKeys(keys) {
+  try {
+    const storage = globalThis?.localStorage;
+    if (!storage) return;
+    storage.setItem(RECENT_CITY_STORAGE_KEY, JSON.stringify(keys));
+  } catch (error) {
+    // ignore persistence errors in private mode or restricted environments
+  }
 }
 
 function ReportCard({ report, active, onPress }) {
@@ -166,13 +188,14 @@ function getChartLocationLine(chartMeta) {
   return `${formatCoordinate(chartMeta.latitude, 'N', 'S')} · ${formatCoordinate(chartMeta.longitude, 'E', 'W')}`;
 }
 
-function InlineCitySelector({ selectedCity, search, onChangeSearch, onSelectCity, onOpenLibrary }) {
+function InlineCitySelector({ selectedCity, search, onChangeSearch, onSelectCity, onOpenLibrary, recentCities }) {
+  const searchResults = useMemo(() => search.trim() ? CITY_OPTIONS.filter((city) => cityMatchesQuery(city, search)).slice(0, 8) : [], [search]);
   const quickResults = useMemo(() => {
-    if (!search.trim()) {
-      return CITY_OPTIONS.filter((city) => city.region === 'China').slice(0, 8);
-    }
-    return CITY_OPTIONS.filter((city) => cityMatchesQuery(city, search)).slice(0, 10);
-  }, [search]);
+    if (recentCities?.length) return recentCities.slice(0, 6);
+    return CITY_OPTIONS.filter((city) => city.region === 'China').slice(0, 8);
+  }, [recentCities]);
+  const suggestionTitle = search.trim() ? '联想结果' : '热门城市';
+  const suggestionItems = search.trim() ? searchResults : quickResults;
 
   return (
     <View style={styles.cityInlineWrap}>
@@ -183,6 +206,24 @@ function InlineCitySelector({ selectedCity, search, onChangeSearch, onSelectCity
         placeholder="搜索城市：北京 / beijing / bj"
         placeholderTextColor="#72857d"
       />
+      {search.trim() ? (
+        <View style={styles.citySuggestionPanel}>
+          <Text style={styles.citySuggestionLabel}>联想结果</Text>
+          {searchResults.length ? searchResults.map((city) => (
+            <Pressable key={city.key} style={styles.citySuggestionItem} onPress={() => { onSelectCity(city.key); onChangeSearch(''); }}>
+              <View style={styles.citySuggestionTextWrap}>
+                <Text style={styles.citySuggestionTitle}>{getCityDisplayLabel(city)}</Text>
+                <Text style={styles.citySuggestionMeta}>{getCityTierLabel(city)} · {city.province || city.region}</Text>
+              </View>
+              <Text style={styles.citySuggestionAction}>选择</Text>
+            </Pressable>
+          )) : (
+            <View style={styles.citySuggestionEmpty}>
+              <Text style={styles.citySuggestionEmptyText}>没有找到匹配城市，试试中文、拼音全拼或首字母。</Text>
+            </View>
+          )}
+        </View>
+      ) : null}
       <View style={styles.cityCurrentRow}>
         <View>
           <Text style={styles.cityCurrentTitle}>{getCityDisplayLabel(selectedCity)}</Text>
@@ -193,8 +234,24 @@ function InlineCitySelector({ selectedCity, search, onChangeSearch, onSelectCity
           <Text style={styles.cityLibraryBtnText}>更多城市</Text>
         </Pressable>
       </View>
+      {recentCities?.length ? (
+        <View style={styles.cityRecentWrap}>
+          <Text style={styles.cityRecentLabel}>最近使用</Text>
+          <View style={styles.cityRecentRow}>
+            {recentCities.slice(0, 6).map((city) => {
+              const active = city.key === selectedCity.key;
+              return (
+                <Pressable key={`recent-${city.key}`} style={[styles.cityRecentChip, active && styles.cityRecentChipActive]} onPress={() => onSelectCity(city.key)}>
+                  <Text style={[styles.cityRecentChipText, active && styles.cityRecentChipTextActive]}>{city.nativeLabel || city.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+      <Text style={styles.citySuggestionLabel}>{suggestionTitle}</Text>
       <View style={styles.cityQuickList}>
-        {quickResults.map((city) => {
+        {suggestionItems.map((city) => {
           const active = city.key === selectedCity.key;
           return (
             <Pressable key={city.key} style={[styles.cityQuickItem, active && styles.cityQuickItemActive]} onPress={() => { onSelectCity(city.key); onChangeSearch(''); }}>
@@ -301,6 +358,7 @@ export default function InterpretationWebApp() {
   const [minute, setMinute] = useState('30');
   const [cityKey, setCityKey] = useState('beijing');
   const [citySearch, setCitySearch] = useState('');
+  const [recentCityKeys, setRecentCityKeys] = useState([]);
   const [resultTab, setResultTab] = useState('overview');
   const [reportChapterIndex, setReportChapterIndex] = useState(0);
   const [cityPickerVisible, setCityPickerVisible] = useState(false);
@@ -309,6 +367,7 @@ export default function InterpretationWebApp() {
   const isNarrow = width < 980;
   const dayOptions = useMemo(() => getDayOptions(year, month), [year, month]);
   const selectedCity = useMemo(() => CITY_OPTIONS.find((city) => city.key === cityKey) || CITY_OPTIONS[0], [cityKey]);
+  const recentCities = useMemo(() => recentCityKeys.map((key) => CITY_OPTIONS.find((city) => city.key === key)).filter(Boolean), [recentCityKeys]);
   const filteredReports = useMemo(() => !reportSearch.trim() ? reportOptions : reportOptions.filter((report) => `${report.title} ${report.intro}`.toLowerCase().includes(reportSearch.trim().toLowerCase())), [reportSearch]);
   const activeReport = useMemo(() => reportOptions.find((item) => item.key === reportType) || reportOptions[0], [reportType]);
   const reportChapters = useMemo(() => {
@@ -331,12 +390,23 @@ export default function InterpretationWebApp() {
     ];
   }, [generatedResult]);
   const activeChapter = reportChapters[reportChapterIndex] || reportChapters[0];
+  useEffect(() => {
+    setRecentCityKeys(readRecentCityKeys());
+  }, []);
   const onReportChange = (report) => { setReportType(report.key); setFocus(report.focus); setReportChapterIndex(0); };
+  const onSelectCity = (nextKey) => {
+    setCityKey(nextKey);
+    setRecentCityKeys((previous) => {
+      const next = [nextKey, ...previous.filter((item) => item !== nextKey)].slice(0, 8);
+      writeRecentCityKeys(next);
+      return next;
+    });
+  };
   const onGenerate = () => { setGeneratedResult(generateInterpretationPreview(buildInput({ reportType, year, month, day, hour, minute, cityKey, focus }))); setActivePage('reports'); setResultTab('overview'); setReportChapterIndex(0); };
 
   return (
     <>
-      <CityPickerModal visible={cityPickerVisible} onClose={() => setCityPickerVisible(false)} selectedCityKey={cityKey} onSelect={setCityKey} />
+      <CityPickerModal visible={cityPickerVisible} onClose={() => setCityPickerVisible(false)} selectedCityKey={cityKey} onSelect={onSelectCity} />
       <ScrollView style={styles.page} contentContainerStyle={styles.content}>
         <View style={styles.shell}>
           <View style={styles.topNav}>
@@ -425,7 +495,7 @@ export default function InterpretationWebApp() {
                     <Text style={styles.label}>出生年 / 月 / 日 / 时 / 分</Text>
                     <BirthMomentRow year={year} month={month} day={day} hour={hour} minute={minute} setYear={setYear} setMonth={setMonth} setDay={setDay} setHour={setHour} setMinute={setMinute} dayOptions={dayOptions} />
                     <Text style={styles.label}>出生城市</Text>
-                    <InlineCitySelector selectedCity={selectedCity} search={citySearch} onChangeSearch={setCitySearch} onSelectCity={setCityKey} onOpenLibrary={() => setCityPickerVisible(true)} />
+                    <InlineCitySelector selectedCity={selectedCity} search={citySearch} onChangeSearch={setCitySearch} onSelectCity={onSelectCity} onOpenLibrary={() => setCityPickerVisible(true)} recentCities={recentCities} />
                     <Pressable style={styles.primaryBtn} onPress={onGenerate}><Text style={styles.primaryText}>生成解读</Text></Pressable>
                   </View>
                 </View>
@@ -476,7 +546,7 @@ export default function InterpretationWebApp() {
                   <Text style={styles.label}>出生年 / 月 / 日 / 时 / 分</Text>
                   <BirthMomentRow year={year} month={month} day={day} hour={hour} minute={minute} setYear={setYear} setMonth={setMonth} setDay={setDay} setHour={setHour} setMinute={setMinute} dayOptions={dayOptions} />
                   <Text style={styles.label}>出生城市</Text>
-                  <InlineCitySelector selectedCity={selectedCity} search={citySearch} onChangeSearch={setCitySearch} onSelectCity={setCityKey} onOpenLibrary={() => setCityPickerVisible(true)} />
+                  <InlineCitySelector selectedCity={selectedCity} search={citySearch} onChangeSearch={setCitySearch} onSelectCity={onSelectCity} onOpenLibrary={() => setCityPickerVisible(true)} recentCities={recentCities} />
                   <Text style={styles.label}>先看哪条主线</Text>
                   <View style={styles.focusWrap}>{focusOptions.map((option) => { const active = option.key === focus; return <Pressable key={option.key} onPress={() => setFocus(option.key)} style={[styles.focusChip, active && styles.focusChipActive]}><Text style={[styles.focusText, active && styles.focusTextActive]}>{option.label}</Text></Pressable>; })}</View>
                   <Pressable style={styles.primaryBtn} onPress={onGenerate}><Text style={styles.primaryText}>生成解读</Text></Pressable>
@@ -533,7 +603,7 @@ const styles = StyleSheet.create({
   searchInput: { marginTop: 14, height: 52, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.14)', backgroundColor: '#fff', paddingHorizontal: 16, color: '#17221d', fontSize: 15, maxWidth: 420 }, reportCard: { minWidth: 220, flexGrow: 1, flexBasis: 220, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.1)', backgroundColor: '#f8fbf9', padding: 18 }, reportCardFeatured: { backgroundColor: '#112722', borderColor: '#112722' }, reportCardActive: { borderColor: '#d69a3b', borderWidth: 2 }, reportTitle: { color: '#17221d', fontSize: 19, lineHeight: 24, fontWeight: '800' }, reportTitleFeatured: { color: '#f7faf8' }, badge: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8, backgroundColor: '#d69a3b', color: '#fffaf1', fontSize: 11, fontWeight: '800' }, reportBody: { marginTop: 14, color: '#51615a', fontSize: 14, lineHeight: 20 }, reportBodyFeatured: { color: 'rgba(247,250,248,0.84)' },
   workspace: { flexDirection: 'row', gap: 22, paddingHorizontal: 20, paddingTop: 24 }, workspaceStack: { flexDirection: 'column' }, formPanel: { flex: 0.96, minWidth: 320, borderRadius: 18, backgroundColor: '#ffffff', padding: 22, borderWidth: 1, borderColor: 'rgba(33,39,67,0.08)', shadowColor: '#1d2140', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } }, panelTitle: { color: '#171b31', fontSize: 30, lineHeight: 36, fontWeight: '800' }, panelBody: { marginTop: 8, color: '#626a84', fontSize: 15, lineHeight: 24 }, label: { marginTop: 18, color: '#4d5370', fontSize: 13, lineHeight: 18, fontWeight: '700' }, activeText: { marginTop: 8, color: '#6b54d4', fontSize: 16, lineHeight: 22, fontWeight: '800' },
   wheelRow: { marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, birthMomentWrap: { marginTop: 12, borderRadius: 22, borderWidth: 1, borderColor: 'rgba(107,84,212,0.14)', backgroundColor: '#ffffff', paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10, shadowColor: '#1d2140', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 6 } }, birthMomentRow: { gap: 12, paddingRight: 18, paddingBottom: 4, alignItems: 'flex-start' }, wheelColumn: { gap: 10 }, wheelLabel: { color: '#6f7693', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase', paddingLeft: 4 }, wheelShell: { position: 'relative' }, wheelViewport: { height: WHEEL_VIEWPORT_HEIGHT, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(107,84,212,0.14)', backgroundColor: '#f8f7ff', shadowColor: '#1d2140', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } }, wheelContent: { paddingVertical: WHEEL_VERTICAL_PADDING }, wheelItem: { height: WHEEL_ITEM_HEIGHT, alignItems: 'center', justifyContent: 'center', marginHorizontal: 8, borderRadius: 14 }, wheelItemActive: { backgroundColor: '#6b54d4', shadowColor: '#6b54d4', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } }, wheelText: { color: '#4d5370', fontSize: 16, lineHeight: 19, fontWeight: '700' }, wheelTextActive: { color: '#ffffff' }, wheelSelectionBand: { position: 'absolute', left: 8, right: 8, top: WHEEL_VERTICAL_PADDING, height: WHEEL_ITEM_HEIGHT, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(107,84,212,0.24)', backgroundColor: 'rgba(107,84,212,0.08)' }, wheelFadeTop: { position: 'absolute', left: 1, right: 1, top: 1, height: 40, borderTopLeftRadius: 18, borderTopRightRadius: 18, backgroundColor: 'rgba(248,247,255,0.9)' }, wheelFadeBottom: { position: 'absolute', left: 1, right: 1, bottom: 1, height: 40, borderBottomLeftRadius: 18, borderBottomRightRadius: 18, backgroundColor: 'rgba(248,247,255,0.9)' },
-  cityInlineWrap: { marginTop: 10, gap: 10, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(107,84,212,0.1)', backgroundColor: '#fbfaff', padding: 12 }, citySearchInput: { height: 50, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(107,84,212,0.12)', backgroundColor: '#f7f7fd', paddingHorizontal: 14, color: '#17221d', fontSize: 15 }, cityCurrentRow: { minHeight: 82, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(107,84,212,0.12)', backgroundColor: '#f7f7fd', paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }, cityCurrentTitle: { color: '#171b31', fontSize: 16, lineHeight: 20, fontWeight: '800' }, cityCurrentMeta: { marginTop: 4, color: '#6c7390', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityCurrentMetaSub: { marginTop: 4, color: '#9aa0b6', fontSize: 11, lineHeight: 15, fontWeight: '700' }, cityLibraryBtn: { borderRadius: 10, backgroundColor: '#6b54d4', paddingHorizontal: 12, paddingVertical: 9 }, cityLibraryBtnText: { color: '#ffffff', fontSize: 12, lineHeight: 16, fontWeight: '800' }, cityQuickList: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, cityQuickItem: { minWidth: 120, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(107,84,212,0.1)', backgroundColor: '#ffffff', paddingHorizontal: 12, paddingVertical: 12 }, cityQuickItemActive: { backgroundColor: '#6b54d4', borderColor: '#6b54d4' }, cityQuickTitle: { color: '#171b31', fontSize: 13, lineHeight: 16, fontWeight: '800' }, cityQuickTitleActive: { color: '#ffffff' }, cityQuickMeta: { marginTop: 4, color: '#72857d', fontSize: 11, lineHeight: 14, fontWeight: '700' }, cityQuickMetaActive: { color: 'rgba(255,255,255,0.8)' },
+  cityInlineWrap: { marginTop: 10, gap: 10, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(107,84,212,0.1)', backgroundColor: '#fbfaff', padding: 12 }, citySearchInput: { height: 52, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(107,84,212,0.14)', backgroundColor: '#ffffff', paddingHorizontal: 14, color: '#17221d', fontSize: 15, shadowColor: '#1d2140', shadowOpacity: 0.03, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }, citySuggestionPanel: { borderRadius: 16, borderWidth: 1, borderColor: 'rgba(107,84,212,0.12)', backgroundColor: '#ffffff', padding: 10, gap: 6, shadowColor: '#1d2140', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } }, citySuggestionLabel: { color: '#69708b', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, citySuggestionItem: { minHeight: 58, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, backgroundColor: '#f8f7ff', borderWidth: 1, borderColor: 'rgba(107,84,212,0.08)' }, citySuggestionTextWrap: { flex: 1, gap: 4 }, citySuggestionTitle: { color: '#171b31', fontSize: 14, lineHeight: 18, fontWeight: '800' }, citySuggestionMeta: { color: '#72857d', fontSize: 12, lineHeight: 16, fontWeight: '700' }, citySuggestionAction: { color: '#6b54d4', fontSize: 12, lineHeight: 16, fontWeight: '800' }, citySuggestionEmpty: { paddingHorizontal: 12, paddingVertical: 14, borderRadius: 12, backgroundColor: '#f8f7ff' }, citySuggestionEmptyText: { color: '#72857d', fontSize: 12, lineHeight: 18, fontWeight: '700' }, cityCurrentRow: { minHeight: 82, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(107,84,212,0.12)', backgroundColor: '#f7f7fd', paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }, cityCurrentTitle: { color: '#171b31', fontSize: 16, lineHeight: 20, fontWeight: '800' }, cityCurrentMeta: { marginTop: 4, color: '#6c7390', fontSize: 12, lineHeight: 16, fontWeight: '700' }, cityCurrentMetaSub: { marginTop: 4, color: '#9aa0b6', fontSize: 11, lineHeight: 15, fontWeight: '700' }, cityLibraryBtn: { borderRadius: 10, backgroundColor: '#6b54d4', paddingHorizontal: 12, paddingVertical: 9 }, cityLibraryBtnText: { color: '#ffffff', fontSize: 12, lineHeight: 16, fontWeight: '800' }, cityRecentWrap: { gap: 8 }, cityRecentLabel: { color: '#69708b', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, cityRecentRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, cityRecentChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(107,84,212,0.12)' }, cityRecentChipActive: { backgroundColor: '#6b54d4', borderColor: '#6b54d4' }, cityRecentChipText: { color: '#4d5370', fontSize: 12, lineHeight: 16, fontWeight: '800' }, cityRecentChipTextActive: { color: '#ffffff' }, cityQuickList: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, cityQuickItem: { minWidth: 120, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(107,84,212,0.1)', backgroundColor: '#ffffff', paddingHorizontal: 12, paddingVertical: 12 }, cityQuickItemActive: { backgroundColor: '#6b54d4', borderColor: '#6b54d4' }, cityQuickTitle: { color: '#171b31', fontSize: 13, lineHeight: 16, fontWeight: '800' }, cityQuickTitleActive: { color: '#ffffff' }, cityQuickMeta: { marginTop: 4, color: '#72857d', fontSize: 11, lineHeight: 14, fontWeight: '700' }, cityQuickMetaActive: { color: 'rgba(255,255,255,0.8)' },
   focusWrap: { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, focusChip: { borderRadius: 8, borderWidth: 1, borderColor: 'rgba(23,34,29,0.14)', backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 10 }, focusChipActive: { backgroundColor: '#17362f', borderColor: '#17362f' }, focusText: { color: '#264038', fontSize: 14, lineHeight: 18, fontWeight: '700' }, focusTextActive: { color: '#f5faf7' },
   resultPanel: { flex: 1.2, minWidth: 320, gap: 16 }, resultHero: { borderRadius: 22, backgroundColor: '#171338', borderWidth: 1, borderColor: 'rgba(121,99,255,0.22)', padding: 22, shadowColor: '#1d2140', shadowOpacity: 0.12, shadowRadius: 18, shadowOffset: { width: 0, height: 10 } }, resultHeroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }, resultHeroBadge: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' }, resultHeroBadgeText: { color: '#f5f3ff', fontSize: 12, lineHeight: 16, fontWeight: '800' }, resultEyebrow: { color: '#b8a4ff', fontSize: 12, lineHeight: 16, fontWeight: '800', textTransform: 'uppercase' }, resultTitle: { marginTop: 12, color: '#ffffff', fontSize: 30, lineHeight: 36, fontWeight: '800' }, resultBody: { marginTop: 12, color: 'rgba(255,255,255,0.84)', fontSize: 15, lineHeight: 24 }, resultMeta: { marginTop: 12, color: '#7c8f87', fontSize: 13, lineHeight: 18, fontWeight: '700' }, resultMetaRail: { marginTop: 18, flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, resultMetaChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' }, resultMetaChipText: { color: '#f4f2ff', fontSize: 12, lineHeight: 16, fontWeight: '700' }, metricRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 }, metric: { flex: 1, minWidth: 150, borderRadius: 16, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(33,39,67,0.08)', padding: 18, shadowColor: '#1d2140', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } }, metricValue: { color: '#6b54d4', fontSize: 34, lineHeight: 38, fontWeight: '800' }, metricLabel: { marginTop: 8, color: '#69708b', fontSize: 14, lineHeight: 20, fontWeight: '700' }, resultTabRow: { gap: 10, paddingRight: 20 }, resultTab: { borderRadius: 999, borderWidth: 1, borderColor: 'rgba(107,84,212,0.16)', backgroundColor: '#ffffff', paddingHorizontal: 16, paddingVertical: 10 }, resultTabActive: { backgroundColor: '#6b54d4', borderColor: '#6b54d4' }, resultTabText: { color: '#535a77', fontSize: 14, lineHeight: 18, fontWeight: '800' }, resultTabTextActive: { color: '#ffffff' },
   resultCard: { borderRadius: 18, backgroundColor: '#ffffff', borderWidth: 1, borderColor: 'rgba(33,39,67,0.08)', padding: 22, shadowColor: '#1d2140', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } }, innerCard: { marginTop: 18, borderRadius: 16, backgroundColor: '#f7f7fd', borderWidth: 1, borderColor: 'rgba(107,84,212,0.08)', padding: 16 }, boxTitle: { color: '#171b31', fontSize: 20, lineHeight: 26, fontWeight: '800' }, chartRow: { marginTop: 18, flexDirection: 'row', gap: 18, alignItems: 'center' },
