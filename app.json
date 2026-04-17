@@ -1,7 +1,7 @@
 ﻿{
   "expo": {
-    "name": "MingSky Astrology",
-    "slug": "mingsky-astrology",
+    "name": "MingMe",
+    "slug": "mingme",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,13 +16,13 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mingsky.astrology",
+      "bundleIdentifier": "com.mingme.app",
       "buildNumber": "3",
       "infoPlist": {
-        "CFBundleDisplayName": "MingSky Astrology",
+        "CFBundleDisplayName": "MingMe",
         "NSCalendarsUsageDescription": "Used for displaying fortune calendar",
         "NSLocationWhenInUseUsageDescription": "Used to auto-fill your city and local rhythm hints for your profile.",
-        "NSMicrophoneUsageDescription": "Used to let you speak to MingSky Astrology and convert your voice into text input.",
+        "NSMicrophoneUsageDescription": "Used to let you speak to AI MingMe and convert your voice into text input.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "config": {
@@ -32,10 +32,9 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0a0a12",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#0a0a12"
       },
-      "package": "com.mingsky.astrology",
+      "package": "com.mingme.app",
       "versionCode": 3,
       "permissions": [],
       "blockedPermissions": [
@@ -45,9 +44,7 @@
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png",
-      "name": "MingSky Astrology",
-      "shortName": "MingSky"
+      "favicon": "./assets/favicon.png"
     },
     "extra": {
       "openaiApiKey": "",
@@ -69,7 +66,7 @@
       "expo-font",
       "expo-router"
     ],
-    "description": "MingSky Astrology / 明空星占",
+    "description": "Know Yourself, Seize the Moment",
     "primaryColor": "#d4af37"
   }
 }

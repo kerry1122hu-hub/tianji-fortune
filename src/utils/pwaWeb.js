@@ -1,15 +1,10 @@
 import { Platform } from 'react-native';
 import { getAIBackendConfig } from '../services/aiBackendConnector';
 
-const PWA_EVENTS_KEY = 'mingsky.pwa.events';
-const PWA_SESSION_KEY = 'mingsky.pwa.session';
-const PWA_REFRESH_GUARD_KEY = 'mingsky.pwa.refresh.guard';
-const PWA_ICON_VERSION = 'mingsky-20260417a';
+const PWA_EVENTS_KEY = 'mingme.pwa.events';
+const PWA_SESSION_KEY = 'mingme.pwa.session';
+const PWA_REFRESH_GUARD_KEY = 'mingme.pwa.refresh.guard';
 let deferredInstallPrompt = null;
-
-function versionedAsset(path) {
-  return `${path}?v=${PWA_ICON_VERSION}`;
-}
 
 function isBrowser() {
   return Platform.OS === 'web' && typeof window !== 'undefined' && typeof document !== 'undefined';
@@ -65,76 +60,57 @@ export function ensurePwaHead() {
     return node;
   };
 
-  const manifestLink = ensureTag('link[rel="manifest"]', () => {
+  ensureTag('link[rel="manifest"]', () => {
     const link = document.createElement('link');
     link.rel = 'manifest';
+    link.href = '/manifest.json';
     return link;
   });
-  manifestLink.href = versionedAsset('/manifest.json');
 
-  const themeColorMeta = ensureTag('meta[name="theme-color"]', () => {
+  ensureTag('meta[name="theme-color"]', () => {
     const meta = document.createElement('meta');
     meta.name = 'theme-color';
+    meta.content = '#0B1020';
     return meta;
   });
-  themeColorMeta.content = '#0B1020';
 
-  const appleCapableMeta = ensureTag('meta[name="apple-mobile-web-app-capable"]', () => {
+  ensureTag('meta[name="apple-mobile-web-app-capable"]', () => {
     const meta = document.createElement('meta');
     meta.name = 'apple-mobile-web-app-capable';
+    meta.content = 'yes';
     return meta;
   });
-  appleCapableMeta.content = 'yes';
 
-  const appleStatusBarMeta = ensureTag('meta[name="apple-mobile-web-app-status-bar-style"]', () => {
+  ensureTag('meta[name="apple-mobile-web-app-status-bar-style"]', () => {
     const meta = document.createElement('meta');
     meta.name = 'apple-mobile-web-app-status-bar-style';
+    meta.content = 'black-translucent';
     return meta;
   });
-  appleStatusBarMeta.content = 'black-translucent';
 
-  const appleTitleMeta = ensureTag('meta[name="apple-mobile-web-app-title"]', () => {
+  ensureTag('meta[name="apple-mobile-web-app-title"]', () => {
     const meta = document.createElement('meta');
     meta.name = 'apple-mobile-web-app-title';
+    meta.content = 'MingMe';
     return meta;
   });
-  appleTitleMeta.content = 'MingSky Astrology';
 
-  const appleTouchIconLink = ensureTag('link[rel="apple-touch-icon"]', () => {
+  ensureTag('link[rel="apple-touch-icon"]', () => {
     const link = document.createElement('link');
     link.rel = 'apple-touch-icon';
+    link.href = '/icons/apple-touch-icon.png';
     return link;
   });
-  appleTouchIconLink.href = versionedAsset('/apple-touch-icon.png');
-  appleTouchIconLink.sizes = '180x180';
-
-  const icon192Link = ensureTag('link[rel="icon"][sizes="192x192"]', () => {
-    const link = document.createElement('link');
-    link.rel = 'icon';
-    link.type = 'image/png';
-    link.sizes = '192x192';
-    return link;
-  });
-  icon192Link.href = versionedAsset('/icons/icon-192.png');
-
-  const icon512Link = ensureTag('link[rel="icon"][sizes="512x512"]', () => {
-    const link = document.createElement('link');
-    link.rel = 'icon';
-    link.type = 'image/png';
-    link.sizes = '512x512';
-    return link;
-  });
-  icon512Link.href = versionedAsset('/icons/icon-512.png');
 }
 
 export function registerPwaServiceWorker() {
   if (!isBrowser() || !('serviceWorker' in navigator)) return;
-  if (window.__mingskySwRegistered) return;
-  window.__mingskySwRegistered = true;
+  if (window.__mingmeSwRegistered) return;
+  window.__mingmeSwRegistered = true;
 
   const handleControllerChange = () => {
-    if (window.__mingskySwReloading) return;
-    window.__mingskySwReloading = true;
+    if (window.__mingmeSwReloading) return;
+    window.__mingmeSwReloading = true;
     window.location.reload();
   };
 

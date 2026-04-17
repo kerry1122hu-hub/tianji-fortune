@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "MingSky Astrology",
-  "short_name": "MingSky",
-  "description": "Structured astrology reports for personality, relationships, timing, compatibility, wealth, and life themes.",
+  "name": "MingMe",
+  "short_name": "MingMe",
+  "description": "A self-reflection and decision-support companion.",
   "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
@@ -14,17 +14,17 @@
   "categories": ["lifestyle", "productivity"],
   "icons": [
     {
-      "src": "/icons/icon-192.png?v=mingsky-20260417a",
+      "src": "/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512.png?v=mingsky-20260417a",
+      "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512-maskable.png?v=mingsky-20260417a",
+      "src": "/icons/icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -32,15 +32,15 @@
   ],
   "shortcuts": [
     {
-      "name": "Open Reports",
-      "short_name": "Reports",
-      "description": "Open your latest astrology reports",
+      "name": "Open Chat",
+      "short_name": "Chat",
+      "description": "Continue your last conversation",
       "url": "/?source=shortcut-chat"
     },
     {
-      "name": "Past Life",
-      "short_name": "Past Life",
-      "description": "Open the past life report entry",
+      "name": "Weekly Review",
+      "short_name": "Review",
+      "description": "Open your weekly reflection",
       "url": "/?source=shortcut-review"
     }
   ]

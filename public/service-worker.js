@@ -1,4 +1,4 @@
-const CACHE_VERSION = "mingsky-v1.2.0-icons";
+const CACHE_VERSION = "mingme-v1.0.3";
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
@@ -6,7 +6,6 @@ const APP_SHELL = [
   "/offline.html",
   "/manifest.json",
   "/app.webmanifest",
-  "/apple-touch-icon.png",
   "/icons/apple-touch-icon.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
