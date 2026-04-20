@@ -247,6 +247,22 @@ export async function requestAIMembershipStatusFromBackend({ chart, profile, use
   return payload;
 }
 
+export async function requestPastLifeReportFromBackend(requestPayload) {
+  const { baseUrl, authToken, signingSecret, retryCount, retryDelayMs } = getAIBackendConfig();
+  if (!baseUrl) {
+    throw new Error('Missing backend URL. Fill expo.extra.aiBackendUrl in app.json.');
+  }
+
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/v1/reports/past-life`;
+  const requestBody = JSON.stringify(requestPayload || {});
+  return requestWithRetry(endpoint, requestBody, {
+    authToken,
+    signingSecret,
+    retryCount,
+    retryDelayMs,
+  });
+}
+
 export async function requestRegistrationTrialFromBackend({
   chart,
   profile,

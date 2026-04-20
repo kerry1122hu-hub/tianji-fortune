@@ -296,6 +296,122 @@ function buildChartRows(visual) {
   }));
 }
 
+function clamp01(value, fallback = 0.6) {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) {
+    return Math.max(0, Math.min(1, numeric));
+  }
+  return fallback;
+}
+
+function normalizeSignCode(value) {
+  const text = String(value || '').trim().toLowerCase();
+  if (!text) return null;
+  const directMap = {
+    aries: 'aries',
+    taurus: 'taurus',
+    gemini: 'gemini',
+    cancer: 'cancer',
+    leo: 'leo',
+    virgo: 'virgo',
+    libra: 'libra',
+    scorpio: 'scorpio',
+    sagittarius: 'sagittarius',
+    capricorn: 'capricorn',
+    aquarius: 'aquarius',
+    pisces: 'pisces',
+  };
+  return directMap[text] || null;
+}
+
+function inferSemanticCategory(tagCode) {
+  const prefix = String(tagCode || '').split('.')[0];
+  const map = {
+    self: 'identity',
+    emotion: 'emotion',
+    relationship: 'relationship',
+    career: 'career',
+    wealth: 'money',
+    money: 'money',
+    family: 'family',
+    timing: 'timing',
+    purpose: 'growth',
+    spirit: 'other',
+    social: 'social',
+    creativity: 'creativity',
+    shadow: 'shadow',
+    mind: 'mind',
+    growth: 'growth',
+  };
+  return map[prefix] || 'other';
+}
+
+function buildPastLifeApiSeed(chartBundle, pipeline) {
+  const planets = Array.isArray(chartBundle?.visual?.planets) ? chartBundle.visual.planets : [];
+  const metrics = Array.isArray(chartBundle?.visual?.metrics) ? chartBundle.visual.metrics : [];
+  const sun = planets.find((planet) => planet.code === 'SUN');
+  const moon = planets.find((planet) => planet.code === 'MOON');
+  const dominantPlanet = metrics.find((metric) => metric.metric_code === 'DOMINANT_PLANET')?.value || null;
+
+  const topTags = (pipeline?.semantic_items || []).slice(0, 12).map((item) => ({
+    tag_code: String(item.tag_code || '').replace(/[^a-z0-9_]/g, ''),
+    category: inferSemanticCategory(item.tag_code),
+    weight: clamp01(
+      item.weight ?? item.score ?? (item.cross_system_agreement ? 0.82 : 0.68),
+      0.68
+    ),
+    confidence: clamp01(item.confidence ?? item.weight ?? item.score ?? 0.74, 0.74),
+  })).filter((item) => item.tag_code);
+
+  const topInsights = (pipeline?.insights || []).slice(0, 10).map((insight, index) => ({
+    insight_code: String(insight.insight_code || '').replace(/[^a-z0-9_]/g, ''),
+    category: ['strength', 'tension', 'theme', 'opportunity', 'risk', 'growth'].includes(insight.category)
+      ? insight.category
+      : 'theme',
+    section: ['summary', 'personality', 'relationships', 'career', 'money', 'family', 'growth', 'timing', 'shadow', 'faq'].includes(insight.section)
+      ? insight.section
+      : 'summary',
+    confidence: clamp01(insight.confidence ?? 0.72, 0.72),
+    priority: Number.isInteger(insight.priority) ? insight.priority : Math.max(1, 10 - index),
+    tag_refs: Array.isArray(insight.tag_refs)
+      ? insight.tag_refs.map((item) => String(item || '').replace(/[^a-z0-9_]/g, '')).filter(Boolean).slice(0, 8)
+      : [],
+    evidence_refs: Array.isArray(insight.evidence_refs) && insight.evidence_refs.length
+      ? insight.evidence_refs.map((item) => String(item || '').slice(0, 120)).filter(Boolean).slice(0, 12)
+      : [`AUTO_REF_${index + 1}`],
+  })).filter((item) => item.insight_code);
+
+  return {
+    chart_core_summary: {
+      sun_sign: normalizeSignCode(sun?.signCode || sun?.sign || sun?.signLabel) || 'libra',
+      moon_sign: normalizeSignCode(moon?.signCode || moon?.sign || moon?.signLabel) || 'cancer',
+      asc_sign: normalizeSignCode(chartBundle?.visual?.ascSign?.code || chartBundle?.visual?.ascSign?.label) || 'libra',
+      mc_sign: normalizeSignCode(chartBundle?.visual?.mcSign?.code || chartBundle?.visual?.mcSign?.label),
+      dominant_planet: dominantPlanet,
+      core_tags: topTags.slice(0, 6).map((item) => item.tag_code),
+      core_insights: topInsights.slice(0, 6).map((item) => item.insight_code),
+    },
+    semantic_profile: {
+      semantic_version: 'semantic-map-web-v1',
+      top_tags: topTags.length ? topTags : [{
+        tag_code: 'relational_harmony_drive',
+        category: 'relationship',
+        weight: 0.72,
+        confidence: 0.72,
+      }],
+      top_insights: topInsights.length ? topInsights : [{
+        insight_code: 'relationships_seek_harmony_but_need_boundaries',
+        category: 'theme',
+        section: 'relationships',
+        confidence: 0.72,
+        priority: 8,
+        tag_refs: ['relational_harmony_drive'],
+        evidence_refs: ['AUTO_REF_1'],
+      }],
+    },
+  };
+}
+
 export function getInterpretationFocusOptions() {
   return FOCUS_OPTIONS;
 }
@@ -372,5 +488,6 @@ export function generateInterpretationPreview(input) {
       })),
       rawPlanets: chartBundle.visual.planets,
     },
+    pastLifeApiSeed: reportType === 'past-life' ? buildPastLifeApiSeed(chartBundle, pipeline) : null,
   };
 }
