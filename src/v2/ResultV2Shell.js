@@ -226,6 +226,19 @@ function getDivinationResultLead(sceneType, engineResult) {
   return summary;
 }
 
+function buildDivinationEngineLead(engineResult) {
+  const score = engineResult?.decisionScore;
+  const modern = engineResult?.modernResult || engineResult?.instantDecision?.modern_result || '';
+  const relation = engineResult?.baziLinkage?.relation || engineResult?.instantDecision?.bazi_linkage?.relation || '';
+  if (!score && !modern && !relation) return '';
+  const chunks = [
+    modern ? `状态：${modern}` : '',
+    score ? `即时决策评分：${score}/100` : '',
+    relation ? `八字联动：${relation}` : '',
+  ].filter(Boolean);
+  return `明己即时决策引擎已启用。${chunks.join(' · ')}`;
+}
+
 function getDivinationFormalTitle(sceneType) {
   if (sceneType === 'wealth') return '明己怎么断这笔财与这桩交易';
   if (sceneType === 'career') return '明己怎么断这步事业与职业变化';
@@ -2655,6 +2668,7 @@ function SmartToolPage(props) {
   const [divinationDraft, setDivinationDraft] = useState({ sceneType: 'wealth', question: '' });
   const [divinationInsight, setDivinationInsight] = useState(null);
   const [divinationLoadingReady, setDivinationLoadingReady] = useState(false);
+  const [showDivinationRitualModal, setShowDivinationRitualModal] = useState(false);
   const [dreamDraft, setDreamDraft] = useState('');
   const [dreamInsight, setDreamInsight] = useState('');
   const [growthInsight, setGrowthInsight] = useState('');
@@ -2698,6 +2712,7 @@ function SmartToolPage(props) {
     setToolFeedback({ tone: 'idle', text: '' });
     setDivinationLoadingReady(false);
     setDivinationVideoLoaded(false);
+    setShowDivinationRitualModal(toolKey === 'divination');
     divinationReadyOpacity.setValue(0);
   }, [toolKey]);
 
@@ -2835,6 +2850,7 @@ function SmartToolPage(props) {
 
   const handleDivinationSubmit = useCallback(async () => {
     if (toolLoading) return;
+    setShowDivinationRitualModal(false);
     const question = `${divinationDraft.question || ''}`.trim();
     if (!question) {
       setToolFeedback({ tone: 'warning', text: '先写下你现在真正想问的这件事，再让明己起卦。' });
@@ -3091,6 +3107,35 @@ function SmartToolPage(props) {
 
         {toolKey === 'divination' ? (
           <>
+            <Modal
+              visible={showDivinationRitualModal}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setShowDivinationRitualModal(false)}
+            >
+              <Pressable style={s.divinationRitualModalBackdrop} onPress={() => setShowDivinationRitualModal(false)}>
+                <Pressable style={s.divinationRitualModalCard} onPress={(event) => event.stopPropagation?.()}>
+                  <View style={s.divinationRitualHeader}>
+                    <Text style={s.divinationRitualSeal}>卦</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.divinationRitualTitle}>卦不可轻起</Text>
+                      <Text style={s.divinationRitualIntro}>小六壬重在一念初动。问前先收心，把事情收成一个清楚的问题。</Text>
+                    </View>
+                  </View>
+                  <View style={s.divinationRitualList}>
+                    {DIVINATION_RITUAL_NOTES.map((item) => (
+                      <View key={item.title} style={s.divinationRitualItem}>
+                        <Text style={s.divinationRitualItemTitle}>{item.title}</Text>
+                        <Text style={s.divinationRitualItemBody}>{item.body}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <TouchableOpacity style={s.divinationRitualCloseButton} onPress={() => setShowDivinationRitualModal(false)} activeOpacity={0.9}>
+                    <Text style={s.divinationRitualCloseText}>{'我已明白，开始起卦'}</Text>
+                  </TouchableOpacity>
+                </Pressable>
+              </Pressable>
+            </Modal>
             <Card>
               <View style={s.moodChipRow}>
                 {DIVINATION_SCENE_OPTIONS.map((item) => {
@@ -3106,29 +3151,20 @@ function SmartToolPage(props) {
                   );
                 })}
               </View>
-              <View style={s.divinationRitualCard}>
-                <View style={s.divinationRitualHeader}>
-                  <Text style={s.divinationRitualSeal}>卦</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={s.divinationRitualTitle}>卦不可轻起</Text>
-                    <Text style={s.divinationRitualIntro}>小六壬重在一念初动。问前先收心，把事情收成一个清楚的问题。</Text>
-                  </View>
-                </View>
-                <View style={s.divinationRitualList}>
-                  {DIVINATION_RITUAL_NOTES.map((item) => (
-                    <View key={item.title} style={s.divinationRitualItem}>
-                      <Text style={s.divinationRitualItemTitle}>{item.title}</Text>
-                      <Text style={s.divinationRitualItemBody}>{item.body}</Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
+              <TouchableOpacity style={s.divinationRitualTrigger} onPress={() => setShowDivinationRitualModal(true)} activeOpacity={0.9}>
+                <Text style={s.divinationRitualTriggerSeal}>卦</Text>
+                <Text style={s.divinationRitualTriggerText}>{'卦不可轻起 · 查看起卦规矩'}</Text>
+              </TouchableOpacity>
               <View style={s.questionBlock}>
                 <Text style={s.questionText}>当前想问的事</Text>
                 <View style={s.divinationComposer}>
                   <TextInput
                     value={divinationDraft.question}
-                    onChangeText={(value) => setDivinationDraft((prev) => ({ ...prev, question: value }))}
+                    onFocus={() => setShowDivinationRitualModal(false)}
+                    onChangeText={(value) => {
+                      setShowDivinationRitualModal(false);
+                      setDivinationDraft((prev) => ({ ...prev, question: value }));
+                    }}
                     style={s.divinationComposerInput}
                     multiline
                     placeholder={getDivinationQuestionPlaceholder(divinationDraft.sceneType)}
@@ -3306,6 +3342,9 @@ function SmartToolPage(props) {
                 >
                   <Card onLayout={(event) => setDivinationFormalY(event?.nativeEvent?.layout?.y || 0)}>
                     <SectionHeader eyebrow={'正式断语'} title={getDivinationFormalTitle(divinationDraft.sceneType)} />
+                    {buildDivinationEngineLead(normalizedDivinationInsight.engineResult) ? (
+                      <Text style={s.divinationEngineLead}>{buildDivinationEngineLead(normalizedDivinationInsight.engineResult)}</Text>
+                    ) : null}
                     {normalizedDivinationInsight.text ? <Text style={s.toolResultText}>{buildDivinationFormalLead(divinationDraft.sceneType, normalizedDivinationInsight.text)}</Text> : <Text style={s.toolResultText}>{'这次起卦已完成，但明己的完整断语还没有返回。'}</Text>}
                   </Card>
                   <Card>
@@ -5850,6 +5889,64 @@ const s = StyleSheet.create({
   },
   divinationRitualItemTitle: { fontSize: 13, lineHeight: 18, fontWeight: '900', color: '#7E4A00' },
   divinationRitualItemBody: { marginTop: 2, fontSize: 12, lineHeight: 18, color: 'rgba(94,57,6,0.74)', fontWeight: '600' },
+  divinationRitualModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(7,18,24,0.42)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+  divinationRitualModalCard: {
+    width: '100%',
+    maxWidth: 430,
+    borderRadius: 28,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    backgroundColor: '#FFF8EA',
+    borderWidth: 1,
+    borderColor: 'rgba(198,146,42,0.26)',
+    shadowColor: '#071218',
+    shadowOpacity: 0.22,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 8,
+  },
+  divinationRitualTrigger: {
+    minHeight: 42,
+    marginBottom: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(198,146,42,0.20)',
+    backgroundColor: 'rgba(255,248,234,0.76)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  divinationRitualTriggerSeal: {
+    width: 26,
+    height: 26,
+    borderRadius: 10,
+    overflow: 'hidden',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    lineHeight: 26,
+    backgroundColor: '#12343A',
+    color: '#F7E7B6',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  divinationRitualTriggerText: { flex: 1, fontSize: 13, lineHeight: 18, fontWeight: '800', color: '#7E4A00' },
+  divinationRitualCloseButton: {
+    minHeight: 46,
+    marginTop: 16,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#12343A',
+  },
+  divinationRitualCloseText: { fontSize: 14, fontWeight: '900', color: '#F7FFFC' },
   divinationComposer: {
     borderRadius: 22,
     borderWidth: 1.5,
@@ -5939,6 +6036,19 @@ const s = StyleSheet.create({
   divinationResultEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(214,230,255,0.72)' },
   divinationResultTitle: { fontSize: 28, lineHeight: 34, color: '#F1F7FF', fontWeight: '800', marginTop: 10, maxWidth: '84%' },
   divinationResultBody: { fontSize: 15, lineHeight: 24, color: 'rgba(241,247,255,0.80)', marginTop: 12, fontWeight: '600' },
+  divinationEngineLead: {
+    marginBottom: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(18,52,58,0.10)',
+    backgroundColor: 'rgba(18,52,58,0.045)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    lineHeight: 21,
+    fontWeight: '800',
+    color: '#12343A',
+  },
   divinationDecisionPanel: {
     marginTop: 16,
     borderRadius: 22,
