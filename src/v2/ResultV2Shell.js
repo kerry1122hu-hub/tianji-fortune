@@ -396,6 +396,14 @@ const DIVINATION_SCENE_OPTIONS = [
   { key: 'communication', label: '寻人/寻物' },
 ];
 
+const DIVINATION_RITUAL_NOTES = [
+  { title: '遇事即刻', body: '动念即起，第一感应最为精准。' },
+  { title: '无事勿占', body: '严禁无目的的随意测试。' },
+  { title: '一事一占', body: '同一事项不可反复起卦，否则“再占不验”。' },
+  { title: '心存敬畏', body: '数术乃天机，不可大不敬，心态平和方能感应。' },
+  { title: '辩证看待', body: '任何占卜均非绝对，准确率约在八成，大方向正确即为成功。' },
+];
+
 const CALENDAR_NOTE_TYPES = [
   { key: 'todo', label: '待办' },
   { key: 'plan', label: '安排' },
@@ -3081,6 +3089,23 @@ function SmartToolPage(props) {
                   );
                 })}
               </View>
+              <View style={s.divinationRitualCard}>
+                <View style={s.divinationRitualHeader}>
+                  <Text style={s.divinationRitualSeal}>卦</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.divinationRitualTitle}>卦不可轻起</Text>
+                    <Text style={s.divinationRitualIntro}>小六壬重在一念初动。问前先收心，把事情收成一个清楚的问题。</Text>
+                  </View>
+                </View>
+                <View style={s.divinationRitualList}>
+                  {DIVINATION_RITUAL_NOTES.map((item) => (
+                    <View key={item.title} style={s.divinationRitualItem}>
+                      <Text style={s.divinationRitualItemTitle}>{item.title}</Text>
+                      <Text style={s.divinationRitualItemBody}>{item.body}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
               <View style={s.questionBlock}>
                 <Text style={s.questionText}>当前想问的事</Text>
                 <View style={s.divinationComposer}>
@@ -5721,6 +5746,52 @@ const s = StyleSheet.create({
   divinationPreviewCard: { marginBottom: 12, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(127,180,255,0.20)', backgroundColor: 'rgba(127,180,255,0.08)', padding: 14 },
   divinationPreviewLabel: { fontSize: 12, fontWeight: '800', color: '#40679E', marginBottom: 6 },
   divinationPreviewText: { fontSize: 14, lineHeight: 22, color: C.ink, fontWeight: '600' },
+  divinationRitualCard: {
+    marginTop: 4,
+    marginBottom: 14,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#FFF8EA',
+    borderWidth: 1,
+    borderColor: 'rgba(198,146,42,0.24)',
+    shadowColor: '#C6922A',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 2,
+  },
+  divinationRitualHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  divinationRitualSeal: {
+    width: 42,
+    height: 42,
+    borderRadius: 16,
+    overflow: 'hidden',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    lineHeight: 42,
+    backgroundColor: '#12343A',
+    color: '#F7E7B6',
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  divinationRitualTitle: { fontSize: 18, lineHeight: 24, fontWeight: '900', color: '#5E3906' },
+  divinationRitualIntro: { marginTop: 4, fontSize: 13, lineHeight: 20, color: 'rgba(94,57,6,0.74)', fontWeight: '600' },
+  divinationRitualList: { marginTop: 14, gap: 10 },
+  divinationRitualItem: {
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255,255,255,0.62)',
+    borderWidth: 1,
+    borderColor: 'rgba(198,146,42,0.14)',
+  },
+  divinationRitualItemTitle: { fontSize: 13, lineHeight: 18, fontWeight: '900', color: '#7E4A00' },
+  divinationRitualItemBody: { marginTop: 2, fontSize: 12, lineHeight: 18, color: 'rgba(94,57,6,0.74)', fontWeight: '600' },
   divinationComposer: {
     borderRadius: 22,
     borderWidth: 1.5,
