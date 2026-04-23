@@ -125,6 +125,7 @@ function normalizeDivinationInsightPayload(payload, sceneType) {
   const source = payload?.data || payload;
   const normalized = source?.normalizedPayload || null;
   const normalizedDouble = normalized?.double_palace_result || null;
+  const normalizedInstant = normalized?.instant_decision || null;
   const normalizedResult = normalized?.result || null;
   const engineResult = source?.engineResult || null;
 
@@ -160,6 +161,22 @@ function normalizeDivinationInsightPayload(payload, sceneType) {
         summary: normalizedDouble?.short_output || normalizedResult?.short_output || '',
         recommended: normalizedResult?.recommended || normalizedDouble?.recommended || [],
         avoid: normalizedResult?.avoid || normalizedDouble?.avoid || [],
+        instantDecision: normalizedInstant,
+        threePalaceTimeline: normalizedInstant?.three_palace_timeline || [],
+        decisionScore: normalizedInstant?.decision_score || normalizedResult?.decision_score || null,
+        modernResult: normalizedInstant?.modern_result || normalizedResult?.modern_result || '',
+        baziLinkage: normalizedInstant?.bazi_linkage || null,
+      }
+    : null;
+  const mergedEngineResult = engineResult || fallbackEngineResult;
+  const enhancedEngineResult = mergedEngineResult
+    ? {
+        ...mergedEngineResult,
+        instantDecision: mergedEngineResult.instantDecision || normalizedInstant || null,
+        threePalaceTimeline: mergedEngineResult.threePalaceTimeline || normalizedInstant?.three_palace_timeline || [],
+        decisionScore: mergedEngineResult.decisionScore || normalizedInstant?.decision_score || normalizedResult?.decision_score || null,
+        modernResult: mergedEngineResult.modernResult || normalizedInstant?.modern_result || normalizedResult?.modern_result || '',
+        baziLinkage: mergedEngineResult.baziLinkage || normalizedInstant?.bazi_linkage || null,
       }
     : null;
 
@@ -169,7 +186,7 @@ function normalizeDivinationInsightPayload(payload, sceneType) {
       source?.text,
       normalizedDouble?.short_output || normalizedResult?.short_output || ''
     ),
-    engineResult: engineResult || fallbackEngineResult,
+    engineResult: enhancedEngineResult,
   };
 }
 
@@ -3239,6 +3256,28 @@ function SmartToolPage(props) {
                     {getDivinationResultTitle(divinationDraft.sceneType, normalizedDivinationInsight.engineResult)}
                   </Text>
                   <Text style={s.divinationResultBody}>{getDivinationResultLead(divinationDraft.sceneType, normalizedDivinationInsight.engineResult)}</Text>
+                  {normalizedDivinationInsight.engineResult?.decisionScore ? (
+                    <View style={s.divinationDecisionPanel}>
+                      <View>
+                        <Text style={s.divinationDecisionEyebrow}>{'即时决策评分'}</Text>
+                        <Text style={s.divinationDecisionScore}>{`${normalizedDivinationInsight.engineResult.decisionScore}`}</Text>
+                      </View>
+                      <View style={s.divinationDecisionBadge}>
+                        <Text style={s.divinationDecisionBadgeText}>{normalizedDivinationInsight.engineResult.modernResult || '即时判断'}</Text>
+                      </View>
+                    </View>
+                  ) : null}
+                  {Array.isArray(normalizedDivinationInsight.engineResult?.threePalaceTimeline) && normalizedDivinationInsight.engineResult.threePalaceTimeline.length ? (
+                    <View style={s.divinationTimelineRow}>
+                      {normalizedDivinationInsight.engineResult.threePalaceTimeline.slice(0, 3).map((item, index) => (
+                        <View key={`${item?.phase || item?.label || 'phase'}-${index}`} style={s.divinationTimelineNode}>
+                          <Text style={s.divinationTimelineLabel}>{item?.label || '阶段'}</Text>
+                          <Text style={s.divinationTimelinePalace}>{item?.palace_name || '-'}</Text>
+                          <Text style={s.divinationTimelineMeta}>{item?.modern_name || item?.fortune_level || ''}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
                   <View style={s.divinationTagRow}>
                     {(normalizedDivinationInsight.engineResult.recommended || []).slice(0, 4).map((item, index) => (
                       <View key={`${item}-${index}`} style={s.divinationTag}>
@@ -3277,6 +3316,25 @@ function SmartToolPage(props) {
                     <SectionHeader eyebrow={'明己先替你点题'} title={'你更可能真正卡住的是'} />
                     <Text style={s.toolResultText}>{normalizedDivinationInsight.engineResult.likelyConcern || buildLikelyConcernPreview(divinationDraft.sceneType, divinationDraft.question)}</Text>
                   </Card>
+                  {Array.isArray(normalizedDivinationInsight.engineResult?.threePalaceTimeline) && normalizedDivinationInsight.engineResult.threePalaceTimeline.length ? (
+                    <Card>
+                      <SectionHeader eyebrow={'三宫链路'} title={'起因、过程、结果怎么串起来'} />
+                      <View style={s.divinationDetailTimeline}>
+                        {normalizedDivinationInsight.engineResult.threePalaceTimeline.slice(0, 3).map((item, index) => (
+                          <View key={`${item?.phase || item?.label || 'detail'}-${index}`} style={s.divinationDetailTimelineItem}>
+                            <Text style={s.divinationDetailTimelineTitle}>{`${item?.label || '阶段'}：${item?.palace_name || '-'}`}</Text>
+                            <Text style={s.divinationDetailTimelineBody}>{`${item?.modern_name || item?.fortune_level || '待辨'}。${item?.decision_hint || item?.summary || ''}`}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </Card>
+                  ) : null}
+                  {normalizedDivinationInsight.engineResult?.baziLinkage?.advice ? (
+                    <Card>
+                      <SectionHeader eyebrow={'八字联动'} title={normalizedDivinationInsight.engineResult.baziLinkage.title || '这卦对你的日主意味着什么'} />
+                      <Text style={s.toolResultText}>{normalizedDivinationInsight.engineResult.baziLinkage.advice}</Text>
+                    </Card>
+                  ) : null}
                 </Animated.View>
               </>
             ) : null}
@@ -5881,6 +5939,28 @@ const s = StyleSheet.create({
   divinationResultEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(214,230,255,0.72)' },
   divinationResultTitle: { fontSize: 28, lineHeight: 34, color: '#F1F7FF', fontWeight: '800', marginTop: 10, maxWidth: '84%' },
   divinationResultBody: { fontSize: 15, lineHeight: 24, color: 'rgba(241,247,255,0.80)', marginTop: 12, fontWeight: '600' },
+  divinationDecisionPanel: {
+    marginTop: 16,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(196,224,255,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  divinationDecisionEyebrow: { fontSize: 11, lineHeight: 15, fontWeight: '800', letterSpacing: 0.8, color: 'rgba(214,230,255,0.70)' },
+  divinationDecisionScore: { marginTop: 2, fontSize: 32, lineHeight: 38, fontWeight: '900', color: '#F5E9BC' },
+  divinationDecisionBadge: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: 'rgba(245,233,188,0.14)', borderWidth: 1, borderColor: 'rgba(245,233,188,0.24)' },
+  divinationDecisionBadgeText: { fontSize: 13, lineHeight: 18, fontWeight: '800', color: '#F5E9BC' },
+  divinationTimelineRow: { marginTop: 12, flexDirection: 'row', gap: 8 },
+  divinationTimelineNode: { flex: 1, minHeight: 76, borderRadius: 18, paddingHorizontal: 10, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(214,230,255,0.12)' },
+  divinationTimelineLabel: { fontSize: 10, lineHeight: 14, fontWeight: '800', color: 'rgba(214,230,255,0.62)' },
+  divinationTimelinePalace: { marginTop: 4, fontSize: 18, lineHeight: 23, fontWeight: '900', color: '#F1F7FF' },
+  divinationTimelineMeta: { marginTop: 2, fontSize: 11, lineHeight: 16, fontWeight: '700', color: 'rgba(245,233,188,0.82)' },
   dreamResultHero: { backgroundColor: '#261A46', borderColor: 'rgba(205,188,255,0.16)', padding: 18, overflow: 'hidden' },
   divinationTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
   divinationTag: { minHeight: 30, paddingHorizontal: 10, borderRadius: 999, backgroundColor: 'rgba(82,183,136,0.12)', borderWidth: 1, borderColor: 'rgba(82,183,136,0.20)', justifyContent: 'center' },
@@ -5918,6 +5998,10 @@ const s = StyleSheet.create({
     color: 'rgba(241,247,255,0.76)',
     fontWeight: '600',
   },
+  divinationDetailTimeline: { gap: 10 },
+  divinationDetailTimelineItem: { borderRadius: 18, borderWidth: 1, borderColor: 'rgba(18,52,58,0.08)', backgroundColor: 'rgba(18,52,58,0.035)', paddingHorizontal: 13, paddingVertical: 12 },
+  divinationDetailTimelineTitle: { fontSize: 14, lineHeight: 20, fontWeight: '800', color: C.ink },
+  divinationDetailTimelineBody: { marginTop: 4, fontSize: 13, lineHeight: 21, fontWeight: '600', color: C.soft },
   moodChipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   moodChip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1, borderColor: C.line, backgroundColor: '#FFF' },
   moodChipText: { fontSize: 13, fontWeight: '700', color: C.ink },
