@@ -3,6 +3,7 @@ import { Image, ImageBackground, Modal, Platform, Pressable, ScrollView, StyleSh
 import { CITY_OPTIONS, ENGINE_INFO, generateInterpretationPreview, getBirthFormOptions, getCitySearchText, getDayOptions, getInterpretationFocusOptions, getReportOptions } from './interpretationEngineBridge';
 import {
   getAIBackendConfig,
+  requestLoginEventFromBackend,
   requestAIMembershipStatusFromBackend,
   requestCreatePaymentOrderFromBackend,
   requestPastLifeReportFromBackend,
@@ -885,6 +886,23 @@ export default function InterpretationWebApp() {
 
     if (hasBackend) {
       await syncMembershipFromBackend({ silent: false });
+      try {
+        await requestLoginEventFromBackend({
+          userKey: savedProfile.userKey || currentUserKey || '',
+          profile: {
+            id: savedProfile.id || '',
+            name: savedProfile.name || '',
+            nickname: savedProfile.name || '',
+            email: savedProfile.email || '',
+            phone: savedProfile.phone || '',
+            city: savedProfile.city || '',
+          },
+          source: 'interpretation_web_login',
+          method: 'password',
+        });
+      } catch (loginEventError) {
+        console.warn('[membership] failed to report login event:', loginEventError?.message || loginEventError);
+      }
     } else {
       setAccountNotice('???????????????????????????');
     }

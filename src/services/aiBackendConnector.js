@@ -279,6 +279,29 @@ export async function requestRegistrationTrialFromBackend({
   return requestWithRetry(endpoint, requestBody, { authToken, signingSecret, retryCount, retryDelayMs });
 }
 
+export async function requestLoginEventFromBackend({
+  userKey,
+  profile,
+  source = 'client_login_event',
+  method = 'password',
+  sessionId = '',
+}) {
+  const { baseUrl, authToken, signingSecret, retryCount, retryDelayMs } = getAIBackendConfig();
+  if (!baseUrl) {
+    throw new Error('Missing backend URL. Fill expo.extra.aiBackendUrl in app.json.');
+  }
+
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/api/ai/login-event`;
+  const requestBody = JSON.stringify({
+    userKey,
+    profile,
+    source,
+    method,
+    sessionId,
+  });
+  return requestWithRetry(endpoint, requestBody, { authToken, signingSecret, retryCount, retryDelayMs });
+}
+
 export async function requestAITranscriptionFromBackend({
   uri,
   mimeType = 'audio/m4a',
