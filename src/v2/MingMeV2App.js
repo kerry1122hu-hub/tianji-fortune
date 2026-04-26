@@ -2248,13 +2248,14 @@ export default function MingMeV2App() {
   }, [booting, chartResult, memberRegistration, primaryChartResult, syncMembershipFromBackend]);
 
   useEffect(() => {
-    if (booting || hideMembership || flow !== 'app' || !chartResult || campaignShownRef.current) return undefined;
+    const shouldShowForThisFlow = flow === 'onboarding' || (flow === 'app' && !!chartResult);
+    if (booting || hideMembership || memberTier !== 'free' || campaignShownRef.current || !shouldShowForThisFlow) return undefined;
     const timer = setTimeout(() => {
       campaignShownRef.current = true;
       setCampaignVisible(true);
     }, 520);
     return () => clearTimeout(timer);
-  }, [booting, chartResult, flow, hideMembership]);
+  }, [booting, chartResult, flow, hideMembership, memberTier]);
 
   const handleMemberRegistrationSave = useCallback(async (payload) => {
     const nextRegistration = {
@@ -2643,6 +2644,34 @@ export default function MingMeV2App() {
 
   return (
     <SafeAreaProvider>
+      <Modal visible={campaignVisible && !hideMembership && (flow === 'onboarding' || (flow === 'app' && !!chartResult))} transparent animationType="fade" onRequestClose={() => setCampaignVisible(false)}>
+        <View style={s.campaignMask}>
+          <TouchableOpacity style={s.campaignScrim} activeOpacity={1} onPress={() => setCampaignVisible(false)} />
+          <View style={s.campaignCard}>
+            <View style={s.campaignAura} />
+            <Text style={s.campaignEyebrow}>{'新用户活动'}</Text>
+            <Text style={s.campaignTitle}>{'注册即送 30 天会员权益'}</Text>
+            <Text style={s.campaignBody}>
+              {'现在完成会员登记，即可自动领取 30 天会员权益，不用先付费，先把明己 AI 先生、明己一卦、明己解梦这些会员功能完整用起来。'}
+            </Text>
+            <View style={s.campaignButtonRow}>
+              <TouchableOpacity
+                style={s.campaignPrimaryButton}
+                activeOpacity={0.9}
+                onPress={() => {
+                  setCampaignVisible(false);
+                  setPaywallVisible(true);
+                }}
+              >
+                <Text style={s.campaignPrimaryButtonText}>{'立即登记领取'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.campaignSecondaryButton} activeOpacity={0.9} onPress={() => setCampaignVisible(false)}>
+                <Text style={s.campaignSecondaryButtonText}>{'稍后再看'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       {flow === 'onboarding' ? <OnboardingScreen onFinish={openIntakeFromOnboarding} /> : null}
       {flow === 'intake-birth' ? (
         <IntakeBirthScreen
@@ -2674,44 +2703,6 @@ export default function MingMeV2App() {
       {flow === 'generating' ? <GeneratingV2Screen statusText={generatingStatus} /> : null}
       {flow === 'app' && chartResult ? (
         <>
-          <Modal visible={campaignVisible && !hideMembership} transparent animationType="fade" onRequestClose={() => setCampaignVisible(false)}>
-            <View style={s.campaignMask}>
-              <TouchableOpacity style={s.campaignScrim} activeOpacity={1} onPress={() => setCampaignVisible(false)} />
-              <View style={s.campaignCard}>
-                <View style={s.campaignAura} />
-                <Text style={s.campaignEyebrow}>{'新用户活动'}</Text>
-                <Text style={s.campaignTitle}>
-                  {memberTier !== 'free' ? '你已进入会员体验期' : '注册即送 30 天会员权益'}
-                </Text>
-                <Text style={s.campaignBody}>
-                  {memberTier !== 'free'
-                    ? '当前账号已在会员权益期内，明己 AI 先生、明己一卦、明己解梦等会员功能都可以直接体验。'
-                    : '现在完成会员登记，即可自动领取 30 天会员权益，不用先付费，先把明己的完整功能用起来。'}
-                </Text>
-                <View style={s.campaignButtonRow}>
-                  {memberTier === 'free' ? (
-                    <TouchableOpacity
-                      style={s.campaignPrimaryButton}
-                      activeOpacity={0.9}
-                      onPress={() => {
-                        setCampaignVisible(false);
-                        setPaywallVisible(true);
-                      }}
-                    >
-                      <Text style={s.campaignPrimaryButtonText}>{'立即登记领取'}</Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity style={s.campaignPrimaryButton} activeOpacity={0.9} onPress={() => setCampaignVisible(false)}>
-                      <Text style={s.campaignPrimaryButtonText}>{'我知道了'}</Text>
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity style={s.campaignSecondaryButton} activeOpacity={0.9} onPress={() => setCampaignVisible(false)}>
-                    <Text style={s.campaignSecondaryButtonText}>{memberTier === 'free' ? '稍后再看' : '先去体验'}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
           <ResultV2Shell
             result={chartResult}
             profile={profile}
