@@ -333,8 +333,16 @@ const S = {
   dayDetail: '\u5f53\u65e5\u8be6\u60c5',
 };
 
-const TAB_KEYS = ['home', 'profile', 'stage', 'premium', 'me'];
+const TAB_KEYS = ['tongsheng', 'home', 'profile', 'stage', 'premium', 'me'];
 const TAB_META = {
+  tongsheng: {
+    icon: '☯',
+    label: '通胜',
+    accent: '#C48A2A',
+    glow: 'rgba(196,138,42,0.18)',
+    plate: 'rgba(196,138,42,0.12)',
+    border: 'rgba(196,138,42,0.24)',
+  },
   home: {
     icon: '⌂',
     label: S.home,
@@ -379,6 +387,7 @@ const TAB_META = {
 
 function getTabMeta(tab, reviewMode) {
   if (!reviewMode) return TAB_META[tab];
+  if (tab === 'tongsheng') return { ...TAB_META.tongsheng, label: '今日' };
   if (tab === 'home') return { ...TAB_META.home, label: '计划' };
   if (tab === 'stage') return { ...TAB_META.stage, label: '回看' };
   if (tab === 'me') return { ...TAB_META.me, label: '设置' };
@@ -1534,6 +1543,27 @@ function TodayTongshengCard({ data, onOpenDetail, onOpenGuides, onOpenCalendar }
         </TouchableOpacity>
       </View>
     </Card>
+  );
+}
+
+function PageTopBackBar({ title, subtitle, canGoBack, onGoBack }) {
+  return (
+    <View style={s.pageTopBackBar}>
+      <TouchableOpacity
+        activeOpacity={canGoBack ? 0.86 : 1}
+        disabled={!canGoBack}
+        onPress={onGoBack}
+        style={[s.pageTopBackButton, !canGoBack && s.pageTopBackButtonDisabled]}
+      >
+        <Text style={[s.pageTopBackButtonText, !canGoBack && s.pageTopBackButtonTextDisabled]}>
+          {canGoBack ? '‹ 返回上一页' : '当前已在第一页'}
+        </Text>
+      </TouchableOpacity>
+      <View style={s.pageTopBackCopy}>
+        <Text style={s.pageTopBackTitle}>{title}</Text>
+        {!!subtitle ? <Text style={s.pageTopBackSubtitle}>{subtitle}</Text> : null}
+      </View>
+    </View>
   );
 }
 
@@ -3911,6 +3941,7 @@ function PillarMatrix({ result, onPressTenGod, onPressShenShaItem, onPressShenSh
 
 function HomeTab(props) {
   const {
+    pageNav,
     result,
     profile,
     accountProfile,
@@ -3990,14 +4021,6 @@ function HomeTab(props) {
     toText(today?.luckyDirection || result?.luckyDirection),
     toText(today?.luckyColor || result?.luckyColor),
   ].filter((item) => item && item !== '--');
-  const todayTongsheng = useMemo(
-    () => (
-      hasRegisteredProfile && isPremium
-        ? buildTodayTongshengData({ today, result, weekly, profile, calSummary })
-        : null
-    ),
-    [calSummary, hasRegisteredProfile, isPremium, profile, result, today, weekly]
-  );
   const isCompactHomeCards = PAGE_WIDTH < 392;
   const showInstallGuide = Platform.OS === 'web' && !pwaInstallDismissed && !pwaInstallState.standalone && (pwaInstallState.platform === 'ios' || pwaInstallState.platform === 'android');
 
@@ -4106,6 +4129,7 @@ function HomeTab(props) {
 
   return (
     <ScrollView contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
+      {pageNav}
       <Animated.View
         style={[
           s.homeEntryDeck,
@@ -4265,14 +4289,6 @@ function HomeTab(props) {
           </Animated.View>
         </View>
       </Animated.View>
-      {todayTongsheng ? (
-        <TodayTongshengCard
-          data={todayTongsheng}
-          onOpenDetail={onOpenCustomDetail}
-          onOpenGuides={() => onOpenTodayGuides?.(todayGuideCards)}
-          onOpenCalendar={onOpenTodayDetail}
-        />
-      ) : null}
       {showInstallGuide ? (
         <View style={s.pwaInstallCard}>
           <View style={s.pwaInstallCopy}>
@@ -4386,7 +4402,95 @@ function HomeTab(props) {
   );
 }
 
-function ProfileTab({ profile, result, aiText, aiLoading, onGenerateAI, onPressTenGod, onPressShenShaItem, onPressShenShaList }) {
+function TongshengTab(props) {
+  const {
+    pageNav,
+    result,
+    profile,
+    fortuneCalendar,
+    calSummary,
+    weeklyActions,
+    onOpenTodayDetail,
+    onOpenCustomDetail,
+    onOpenTodayGuides,
+    isPremium,
+  } = props;
+
+  const today = findTodayCalendarCell(fortuneCalendar, result);
+  const weekly = getResolvedWeeklyActions(weeklyActions);
+  const hasRegisteredProfile = Boolean(
+    result &&
+    String(profile?.nickname || '').trim() &&
+    String(profile?.year || '').trim() &&
+    String(profile?.month || '').trim() &&
+    String(profile?.day || '').trim() &&
+    String(profile?.hour || '').trim() &&
+    String(profile?.minute || '').trim() &&
+    String(profile?.gender || '').trim() &&
+    String(profile?.city || '').trim()
+  );
+  const todayGuideCards = useMemo(() => buildTodayGuideCards({ today, result, weekly, profile }), [today, result, weekly, profile]);
+  const todayTongsheng = useMemo(
+    () => (
+      hasRegisteredProfile && isPremium
+        ? buildTodayTongshengData({ today, result, weekly, profile, calSummary })
+        : null
+    ),
+    [calSummary, hasRegisteredProfile, isPremium, profile, result, today, weekly]
+  );
+
+  if (!todayTongsheng) {
+    return (
+      <ScrollView contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
+        {pageNav}
+        <Card style={s.tongshengPageCard}>
+          <SectionHeader
+            eyebrow={'今日通胜'}
+            title={'先完成会员资料，再看今日通胜'}
+            body={'今日通胜会把当天黄历和你的命盘节奏合在一起，所以要先有完整资料，才会更贴身。'}
+          />
+          <Text style={s.tongshengPageLead}>
+            {'等资料完整后，你每天打开明己，都会先落到这里，先看当天适合怎么决策、怎么出行、怎么借势。'}
+          </Text>
+        </Card>
+      </ScrollView>
+    );
+  }
+
+  return (
+    <ScrollView contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
+      {pageNav}
+      <TodayTongshengCard
+        data={todayTongsheng}
+        onOpenDetail={onOpenCustomDetail}
+        onOpenGuides={() => onOpenTodayGuides?.(todayGuideCards)}
+        onOpenCalendar={onOpenTodayDetail}
+      />
+      <Card style={s.tongshengPageCard}>
+        <SectionHeader
+          eyebrow={'今日总览'}
+          title={'今天先顺着这五条线走'}
+          body={'先把大方向看清，再去做选择，通胜页就会更像你每天打开明己的第一张行动地图。'}
+        />
+        <View style={s.tongshengPageChecklist}>
+          {todayTongsheng.sections.map((item, index) => (
+            <View key={item.key} style={s.tongshengPageChecklistItem}>
+              <View style={s.tongshengPageChecklistBadge}>
+                <Text style={s.tongshengPageChecklistBadgeText}>{index + 1}</Text>
+              </View>
+              <View style={s.tongshengPageChecklistCopy}>
+                <Text style={s.tongshengPageChecklistTitle}>{item.title}</Text>
+                <Text style={s.tongshengPageChecklistBody}>{item.summary}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      </Card>
+    </ScrollView>
+  );
+}
+
+function ProfileTab({ pageNav, profile, result, aiText, aiLoading, onGenerateAI, onPressTenGod, onPressShenShaItem, onPressShenShaList }) {
   const elements = useMemo(() => ['\u91d1', '\u6728', '\u6c34', '\u706b', '\u571f'].map((element) => ({
     element,
     ratio: Number(result?.wuXingRatio?.[element] || 0),
@@ -4421,6 +4525,7 @@ function ProfileTab({ profile, result, aiText, aiLoading, onGenerateAI, onPressT
   ];
   return (
     <ScrollView contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
+      {pageNav}
       <PillarMatrix result={result} onPressTenGod={onPressTenGod} onPressShenShaItem={onPressShenShaItem} onPressShenShaList={onPressShenShaList} />
       <Card>
         <SectionHeader eyebrow={S.basics} title={S.basicInfo} />
@@ -4504,7 +4609,7 @@ function ProfileTab({ profile, result, aiText, aiLoading, onGenerateAI, onPressT
   );
 }
 
-function StageTab({ result, fortuneCalendar, calSummary, profile, reviewMode, weeklyActions, selectedDay, onSelectDay, onCloseDayDetail, oneLineSummary, calendarEntries, notificationPrefs, onSaveCalendarNote, onToggleCalendarReminder, onUpdateCalendarReminderTime, onToggleCalendarNoteDone, quickAddMode, onClearQuickAddMode }) {
+function StageTab({ pageNav, result, fortuneCalendar, calSummary, profile, reviewMode, weeklyActions, selectedDay, onSelectDay, onCloseDayDetail, oneLineSummary, calendarEntries, notificationPrefs, onSaveCalendarNote, onToggleCalendarReminder, onUpdateCalendarReminderTime, onToggleCalendarNoteDone, quickAddMode, onClearQuickAddMode }) {
   const availableMonths = useMemo(() => buildAvailableMonths(fortuneCalendar), [fortuneCalendar]);
   const [monthIndex, setMonthIndex] = useState(0);
   const currentMonth = availableMonths[monthIndex] || availableMonths[0] || null;
@@ -4551,6 +4656,7 @@ function StageTab({ result, fortuneCalendar, calSummary, profile, reviewMode, we
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
+        {pageNav}
         <Card>
           <SectionHeader
             eyebrow={reviewMode ? '本月安排' : '月度行动日历'}
@@ -4824,7 +4930,7 @@ const PREMIUM_MEMBER_ROADMAP = [
   },
 ];
 
-function PremiumTab({ memberTier, onOpenPaywall, result, profile, calSummary, fortuneCalendar, weeklyActions, memberRegistration }) {
+function PremiumTab({ pageNav, memberTier, onOpenPaywall, result, profile, calSummary, fortuneCalendar, weeklyActions, memberRegistration }) {
   const isMember = memberTier && memberTier !== 'free';
   const hasRegistration = !!(memberRegistration?.nickname || memberRegistration?.city || memberRegistration?.focus || memberRegistration?.email || memberRegistration?.phone);
   const [selectedMemberTopic, setSelectedMemberTopic] = useState(null);
@@ -4847,6 +4953,7 @@ function PremiumTab({ memberTier, onOpenPaywall, result, profile, calSummary, fo
   };
   return (
     <ScrollView contentContainerStyle={[s.pageContent, { flexGrow: 1 }]} showsVerticalScrollIndicator={false}>
+      {pageNav}
       <Card style={s.darkCard}>
         <Text style={s.darkEyebrow}>{S.premiumCenter}</Text>
         <Text style={s.darkTitle}>{memberTier === 'annual' ? '\u5f53\u524d\u5df2\u5f00\u901a\u5e74\u5ea6\u4f1a\u5458' : memberTier === 'monthly' ? '\u5f53\u524d\u5df2\u5f00\u901a\u6708\u5ea6\u4f1a\u5458' : '\u89e3\u9501\u66f4\u4e13\u4e1a\u3001\u66f4\u5b9e\u7528\u7684\u547d\u7406\u5185\u5bb9'}</Text>
@@ -5047,7 +5154,7 @@ function formatProfileBirthText(profile) {
   return `${year}年${month}月${day}日 ${hour}时${minute}分`;
 }
 
-function MeTab({ profile, accountProfile, locale, supportedLocales, onLocaleChange, onEditProfile, onResetAIReading, onResetData, notificationPrefs, onNotificationPrefsChange, memberRegistration, onOpenPaywall, memberTier, familyProfiles, activeFamilyProfileId, onCreateFamilyProfile, onSaveCurrentToFamilyProfile, onSwitchFamilyProfile, onSwitchToPrimaryAccount, onDeleteFamilyProfile, hideMembership }) {
+function MeTab({ pageNav, profile, accountProfile, locale, supportedLocales, onLocaleChange, onEditProfile, onResetAIReading, onResetData, notificationPrefs, onNotificationPrefsChange, memberRegistration, onOpenPaywall, memberTier, familyProfiles, activeFamilyProfileId, onCreateFamilyProfile, onSaveCurrentToFamilyProfile, onSwitchFamilyProfile, onSwitchToPrimaryAccount, onDeleteFamilyProfile, hideMembership }) {
   const displayProfile = accountProfile || profile;
   const profileTitle = hideMembership ? '个人资料概览' : (displayProfile?.nickname || '\u672a\u547d\u540d\u6863\u6848');
   const profileBody = hideMembership
@@ -5065,6 +5172,7 @@ function MeTab({ profile, accountProfile, locale, supportedLocales, onLocaleChan
   ];
   return (
     <ScrollView contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
+      {pageNav}
       <Card>
         <SectionHeader eyebrow={hideMembership ? '个人资料' : S.profile} title={profileTitle} body={profileBody} />
         <View style={s.profileOverviewHero}>
@@ -5170,11 +5278,11 @@ export function ResultV2Shell(props) {
     onDeleteFamilyProfile,
   } = props;
   const pagerRef = useRef(null);
+  const tabNavigationModeRef = useRef('normal');
   const visibleTabs = useMemo(
     () => TAB_KEYS.filter((tab) => !(hideMembership && (tab === 'premium' || tab === 'profile'))),
     [hideMembership]
   );
-  const [activeTab, setActiveTab] = useState(visibleTabs[0] || 'home');
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [selectedShenShaList, setSelectedShenShaList] = useState(null);
   const [selectedCalendarDay, setSelectedCalendarDay] = useState(null);
@@ -5192,6 +5300,13 @@ export function ResultV2Shell(props) {
   const [aiAllowed, setAiAllowed] = useState(true);
   const isPremium = !!(memberTier && memberTier !== 'free');
   const effectivePremium = isPremium || aiRemaining >= 999;
+  const preferredEntryTab = useMemo(() => {
+    const wantsTongsheng = effectivePremium && visibleTabs.includes('tongsheng');
+    return wantsTongsheng ? 'tongsheng' : (visibleTabs[0] || 'home');
+  }, [effectivePremium, visibleTabs]);
+  const [activeTab, setActiveTab] = useState(preferredEntryTab);
+  const activeTabRef = useRef(preferredEntryTab);
+  const [tabHistory, setTabHistory] = useState([]);
   const identityChart = accountResult || result;
   const identityProfile = accountProfile || profile;
   const stableUserKey = useMemo(
@@ -5201,6 +5316,69 @@ export function ResultV2Shell(props) {
   const selectedStructuredDetail = selectedDetail?.type === 'custom'
     ? selectedDetail?.content
     : getStructuredDetail(selectedDetail?.name) || (selectedDetail?.type === 'shenSha' ? getGenericShenShaFallback(selectedDetail?.name) : null);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!visibleTabs.includes(activeTab)) {
+      activeTabRef.current = preferredEntryTab;
+      setActiveTab(preferredEntryTab);
+      setTabHistory([]);
+      return;
+    }
+    if (activeTab === preferredEntryTab) return;
+    if (!visibleTabs.includes(preferredEntryTab)) return;
+  }, [activeTab, preferredEntryTab, visibleTabs]);
+
+  const navigateToTab = useCallback((tab, options = {}) => {
+    if (!tab || tab === activeTabRef.current) return;
+    const index = visibleTabs.indexOf(tab);
+    if (index < 0) return;
+    if (!options.skipHistory && activeTabRef.current) {
+      setTabHistory((prev) => {
+        if (prev[prev.length - 1] === activeTabRef.current) return prev;
+        return [...prev, activeTabRef.current].slice(-10);
+      });
+    }
+    if (options.navigationMode) {
+      tabNavigationModeRef.current = options.navigationMode;
+    }
+    activeTabRef.current = tab;
+    setActiveTab(tab);
+    pagerRef.current?.scrollTo({ x: index * PAGE_WIDTH, animated: options.animated !== false });
+  }, [visibleTabs]);
+
+  const handleGoBackTab = useCallback(() => {
+    setTabHistory((prev) => {
+      const previousTab = prev[prev.length - 1];
+      if (!previousTab) return prev;
+      const nextHistory = prev.slice(0, -1);
+      navigateToTab(previousTab, { skipHistory: true, navigationMode: 'back' });
+      return nextHistory;
+    });
+  }, [navigateToTab]);
+
+  const buildPageNav = useCallback((title, subtitle) => (
+    <PageTopBackBar
+      title={title}
+      subtitle={subtitle}
+      canGoBack={tabHistory.length > 0}
+      onGoBack={handleGoBackTab}
+    />
+  ), [handleGoBackTab, tabHistory.length]);
+
+  useEffect(() => {
+    const index = visibleTabs.indexOf(preferredEntryTab);
+    if (index < 0) return undefined;
+    const timer = setTimeout(() => {
+      activeTabRef.current = preferredEntryTab;
+      setActiveTab(preferredEntryTab);
+      pagerRef.current?.scrollTo({ x: index * PAGE_WIDTH, animated: false });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [preferredEntryTab, visibleTabs]);
 
   const refreshAIQuota = async () => {
     const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: identityChart, profile: identityProfile, userKey: stableUserKey };
@@ -5334,19 +5512,12 @@ export function ResultV2Shell(props) {
     AsyncStorage.setItem(CALENDAR_ENTRIES_STORAGE_KEY, JSON.stringify(calendarEntries)).catch(() => {});
   }, [calendarEntries]);
 
-  const goToTab = (tab) => {
-    const index = visibleTabs.indexOf(tab);
-    if (index < 0) return;
-    setActiveTab(tab);
-    pagerRef.current?.scrollTo({ x: index * PAGE_WIDTH, animated: true });
-  };
-
   const openTodayDetail = () => {
     const today = findTodayCalendarCell(fortuneCalendar, result);
     if (!today) return;
     setSelectedCalendarDay(today);
     setCalendarQuickAddMode(false);
-    goToTab('stage');
+    navigateToTab('stage');
   };
 
   const handleSaveCalendarNote = (day, note, options = {}) => {
@@ -5620,17 +5791,31 @@ export function ResultV2Shell(props) {
   };
 
   const pages = [
-    <HomeTab key="home" result={result} profile={profile} fortuneCalendar={fortuneCalendar} calSummary={calSummary} weeklyActions={weeklyActions} oneLineSummary={oneLineSummary} followUpQuestions={followUpQuestions} followUpAnswers={followUpAnswers} onFollowUpAnswerChange={onFollowUpAnswerChange} onGenerateCompanion={onGenerateCompanion} companionLoading={companionLoading} onRecalculate={onRecalculate} reviewMode={hideMembership} onOpenAI={() => setAiPage(true)} onOpenTodayDetail={openTodayDetail} onOpenCustomDetail={setSelectedDetail} onOpenTodayGuides={setSelectedTodayGuides} isPremium={effectivePremium} aiRemaining={aiRemaining} aiAllowed={aiAllowed} onRefreshAIQuota={refreshAIQuota} onOpenPaywall={onOpenPaywall} />,
-    !hideMembership ? <ProfileTab key="profile" profile={profile} result={result} aiText={aiText} aiLoading={aiLoading} onGenerateAI={onGenerateAI} onPressTenGod={(name) => setSelectedDetail(name ? { type: 'tenGod', name } : null)} onPressShenShaItem={(name) => setSelectedDetail(name ? { type: 'shenSha', name } : null)} onPressShenShaList={(pillar, items) => setSelectedShenShaList({ pillar, items })} /> : null,
-    <StageTab key="stage" result={result} fortuneCalendar={fortuneCalendar} calSummary={calSummary} profile={profile} reviewMode={hideMembership} weeklyActions={weeklyActions} selectedDay={selectedCalendarDay} onSelectDay={(day, options) => { setSelectedCalendarDay(day); setCalendarQuickAddMode(!!options?.quickAdd); }} onCloseDayDetail={() => { setSelectedCalendarDay(null); setCalendarQuickAddMode(false); }} oneLineSummary={oneLineSummary} calendarEntries={calendarEntries} notificationPrefs={notificationPrefs} onSaveCalendarNote={handleSaveCalendarNote} onToggleCalendarReminder={handleToggleCalendarReminder} onUpdateCalendarReminderTime={handleUpdateCalendarReminderTime} onToggleCalendarNoteDone={handleToggleCalendarNoteDone} quickAddMode={calendarQuickAddMode} onClearQuickAddMode={() => setCalendarQuickAddMode(false)} />,
-    !hideMembership ? <PremiumTab key="premium" memberTier={memberTier} onOpenPaywall={onOpenPaywall} result={result} profile={profile} calSummary={calSummary} fortuneCalendar={fortuneCalendar} weeklyActions={weeklyActions} memberRegistration={memberRegistration} /> : null,
-    <MeTab key="me" profile={profile} accountProfile={accountProfile} locale={locale} supportedLocales={supportedLocales} onLocaleChange={onLocaleChange} onEditProfile={onEditProfile} onResetAIReading={onResetAIReading} onResetData={onResetData} notificationPrefs={notificationPrefs} onNotificationPrefsChange={onNotificationPrefsChange} memberRegistration={memberRegistration} onOpenPaywall={onOpenPaywall} memberTier={memberTier} familyProfiles={familyProfiles} activeFamilyProfileId={activeFamilyProfileId} onCreateFamilyProfile={onCreateFamilyProfile} onSaveCurrentToFamilyProfile={onSaveCurrentToFamilyProfile} onSwitchFamilyProfile={onSwitchFamilyProfile} onSwitchToPrimaryAccount={onSwitchToPrimaryAccount} onDeleteFamilyProfile={onDeleteFamilyProfile} hideMembership={hideMembership} />,
+    <TongshengTab key="tongsheng" pageNav={buildPageNav('今日通胜', '会员默认先落到这里，先看当天节奏，再决定今天怎么走。')} result={result} profile={profile} fortuneCalendar={fortuneCalendar} calSummary={calSummary} weeklyActions={weeklyActions} onOpenTodayDetail={openTodayDetail} onOpenCustomDetail={setSelectedDetail} onOpenTodayGuides={setSelectedTodayGuides} isPremium={effectivePremium} />,
+    <HomeTab key="home" pageNav={buildPageNav('明己首页', '这里放长期工具和常用入口，需要时也能随时退回上一页。')} result={result} profile={profile} accountProfile={accountProfile} accountResult={accountResult} fortuneCalendar={fortuneCalendar} calSummary={calSummary} weeklyActions={weeklyActions} oneLineSummary={oneLineSummary} followUpQuestions={followUpQuestions} followUpAnswers={followUpAnswers} onFollowUpAnswerChange={onFollowUpAnswerChange} onGenerateCompanion={onGenerateCompanion} companionLoading={companionLoading} onRecalculate={onRecalculate} reviewMode={hideMembership} onOpenAI={() => setAiPage(true)} onOpenTodayDetail={openTodayDetail} onOpenCustomDetail={setSelectedDetail} onOpenTodayGuides={setSelectedTodayGuides} isPremium={effectivePremium} aiRemaining={aiRemaining} aiAllowed={aiAllowed} onRefreshAIQuota={refreshAIQuota} onOpenPaywall={onOpenPaywall} />,
+    !hideMembership ? <ProfileTab key="profile" pageNav={buildPageNav('命盘总览', '回看四柱、结构和 AI 深读时，也能一键退回刚才那一页。')} profile={profile} result={result} aiText={aiText} aiLoading={aiLoading} onGenerateAI={onGenerateAI} onPressTenGod={(name) => setSelectedDetail(name ? { type: 'tenGod', name } : null)} onPressShenShaItem={(name) => setSelectedDetail(name ? { type: 'shenSha', name } : null)} onPressShenShaList={(pillar, items) => setSelectedShenShaList({ pillar, items })} /> : null,
+    <StageTab key="stage" pageNav={buildPageNav('阶段日历', '看黄历、阶段安排和当天提醒时，退回路径也会一直保留。')} result={result} fortuneCalendar={fortuneCalendar} calSummary={calSummary} profile={profile} reviewMode={hideMembership} weeklyActions={weeklyActions} selectedDay={selectedCalendarDay} onSelectDay={(day, options) => { setSelectedCalendarDay(day); setCalendarQuickAddMode(!!options?.quickAdd); }} onCloseDayDetail={() => { setSelectedCalendarDay(null); setCalendarQuickAddMode(false); }} oneLineSummary={oneLineSummary} calendarEntries={calendarEntries} notificationPrefs={notificationPrefs} onSaveCalendarNote={handleSaveCalendarNote} onToggleCalendarReminder={handleToggleCalendarReminder} onUpdateCalendarReminderTime={handleUpdateCalendarReminderTime} onToggleCalendarNoteDone={handleToggleCalendarNoteDone} quickAddMode={calendarQuickAddMode} onClearQuickAddMode={() => setCalendarQuickAddMode(false)} />,
+    !hideMembership ? <PremiumTab key="premium" pageNav={buildPageNav('会员中心', '权益、登记和会员专题入口，都会保留返回上一页的路径。')} memberTier={memberTier} onOpenPaywall={onOpenPaywall} result={result} profile={profile} calSummary={calSummary} fortuneCalendar={fortuneCalendar} weeklyActions={weeklyActions} memberRegistration={memberRegistration} /> : null,
+    <MeTab key="me" pageNav={buildPageNav('我的', '改资料、调提醒、看账号信息时，也不需要再自己找返回路径。')} profile={profile} accountProfile={accountProfile} locale={locale} supportedLocales={supportedLocales} onLocaleChange={onLocaleChange} onEditProfile={onEditProfile} onResetAIReading={onResetAIReading} onResetData={onResetData} notificationPrefs={notificationPrefs} onNotificationPrefsChange={onNotificationPrefsChange} memberRegistration={memberRegistration} onOpenPaywall={onOpenPaywall} memberTier={memberTier} familyProfiles={familyProfiles} activeFamilyProfileId={activeFamilyProfileId} onCreateFamilyProfile={onCreateFamilyProfile} onSaveCurrentToFamilyProfile={onSaveCurrentToFamilyProfile} onSwitchFamilyProfile={onSwitchFamilyProfile} onSwitchToPrimaryAccount={onSwitchToPrimaryAccount} onDeleteFamilyProfile={onDeleteFamilyProfile} hideMembership={hideMembership} />,
   ].filter(Boolean);
   return (
     <View style={s.root}>
       <ScrollView ref={pagerRef} horizontal pagingEnabled showsHorizontalScrollIndicator={false} onMomentumScrollEnd={(event) => {
         const index = Math.round(event.nativeEvent.contentOffset.x / PAGE_WIDTH);
-        setActiveTab(visibleTabs[index] || visibleTabs[0] || 'home');
+        const nextTab = visibleTabs[index] || visibleTabs[0] || preferredEntryTab;
+        if (tabNavigationModeRef.current === 'back') {
+          tabNavigationModeRef.current = 'normal';
+          activeTabRef.current = nextTab;
+          setActiveTab(nextTab);
+          return;
+        }
+        if (nextTab === activeTabRef.current) return;
+        setTabHistory((prev) => {
+          if (prev[prev.length - 1] === activeTabRef.current) return prev;
+          return [...prev, activeTabRef.current].slice(-10);
+        });
+        activeTabRef.current = nextTab;
+        setActiveTab(nextTab);
       }}>
         {pages.map((page, index) => <View key={visibleTabs[index]} style={s.page}>{page}</View>)}
       </ScrollView>
@@ -5640,7 +5825,7 @@ export function ResultV2Shell(props) {
           const meta = getTabMeta(tab, hideMembership);
           return (
             <TouchableOpacity key={tab} style={s.tabButton} onPress={() => {
-              goToTab(tab);
+              navigateToTab(tab);
             }}>
               <View style={[
                 s.tabButtonSurface,
@@ -5948,6 +6133,23 @@ const s = StyleSheet.create({
   tongshengPrimaryButtonText: { fontSize: 14, fontWeight: '900', color: '#F6FFFC' },
   tongshengGhostButton: { minHeight: 46, borderRadius: 999, backgroundColor: 'rgba(18,52,58,0.05)', borderWidth: 1, borderColor: 'rgba(18,52,58,0.08)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
   tongshengGhostButtonText: { fontSize: 13, fontWeight: '800', color: '#315D58' },
+  pageTopBackBar: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 4, paddingVertical: 2, marginBottom: 2 },
+  pageTopBackButton: { minHeight: 38, borderRadius: 999, paddingHorizontal: 14, backgroundColor: 'rgba(18,52,58,0.06)', borderWidth: 1, borderColor: 'rgba(18,52,58,0.10)', alignItems: 'center', justifyContent: 'center' },
+  pageTopBackButtonDisabled: { opacity: 0.58 },
+  pageTopBackButtonText: { fontSize: 12, fontWeight: '800', color: '#254B4A' },
+  pageTopBackButtonTextDisabled: { color: 'rgba(37,75,74,0.58)' },
+  pageTopBackCopy: { flex: 1, gap: 3, paddingTop: 2 },
+  pageTopBackTitle: { fontSize: 16, lineHeight: 21, fontWeight: '800', color: C.logoDeep },
+  pageTopBackSubtitle: { fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.56)' },
+  tongshengPageCard: { borderRadius: 26, borderWidth: 1, borderColor: 'rgba(196,138,42,0.16)', backgroundColor: '#FFFCF4' },
+  tongshengPageLead: { fontSize: 15, lineHeight: 24, color: 'rgba(20,51,58,0.76)', fontWeight: '600' },
+  tongshengPageChecklist: { marginTop: 4, gap: 12 },
+  tongshengPageChecklistItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 2 },
+  tongshengPageChecklistBadge: { width: 26, height: 26, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(196,138,42,0.14)', borderWidth: 1, borderColor: 'rgba(196,138,42,0.22)', marginTop: 2 },
+  tongshengPageChecklistBadgeText: { fontSize: 12, fontWeight: '900', color: '#8C6421' },
+  tongshengPageChecklistCopy: { flex: 1, gap: 4 },
+  tongshengPageChecklistTitle: { fontSize: 13, lineHeight: 18, fontWeight: '900', color: '#1F4A47' },
+  tongshengPageChecklistBody: { fontSize: 14, lineHeight: 22, color: 'rgba(20,51,58,0.76)', fontWeight: '600' },
   pwaInstallCard: { borderRadius: 24, backgroundColor: 'rgba(11,16,32,0.94)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.14)', paddingHorizontal: 18, paddingVertical: 18, marginTop: -2, marginBottom: 12, shadowColor: '#08111D', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 4, gap: 14 },
   pwaInstallCopy: { gap: 6 },
   pwaInstallEyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.1, textTransform: 'uppercase', color: 'rgba(234,245,241,0.58)' },
