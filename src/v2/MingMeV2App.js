@@ -1356,9 +1356,11 @@ export default function MingMeV2App() {
   const [companionLoading, setCompanionLoading] = useState(false);
   const [notificationPrefs, setNotificationPrefs] = useState(DEFAULT_NOTIFICATION_PREFS);
   const [paywallVisible, setPaywallVisible] = useState(false);
+  const [campaignVisible, setCampaignVisible] = useState(false);
   const [generatingStatus, setGeneratingStatus] = useState(hideMembership ? '正在生成你的个人洞察' : '正在为你生成专属档案');
   const [profileReadyVisible, setProfileReadyVisible] = useState(false);
   const timersRef = useRef([]);
+  const campaignShownRef = useRef(false);
 
   const primaryProfile = primaryAccountArchive?.profile || profile;
   const primaryChartResult = primaryAccountArchive?.chartResult || chartResult;
@@ -2245,6 +2247,15 @@ export default function MingMeV2App() {
     syncMembershipFromBackend({ chart: primaryChartResult || chartResult, registration: memberRegistration, silent: true });
   }, [booting, chartResult, memberRegistration, primaryChartResult, syncMembershipFromBackend]);
 
+  useEffect(() => {
+    if (booting || hideMembership || flow !== 'app' || !chartResult || campaignShownRef.current) return undefined;
+    const timer = setTimeout(() => {
+      campaignShownRef.current = true;
+      setCampaignVisible(true);
+    }, 520);
+    return () => clearTimeout(timer);
+  }, [booting, chartResult, flow, hideMembership]);
+
   const handleMemberRegistrationSave = useCallback(async (payload) => {
     const nextRegistration = {
       ...DEFAULT_MEMBER_REGISTRATION,
@@ -2284,6 +2295,14 @@ export default function MingMeV2App() {
           await syncMembershipFromBackend({ chart: primaryChartResult || chartResult, registration: nextRegistration, silent: true });
         }
 
+        const grantedDays = Number(membership?.trialDays || 30);
+        Alert.alert(
+          '登记成功',
+          membership?.granted === false
+            ? '你的会员状态已存在，明己已为你保留当前权益。'
+            : `已为你送上 ${grantedDays} 天会员权益，现在就可以直接使用会员功能。`
+        );
+        setCampaignVisible(false);
         setPaywallVisible(false);
         return {
           ok: true,
@@ -2604,6 +2623,8 @@ export default function MingMeV2App() {
           setNotificationPrefs(DEFAULT_NOTIFICATION_PREFS);
           setProfileReadyVisible(false);
           setPaywallVisible(false);
+          setCampaignVisible(false);
+          campaignShownRef.current = false;
           setLocale('zh-Hans');
           setLocaleState('zh-Hans');
           setFlow('onboarding');
@@ -2653,6 +2674,44 @@ export default function MingMeV2App() {
       {flow === 'generating' ? <GeneratingV2Screen statusText={generatingStatus} /> : null}
       {flow === 'app' && chartResult ? (
         <>
+          <Modal visible={campaignVisible && !hideMembership} transparent animationType="fade" onRequestClose={() => setCampaignVisible(false)}>
+            <View style={s.campaignMask}>
+              <TouchableOpacity style={s.campaignScrim} activeOpacity={1} onPress={() => setCampaignVisible(false)} />
+              <View style={s.campaignCard}>
+                <View style={s.campaignAura} />
+                <Text style={s.campaignEyebrow}>{'新用户活动'}</Text>
+                <Text style={s.campaignTitle}>
+                  {memberTier !== 'free' ? '你已进入会员体验期' : '注册即送 30 天会员权益'}
+                </Text>
+                <Text style={s.campaignBody}>
+                  {memberTier !== 'free'
+                    ? '当前账号已在会员权益期内，明己 AI 先生、明己一卦、明己解梦等会员功能都可以直接体验。'
+                    : '现在完成会员登记，即可自动领取 30 天会员权益，不用先付费，先把明己的完整功能用起来。'}
+                </Text>
+                <View style={s.campaignButtonRow}>
+                  {memberTier === 'free' ? (
+                    <TouchableOpacity
+                      style={s.campaignPrimaryButton}
+                      activeOpacity={0.9}
+                      onPress={() => {
+                        setCampaignVisible(false);
+                        setPaywallVisible(true);
+                      }}
+                    >
+                      <Text style={s.campaignPrimaryButtonText}>{'立即登记领取'}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity style={s.campaignPrimaryButton} activeOpacity={0.9} onPress={() => setCampaignVisible(false)}>
+                      <Text style={s.campaignPrimaryButtonText}>{'我知道了'}</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={s.campaignSecondaryButton} activeOpacity={0.9} onPress={() => setCampaignVisible(false)}>
+                    <Text style={s.campaignSecondaryButtonText}>{memberTier === 'free' ? '稍后再看' : '先去体验'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
           <ResultV2Shell
             result={chartResult}
             profile={profile}
@@ -2708,6 +2767,93 @@ export default function MingMeV2App() {
 }
 
 const s = StyleSheet.create({
+  campaignMask: {
+    flex: 1,
+    backgroundColor: 'rgba(8, 18, 22, 0.30)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+  },
+  campaignScrim: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  campaignCard: {
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 30,
+    overflow: 'hidden',
+    paddingHorizontal: 22,
+    paddingVertical: 24,
+    backgroundColor: '#F8FCFB',
+    borderWidth: 1,
+    borderColor: 'rgba(120, 212, 188, 0.22)',
+    shadowColor: '#12343A',
+    shadowOpacity: 0.22,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 8,
+  },
+  campaignAura: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 999,
+    top: -118,
+    right: -48,
+    backgroundColor: 'rgba(120, 212, 188, 0.16)',
+  },
+  campaignEyebrow: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: '#5A8F83',
+  },
+  campaignTitle: {
+    marginTop: 8,
+    fontSize: 28,
+    lineHeight: 36,
+    fontWeight: '900',
+    color: '#12343A',
+  },
+  campaignBody: {
+    marginTop: 10,
+    fontSize: 15,
+    lineHeight: 24,
+    fontWeight: '600',
+    color: '#4B6A65',
+  },
+  campaignButtonRow: {
+    marginTop: 20,
+    gap: 10,
+  },
+  campaignPrimaryButton: {
+    minHeight: 52,
+    borderRadius: 999,
+    backgroundColor: '#12343A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  campaignPrimaryButtonText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#F7FFFC',
+  },
+  campaignSecondaryButton: {
+    minHeight: 48,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(18, 52, 58, 0.10)',
+    backgroundColor: 'rgba(18, 52, 58, 0.04)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  campaignSecondaryButtonText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#42635E',
+  },
   screen: {
     flex: 1,
     backgroundColor: C.bg,
