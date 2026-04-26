@@ -1461,7 +1461,7 @@ function buildTodayTongshengData({ today, result, weekly, profile, calSummary })
       },
       {
         key: 'wealth',
-        title: '财神',
+        title: '财气',
         summary: luckyDirection
           ? `今天的财气更适合往 ${luckyDirection} 这一侧求稳。${wealthAdvice}`
           : wealthAdvice,
@@ -1486,8 +1486,8 @@ function buildTodayTongshengData({ today, result, weekly, profile, calSummary })
           body: `${decisionAdvice} ${travelAdvice}`,
         },
         {
-          title: '财神与增运',
-          body: `${luckyDirection ? `财神方位更偏向 ${luckyDirection}。` : '今天更适合先求稳财，不宜乱追快财。'} ${wealthAdvice} ${boostAdvice}`,
+          title: '财气与增运',
+          body: `${luckyDirection ? `今天的财气方位更偏向 ${luckyDirection}。` : '今天更适合先求稳财，不宜乱追快财。'} ${wealthAdvice} ${boostAdvice}`,
         },
         {
           title: '桃花与人际',
