@@ -1372,6 +1372,171 @@ function buildTodayGuideCards({ today, result, weekly, profile }) {
   ];
 }
 
+function collectTodayShenShaNames(result) {
+  const detailMap = result?.shenShaDetails || {};
+  const buckets = [detailMap.year, detailMap.month, detailMap.day, detailMap.hour];
+  return [...new Set(buckets.flatMap((item) => normalizeList(item)).filter(Boolean))];
+}
+
+function buildTodayTongshengData({ today, result, weekly, profile, calSummary }) {
+  const shenShaNames = collectTodayShenShaNames(result);
+  const luckyDirection = normalizeGuideText(today?.luckyDirection || result?.luckyDirection);
+  const luckyColor = normalizeGuideText(today?.luckyColor || result?.luckyColor);
+  const luckyNumber = normalizeGuideText(today?.luckyNumber || result?.luckyNumber);
+  const luckyElements = normalizeGuideText(today?.luckyElements || result?.luckyElements);
+  const yiText = normalizeGuideText(today?.yi);
+  const jiText = normalizeGuideText(today?.ji);
+  const profileName = profile?.nickname || '你';
+  const peachSignals = shenShaNames.filter((item) => ['桃花', '红鸾', '天喜', '咸池'].some((keyword) => `${item}`.includes(keyword)));
+  const todayLabel = normalizeGuideText(today?.label);
+  const relationshipAdvice = firstValid(
+    weekly?.relationship?.advice,
+    result?.narrative?.emotionalHint,
+    result?.useGodAnalysis?.strategy,
+    '今天关系上最重要的不是猜，而是把分寸和真实需求讲清楚。'
+  );
+  const wealthAdvice = firstValid(
+    weekly?.money?.advice,
+    result?.luckAnalysis?.opportunityAreas,
+    result?.useGodAnalysis?.strategy,
+    yiText,
+    '财路上先稳节奏、再谈加码，会比情绪上头时仓促拍板更顺。'
+  );
+  const decisionAdvice = firstValid(
+    today?.advice,
+    result?.dailyFortune?.advice,
+    calSummary?.summary,
+    '今天先把主线收住，再做关键决定。'
+  );
+  const travelAdvice = firstValid(
+    weekly?.health?.advice,
+    today?.goodHours,
+    result?.jiShi,
+    jiText,
+    '今天出门宜预留缓冲，把最重要的一站放在自己状态最稳的时候。'
+  );
+  const boostAdvice = firstValid(
+    result?.useGodAnalysis?.strategy,
+    weekly?.work?.advice,
+    `把 ${luckyColor || '更顺眼的配色'}、${luckyDirection || '更顺的方位'} 和 ${luckyElements || '更贴身的五行节奏'} 用在今天最重要的一件事上。`
+  );
+
+  return {
+    title: todayLabel ? `今日通胜 · ${todayLabel}` : '今日通胜',
+    subtitle: firstValid(
+      today?.dateLabel,
+      result?.lunarDateStr,
+      '--'
+    ),
+    lead: `${profileName}今天的黄历节奏与命盘主线，更像是在提醒你：${decisionAdvice}`,
+    meta: [
+      luckyDirection ? `利方：${luckyDirection}` : '',
+      luckyColor ? `利色：${luckyColor}` : '',
+      luckyNumber ? `利数：${luckyNumber}` : '',
+    ].filter(Boolean),
+    sections: [
+      {
+        key: 'decision',
+        title: '决策',
+        summary: decisionAdvice,
+      },
+      {
+        key: 'travel',
+        title: '出行',
+        summary: travelAdvice,
+      },
+      {
+        key: 'boost',
+        title: '增运',
+        summary: `${boostAdvice}${luckyElements ? ` 今天更顺的五行落点偏向 ${luckyElements}。` : ''}`,
+      },
+      {
+        key: 'wealth',
+        title: '财神',
+        summary: luckyDirection
+          ? `今天的财气更适合往 ${luckyDirection} 这一侧求稳。${wealthAdvice}`
+          : wealthAdvice,
+      },
+      {
+        key: 'peach',
+        title: '桃花',
+        summary: peachSignals.length
+          ? `命盘里的 ${peachSignals.slice(0, 2).join('、')} 会放大今天的人际感应。${relationshipAdvice}`
+          : relationshipAdvice,
+      },
+    ],
+    detailContent: {
+      lead: `${profileName}今天先看黄历时气，再把你的命盘主线叠上去，重点不是神神叨叨地“求准”，而是知道今天什么更顺、什么更容易卡。`,
+      sections: [
+        {
+          title: '今日总诀',
+          body: `${decisionAdvice}${todayLabel ? ` 当前日历节奏偏向“${todayLabel}”。` : ''}${yiText ? ` 宜：${yiText}。` : ''}${jiText ? ` 忌：${jiText}。` : ''}`,
+        },
+        {
+          title: '决策与出行',
+          body: `${decisionAdvice} ${travelAdvice}`,
+        },
+        {
+          title: '财神与增运',
+          body: `${luckyDirection ? `财神方位更偏向 ${luckyDirection}。` : '今天更适合先求稳财，不宜乱追快财。'} ${wealthAdvice} ${boostAdvice}`,
+        },
+        {
+          title: '桃花与人际',
+          body: peachSignals.length
+            ? `${peachSignals.slice(0, 3).join('、')} 这些桃花线索，会让你今天在人际里更容易被看见，但也更需要守住分寸。${relationshipAdvice}`
+            : `今天的人际重点不在强求回应，而在把自己的边界、态度和需求放稳。${relationshipAdvice}`,
+        },
+      ],
+    },
+  };
+}
+
+function TodayTongshengCard({ data, onOpenDetail, onOpenGuides, onOpenCalendar }) {
+  if (!data) return null;
+  return (
+    <Card style={s.tongshengCard}>
+      <View style={s.tongshengAura} />
+      <SectionHeader
+        eyebrow={'今日通胜'}
+        title={data.title}
+        body={'把当天黄历信息和你的八字节奏放在一起看，先看总势，再看今天最值得把握的五条线。'}
+      />
+      <View style={s.tongshengHead}>
+        <Text style={s.tongshengSubtitle}>{data.subtitle}</Text>
+        {!!data.meta?.length ? (
+          <View style={s.tongshengMetaRow}>
+            {data.meta.map((item) => (
+              <View key={item} style={s.tongshengMetaPill}>
+                <Text style={s.tongshengMetaText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+      </View>
+      <Text style={s.tongshengLead}>{data.lead}</Text>
+      <View style={s.tongshengGrid}>
+        {data.sections.map((item) => (
+          <View key={item.key} style={s.tongshengGridCard}>
+            <Text style={s.tongshengGridTitle}>{item.title}</Text>
+            <Text style={s.tongshengGridBody}>{item.summary}</Text>
+          </View>
+        ))}
+      </View>
+      <View style={s.tongshengActionRow}>
+        <TouchableOpacity style={s.tongshengPrimaryButton} activeOpacity={0.9} onPress={() => onOpenDetail?.({ type: 'custom', name: data.title, subtitle: '今日通胜 · 综合详解', content: data.detailContent })}>
+          <Text style={s.tongshengPrimaryButtonText}>{'查看今日详解'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={s.tongshengGhostButton} activeOpacity={0.9} onPress={onOpenGuides}>
+          <Text style={s.tongshengGhostButtonText}>{'展开今日提醒'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={s.tongshengGhostButton} activeOpacity={0.9} onPress={onOpenCalendar}>
+          <Text style={s.tongshengGhostButtonText}>{'打开当日日历'}</Text>
+        </TouchableOpacity>
+      </View>
+    </Card>
+  );
+}
+
 function buildTimingLabels(fortuneCalendar) {
   const cells = getCalendarCells(fortuneCalendar);
   const goodDays = cells.filter((item) => item.label === '适合推进').slice(0, 3);
@@ -3825,6 +3990,14 @@ function HomeTab(props) {
     toText(today?.luckyDirection || result?.luckyDirection),
     toText(today?.luckyColor || result?.luckyColor),
   ].filter((item) => item && item !== '--');
+  const todayTongsheng = useMemo(
+    () => (
+      hasRegisteredProfile && isPremium
+        ? buildTodayTongshengData({ today, result, weekly, profile, calSummary })
+        : null
+    ),
+    [calSummary, hasRegisteredProfile, isPremium, profile, result, today, weekly]
+  );
   const isCompactHomeCards = PAGE_WIDTH < 392;
   const showInstallGuide = Platform.OS === 'web' && !pwaInstallDismissed && !pwaInstallState.standalone && (pwaInstallState.platform === 'ios' || pwaInstallState.platform === 'android');
 
@@ -4092,6 +4265,14 @@ function HomeTab(props) {
           </Animated.View>
         </View>
       </Animated.View>
+      {todayTongsheng ? (
+        <TodayTongshengCard
+          data={todayTongsheng}
+          onOpenDetail={onOpenCustomDetail}
+          onOpenGuides={() => onOpenTodayGuides?.(todayGuideCards)}
+          onOpenCalendar={onOpenTodayDetail}
+        />
+      ) : null}
       {showInstallGuide ? (
         <View style={s.pwaInstallCard}>
           <View style={s.pwaInstallCopy}>
@@ -5750,6 +5931,23 @@ const s = StyleSheet.create({
   dreamEntryActionPill: { backgroundColor: 'rgba(205,188,255,0.14)', borderColor: 'rgba(205,188,255,0.28)' },
   aiEntryAction: { fontSize: 14, fontWeight: '700', color: C.logoMint },
   aiEntryArrow: { fontSize: 18, fontWeight: '800', color: C.logoMint },
+  tongshengCard: { position: 'relative', overflow: 'hidden', borderRadius: 28, borderWidth: 1, borderColor: 'rgba(169,222,208,0.22)', backgroundColor: '#F7FCFA', shadowColor: '#12343A', shadowOpacity: 0.10, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 3 },
+  tongshengAura: { position: 'absolute', width: 280, height: 280, borderRadius: 999, top: -160, right: -90, backgroundColor: 'rgba(120, 212, 188, 0.14)' },
+  tongshengHead: { gap: 10, marginBottom: 8 },
+  tongshengSubtitle: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: 'rgba(20,51,58,0.58)' },
+  tongshengMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tongshengMetaPill: { minHeight: 30, borderRadius: 999, paddingHorizontal: 12, backgroundColor: 'rgba(18,52,58,0.06)', borderWidth: 1, borderColor: 'rgba(18,52,58,0.08)', alignItems: 'center', justifyContent: 'center' },
+  tongshengMetaText: { fontSize: 12, fontWeight: '800', color: C.logoDeep },
+  tongshengLead: { fontSize: 16, lineHeight: 25, fontWeight: '700', color: '#234A4E' },
+  tongshengGrid: { marginTop: 16, gap: 10 },
+  tongshengGridCard: { borderRadius: 20, paddingHorizontal: 15, paddingVertical: 14, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(18,52,58,0.08)', gap: 6 },
+  tongshengGridTitle: { fontSize: 13, lineHeight: 18, fontWeight: '900', color: '#1E4F4A' },
+  tongshengGridBody: { fontSize: 14, lineHeight: 22, fontWeight: '600', color: 'rgba(20,51,58,0.78)' },
+  tongshengActionRow: { marginTop: 16, gap: 10 },
+  tongshengPrimaryButton: { minHeight: 50, borderRadius: 999, backgroundColor: '#12343A', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  tongshengPrimaryButtonText: { fontSize: 14, fontWeight: '900', color: '#F6FFFC' },
+  tongshengGhostButton: { minHeight: 46, borderRadius: 999, backgroundColor: 'rgba(18,52,58,0.05)', borderWidth: 1, borderColor: 'rgba(18,52,58,0.08)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  tongshengGhostButtonText: { fontSize: 13, fontWeight: '800', color: '#315D58' },
   pwaInstallCard: { borderRadius: 24, backgroundColor: 'rgba(11,16,32,0.94)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.14)', paddingHorizontal: 18, paddingVertical: 18, marginTop: -2, marginBottom: 12, shadowColor: '#08111D', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 4, gap: 14 },
   pwaInstallCopy: { gap: 6 },
   pwaInstallEyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.1, textTransform: 'uppercase', color: 'rgba(234,245,241,0.58)' },
