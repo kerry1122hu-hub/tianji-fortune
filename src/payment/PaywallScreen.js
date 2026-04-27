@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Constants from 'expo-constants';
 import {
   Alert,
@@ -269,6 +269,7 @@ export function PaywallScreen({
 }) {
   const insets = useSafeAreaInsets();
   const isExistingMember = Boolean(memberTier && memberTier !== 'free');
+  const wasVisibleRef = useRef(false);
   const [selectedPlan, setSelectedPlan] = useState('annual');
   const [paymentMethod, setPaymentMethod] = useState('wechat');
   const [showPaymentStep, setShowPaymentStep] = useState(false);
@@ -282,7 +283,8 @@ export function PaywallScreen({
   const [contactMessage, setContactMessage] = useState('');
 
   useEffect(() => {
-    if (visible) {
+    if (visible && !wasVisibleRef.current) {
+      wasVisibleRef.current = true;
       setShowPaymentStep(isExistingMember);
       setRegistration(buildInitialRegistration(profile, registrationDraft));
       const defaultPlan = PLAN_OPTIONS.find((item) => item.key === selectedPlan) || PLAN_OPTIONS[0];
@@ -293,6 +295,10 @@ export function PaywallScreen({
       setScreenshotDataUrl('');
       setContactTopic('');
       setContactMessage('');
+      return;
+    }
+    if (!visible) {
+      wasVisibleRef.current = false;
     }
   }, [isExistingMember, profile, registrationDraft, selectedPlan, visible]);
 
