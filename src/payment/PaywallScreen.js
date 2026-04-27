@@ -622,11 +622,23 @@ export function PaywallScreen({
                   />
                 </View>
 
-                <TouchableOpacity style={s.primaryInlineButton} onPress={handleSubmit} activeOpacity={0.9}>
-                  <Text style={s.primaryInlineButtonText}>
-                    {screenshotDataUrl ? '提交付款审核' : '填写资料，领取30天会员'}
+                <View style={s.primaryActionCard}>
+                  <Text style={s.primaryActionEyebrow}>最后一步</Text>
+                  <Text style={s.primaryActionTitle}>
+                    {screenshotDataUrl ? '确认提交付款审核' : '确认资料并领取会员体验'}
                   </Text>
-                </TouchableOpacity>
+                  <Text style={s.primaryActionBody}>
+                    {screenshotDataUrl
+                      ? '上传截图后，在这里正式提交给后台审核，确认到账后会为你开通会员。'
+                      : '资料确认后，就可以先领取 30 天会员体验，再决定是否继续开通。'}
+                  </Text>
+
+                  <TouchableOpacity style={s.primaryInlineButton} onPress={handleSubmit} activeOpacity={0.9}>
+                    <Text style={s.primaryInlineButtonText}>
+                      {screenshotDataUrl ? '提交付款审核' : '填写资料，领取30天会员'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </>
           )}
@@ -861,18 +873,57 @@ const s = StyleSheet.create({
   bottomTitle: { display: 'none', fontSize: 14, lineHeight: 20, fontWeight: '800', color: C.ink },
   bottomBody: { display: 'none', marginTop: 4, fontSize: 12, lineHeight: 18, color: C.soft },
   bottomActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  primaryInlineButton: {
+  primaryActionCard: {
+    marginTop: 10,
+    padding: 16,
+    borderRadius: 22,
+    backgroundColor: '#F7F3EA',
+    borderWidth: 1,
+    borderColor: 'rgba(164, 128, 84, 0.18)',
+    shadowColor: '#7E5C35',
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+  },
+  primaryActionEyebrow: {
+    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: '#9B7442',
+  },
+  primaryActionTitle: {
+    marginTop: 6,
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: '800',
+    color: C.ink,
+  },
+  primaryActionBody: {
     marginTop: 8,
-    minHeight: 50,
+    fontSize: 13,
+    lineHeight: 20,
+    color: C.soft,
+  },
+  primaryInlineButton: {
+    marginTop: 14,
+    minHeight: 56,
     paddingHorizontal: 18,
-    borderRadius: 16,
+    borderRadius: 18,
     backgroundColor: C.accent,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: C.accent,
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 5,
   },
   primaryInlineButtonText: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '800',
     color: '#FFFFFF',
   },
