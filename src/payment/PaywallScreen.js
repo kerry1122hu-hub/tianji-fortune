@@ -25,6 +25,9 @@ const C = {
   faint: 'rgba(60,60,67,0.46)',
   line: 'rgba(60,60,67,0.12)',
   gold: '#C6922A',
+  accent: '#2E8B57',
+  accentDark: '#1F6A40',
+  accentSoft: '#EEF8F1',
   dark: '#0A0A0C',
 };
 
@@ -877,10 +880,10 @@ const s = StyleSheet.create({
     marginTop: 10,
     padding: 16,
     borderRadius: 22,
-    backgroundColor: '#F7F3EA',
+    backgroundColor: C.accentSoft,
     borderWidth: 1,
-    borderColor: 'rgba(164, 128, 84, 0.18)',
-    shadowColor: '#7E5C35',
+    borderColor: 'rgba(46, 139, 87, 0.18)',
+    shadowColor: C.accent,
     shadowOpacity: 0.12,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 10 },
@@ -892,7 +895,7 @@ const s = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1.2,
     textTransform: 'uppercase',
-    color: '#9B7442',
+    color: C.accentDark,
   },
   primaryActionTitle: {
     marginTop: 6,
