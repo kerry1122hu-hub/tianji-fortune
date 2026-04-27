@@ -621,6 +621,12 @@ export function PaywallScreen({
                     multiline
                   />
                 </View>
+
+                <TouchableOpacity style={s.primaryInlineButton} onPress={handleSubmit} activeOpacity={0.9}>
+                  <Text style={s.primaryInlineButtonText}>
+                    {screenshotDataUrl ? '提交付款审核' : '填写资料，领取30天会员'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </>
           )}
@@ -669,9 +675,6 @@ export function PaywallScreen({
             <View style={s.bottomActions}>
               <TouchableOpacity onPress={() => setShowPaymentStep(false)} style={s.bottomGhostButton} activeOpacity={0.9}>
                 <Text style={s.bottomGhostButtonText}>返回权益页</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleSubmit} style={s.bottomButton} activeOpacity={0.9}>
-                <Text style={s.bottomButtonText}>{screenshotDataUrl ? '提交付款审核' : '填写资料，领取30天会员'}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -858,6 +861,21 @@ const s = StyleSheet.create({
   bottomTitle: { display: 'none', fontSize: 14, lineHeight: 20, fontWeight: '800', color: C.ink },
   bottomBody: { display: 'none', marginTop: 4, fontSize: 12, lineHeight: 18, color: C.soft },
   bottomActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  primaryInlineButton: {
+    marginTop: 8,
+    minHeight: 50,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    backgroundColor: C.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryInlineButtonText: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
   bottomGhostButton: {
     minWidth: 108,
     height: 48,
