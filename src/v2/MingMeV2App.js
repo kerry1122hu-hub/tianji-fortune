@@ -2312,7 +2312,7 @@ export default function MingMeV2App() {
       }
 
       if (payload?.paymentMethod) {
-        await requestManualPaymentReviewFromBackend({
+        const reviewResponse = await requestManualPaymentReviewFromBackend({
           registration: nextRegistration,
           selectedPlan: payload?.selectedPlan || 'annual',
           paymentMethod: payload?.paymentMethod,
@@ -2325,17 +2325,17 @@ export default function MingMeV2App() {
           chart: primaryChartResult || chartResult,
           source: payload?.source || (Platform.OS === 'web' ? 'web_manual_payment' : 'app_manual_payment'),
         });
+        return reviewResponse?.data?.review || reviewResponse?.review || true;
       } else {
-        await requestPaywallLeadFromBackend({
+        const leadResponse = await requestPaywallLeadFromBackend({
           registration: nextRegistration,
           selectedPlan: payload?.selectedPlan || 'annual',
           profile: primaryProfile,
           chart: primaryChartResult || chartResult,
           source: payload?.source || (Platform.OS === 'web' ? 'web_paywall' : 'app_paywall'),
         });
+        return leadResponse?.data?.lead || leadResponse?.lead || true;
       }
-      setPaywallVisible(false);
-      return true;
     } catch (error) {
       Alert.alert('提交失败', error?.message || '暂时无法提交开通意向，请稍后再试。');
       return false;

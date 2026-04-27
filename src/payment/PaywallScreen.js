@@ -330,6 +330,14 @@ export function PaywallScreen({
       source: Platform.OS === 'web' ? 'web_member_contact' : 'app_member_contact',
     });
     if (saved === false) return;
+    const savedContactId =
+      saved && typeof saved === 'object'
+        ? saved.id || saved.contactId || saved?.contact?.id || null
+        : null;
+    if (!savedContactId) {
+      Alert.alert('暂未确认入库', '这次留言还没有拿到后台记录编号，我先帮你保留输入内容，请稍后再试一次。');
+      return;
+    }
 
     trackPwaEvent('contact_mingji_submit', {
       hasTopic: Boolean(String(contactTopic || '').trim()),
@@ -339,7 +347,7 @@ export function PaywallScreen({
 
     setContactTopic('');
     setContactMessage('');
-    Alert.alert('已提交', '你的问题已经送到后台，我们会看到并跟进。');
+    Alert.alert('已提交', `你的留言已经进入后台，记录编号 #${savedContactId}。`);
   };
 
   const updateRegistration = (key, value) => {
@@ -417,6 +425,14 @@ export function PaywallScreen({
 
     const saved = await onSaveRegistration?.(payload);
     if (saved === false) return;
+    const savedReviewId =
+      saved && typeof saved === 'object'
+        ? saved.id || saved.reviewId || saved?.review?.id || null
+        : null;
+    if (!savedReviewId) {
+      Alert.alert('暂未确认入库', '这次付款审核还没有拿到后台记录编号，我先帮你保留截图和资料，请稍后再试一次。');
+      return;
+    }
 
     trackPwaEvent('manual_payment_review_submit', {
       plan: selectedPlan,
@@ -425,7 +441,7 @@ export function PaywallScreen({
       hasPhone: Boolean(String(registration.phone || '').trim()),
     });
 
-    Alert.alert('已提交审核', '付款截图和联系方式已经提交，后台确认到账后会为你开通会员。');
+    Alert.alert('已提交审核', `付款截图和联系方式已经进入后台，记录编号 #${savedReviewId}。`);
     onClose?.();
   };
 
@@ -648,18 +664,7 @@ export function PaywallScreen({
         </ScrollView>
 
         <View style={[s.bottomBar, { paddingBottom: insets.bottom + 10 }]}>
-          <View style={s.bottomCopy}>
-            <Text style={s.bottomTitle}>
-              {showPaymentStep ? '提交后会进入待审核付款名单。' : '先确认方案，再进入扫码付款页。'}
-            </Text>
-              <Text style={s.bottomBody}>
-                {showPaymentStep
-                ? (screenshotDataUrl
-                  ? '后台确认截图和到账后，可以一键为你开通会员。'
-                  : '不上传付款截图也可以，先填写资料即可领取 30 天会员体验。')
-                : '先填写资料可直接领取 30 天会员体验，也可以继续进入付款开通页。'}
-              </Text>
-            </View>
+          {null}
           {showPaymentStep ? (
             <View style={s.bottomActions}>
               <TouchableOpacity onPress={() => setShowPaymentStep(false)} style={s.bottomGhostButton} activeOpacity={0.9}>
