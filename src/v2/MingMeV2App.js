@@ -2750,6 +2750,7 @@ export default function MingMeV2App() {
             onSubmitContact={handleContactMingjiSubmit}
             profile={primaryProfile}
             registrationDraft={memberRegistration}
+            memberTier={memberTier}
           />
         </>
       ) : null}

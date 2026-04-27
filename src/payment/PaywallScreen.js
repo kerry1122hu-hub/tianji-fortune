@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import {
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -211,8 +212,17 @@ function MembershipSummaryCard() {
   );
 }
 
-export function PaywallScreen({ visible, onClose, onSaveRegistration, onSubmitContact, profile, registrationDraft }) {
+export function PaywallScreen({
+  visible,
+  onClose,
+  onSaveRegistration,
+  onSubmitContact,
+  profile,
+  registrationDraft,
+  memberTier = 'free',
+}) {
   const insets = useSafeAreaInsets();
+  const isExistingMember = Boolean(memberTier && memberTier !== 'free');
   const [selectedPlan, setSelectedPlan] = useState('annual');
   const [paymentMethod, setPaymentMethod] = useState('wechat');
   const [showPaymentStep, setShowPaymentStep] = useState(false);
@@ -227,7 +237,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, onSubmitCo
 
   useEffect(() => {
     if (visible) {
-      setShowPaymentStep(false);
+      setShowPaymentStep(isExistingMember);
       setRegistration(buildInitialRegistration(profile, registrationDraft));
       const defaultPlan = PLAN_OPTIONS.find((item) => item.key === selectedPlan) || PLAN_OPTIONS[0];
       setAmountText(defaultPlan.amountText);
@@ -238,7 +248,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, onSubmitCo
       setContactTopic('');
       setContactMessage('');
     }
-  }, [profile, registrationDraft, selectedPlan, visible]);
+  }, [isExistingMember, profile, registrationDraft, selectedPlan, visible]);
 
   const activePlan = useMemo(
     () => PLAN_OPTIONS.find((item) => item.key === selectedPlan) || PLAN_OPTIONS[0],
@@ -360,8 +370,17 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, onSubmitCo
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={s.root}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 196 }}>
+      <KeyboardAvoidingView
+        style={s.root}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}
+      >
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+          contentContainerStyle={{ paddingBottom: 236 }}
+        >
           <View style={[s.hero, { paddingTop: insets.top + 16 }]}>
             <TouchableOpacity onPress={onClose} style={s.closeBtn} activeOpacity={0.85}>
               <Text style={s.closeLabel}>×</Text>
@@ -595,7 +614,7 @@ export function PaywallScreen({ visible, onClose, onSaveRegistration, onSubmitCo
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
