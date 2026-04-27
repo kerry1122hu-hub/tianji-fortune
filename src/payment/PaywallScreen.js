@@ -134,6 +134,52 @@ function getQrFallbackHint(paymentMethod) {
   return '优先读取 extra.alipayCollectionQrUrl；如果没有配置，Web 版会自动尝试 /alipay-collection-qr.jpg。';
 }
 
+function pickScreenshotFileRobust() {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') {
+    return pickScreenshotFile();
+  }
+
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    input.style.opacity = '0';
+    document.body.appendChild(input);
+
+    const cleanup = () => {
+      input.onchange = null;
+      if (input.parentNode) input.parentNode.removeChild(input);
+    };
+
+    input.onchange = () => {
+      const file = input.files && input.files[0];
+      if (!file) {
+        cleanup();
+        reject(new Error('你还没有选择付款截图。'));
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        cleanup();
+        resolve({
+          name: file.name,
+          dataUrl: `${reader.result || ''}`,
+        });
+      };
+      reader.onerror = () => {
+        cleanup();
+        reject(new Error('读取付款截图失败，请重新选择。'));
+      };
+      reader.readAsDataURL(file);
+    };
+
+    input.click();
+  });
+}
+
 function MembershipSummaryCard() {
   const [expandedKeys, setExpandedKeys] = useState([]);
 
@@ -296,7 +342,7 @@ export function PaywallScreen({
 
   const handleUploadProof = async () => {
     try {
-      const file = await pickScreenshotFile();
+      const file = await pickScreenshotFileRobust();
       setScreenshotName(file.name);
       setScreenshotDataUrl(file.dataUrl);
       trackPwaEvent('manual_payment_screenshot_selected', {
@@ -775,7 +821,7 @@ const s = StyleSheet.create({
   },
   textarea: { minHeight: 88, textAlignVertical: 'top' },
   bottomBar: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'relative' : 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
