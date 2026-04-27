@@ -2344,7 +2344,7 @@ export default function MingMeV2App() {
 
   const handleContactMingjiSubmit = useCallback(async (payload) => {
     try {
-      await requestContactMingjiFromBackend({
+      const response = await requestContactMingjiFromBackend({
         registration: payload?.registration || {},
         topic: payload?.topic || '',
         message: payload?.message || '',
@@ -2352,7 +2352,7 @@ export default function MingMeV2App() {
         chart: primaryChartResult || chartResult,
         source: payload?.source || (Platform.OS === 'web' ? 'web_member_contact' : 'app_member_contact'),
       });
-      return true;
+      return response?.data?.contact || true;
     } catch (error) {
       Alert.alert('提交失败', error?.message || '暂时无法提交留言，请稍后再试。');
       return false;

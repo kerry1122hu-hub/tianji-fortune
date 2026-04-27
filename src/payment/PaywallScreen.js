@@ -202,6 +202,14 @@ function MembershipSummaryCard() {
       source: Platform.OS === 'web' ? 'web_member_contact' : 'app_member_contact',
     });
     if (saved === false) return;
+    const savedContactId =
+      saved && typeof saved === 'object'
+        ? saved.id || saved.contactId || saved?.contact?.id || null
+        : null;
+    if (!savedContactId) {
+      Alert.alert('暂未确认入库', '这次留言还没有拿到后台记录编号，我先帮你保留输入内容，请稍后再试一次。');
+      return;
+    }
 
     trackPwaEvent('contact_mingji_submit', {
       hasTopic: Boolean(String(contactTopic || '').trim()),
@@ -211,7 +219,8 @@ function MembershipSummaryCard() {
 
     setContactTopic('');
     setContactMessage('');
-    Alert.alert('已提交', '你的问题已经送到后台，我们会看到并跟进。');
+    Alert.alert('已提交', `你的留言已经进入后台，记录编号 #${savedContactId}。`);
+    return;
   };
 
   return (
@@ -840,9 +849,9 @@ const s = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: C.line,
   },
-  bottomCopy: { flex: 1 },
-  bottomTitle: { fontSize: 14, lineHeight: 20, fontWeight: '800', color: C.ink },
-  bottomBody: { marginTop: 4, fontSize: 12, lineHeight: 18, color: C.soft },
+  bottomCopy: { display: 'none', width: 0, height: 0, overflow: 'hidden' },
+  bottomTitle: { display: 'none', fontSize: 14, lineHeight: 20, fontWeight: '800', color: C.ink },
+  bottomBody: { display: 'none', marginTop: 4, fontSize: 12, lineHeight: 18, color: C.soft },
   bottomActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   bottomGhostButton: {
     minWidth: 108,
