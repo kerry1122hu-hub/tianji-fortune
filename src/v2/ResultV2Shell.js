@@ -5154,7 +5154,7 @@ function formatProfileBirthText(profile) {
   return `${year}年${month}月${day}日 ${hour}时${minute}分`;
 }
 
-function MeTab({ pageNav, profile, accountProfile, locale, supportedLocales, onLocaleChange, onEditProfile, onResetAIReading, onResetData, notificationPrefs, onNotificationPrefsChange, memberRegistration, onOpenPaywall, memberTier, familyProfiles, activeFamilyProfileId, onCreateFamilyProfile, onSaveCurrentToFamilyProfile, onSwitchFamilyProfile, onSwitchToPrimaryAccount, onDeleteFamilyProfile, hideMembership }) {
+function MeTab({ pageNav, profile, accountProfile, locale, supportedLocales, onLocaleChange, onEditProfile, onResetAIReading, onResetData, onDeleteAccount, notificationPrefs, onNotificationPrefsChange, memberRegistration, onOpenPaywall, memberTier, familyProfiles, activeFamilyProfileId, onCreateFamilyProfile, onSaveCurrentToFamilyProfile, onSwitchFamilyProfile, onSwitchToPrimaryAccount, onDeleteFamilyProfile, hideMembership }) {
   const displayProfile = accountProfile || profile;
   const profileTitle = hideMembership ? '个人资料概览' : (displayProfile?.nickname || '\u672a\u547d\u540d\u6863\u6848');
   const profileBody = hideMembership
@@ -5231,6 +5231,7 @@ function MeTab({ pageNav, profile, accountProfile, locale, supportedLocales, onL
         <SectionHeader eyebrow={S.dataOps} title={S.exportReset} />
         <TouchableOpacity onPress={onResetAIReading} style={s.secondaryButton}><Text style={s.secondaryButtonText}>{'\u91cd\u7f6e AI \u89e3\u8bfb'}</Text></TouchableOpacity>
         <TouchableOpacity onPress={onResetData} style={[s.secondaryButton, s.dangerButton]}><Text style={[s.secondaryButtonText, { color: C.danger }]}>{'\u6e05\u7a7a\u672c\u5730\u6570\u636e'}</Text></TouchableOpacity>
+        <TouchableOpacity onPress={onDeleteAccount} style={[s.secondaryButton, s.dangerButton]}><Text style={[s.secondaryButtonText, { color: C.danger }]}>{'注销账户'}</Text></TouchableOpacity>
       </Card>
     </ScrollView>
   );
@@ -5249,6 +5250,7 @@ export function ResultV2Shell(props) {
     onRecalculate,
     onEditProfile,
     onResetData,
+    onDeleteAccount,
     onResetAIReading,
     notificationPrefs,
     onNotificationPrefsChange,
@@ -5796,7 +5798,7 @@ export function ResultV2Shell(props) {
     !hideMembership ? <ProfileTab key="profile" pageNav={buildPageNav('命盘总览', '回看四柱、结构和 AI 深读时，也能一键退回刚才那一页。')} profile={profile} result={result} aiText={aiText} aiLoading={aiLoading} onGenerateAI={onGenerateAI} onPressTenGod={(name) => setSelectedDetail(name ? { type: 'tenGod', name } : null)} onPressShenShaItem={(name) => setSelectedDetail(name ? { type: 'shenSha', name } : null)} onPressShenShaList={(pillar, items) => setSelectedShenShaList({ pillar, items })} /> : null,
     <StageTab key="stage" pageNav={buildPageNav('阶段日历', '看黄历、阶段安排和当天提醒时，退回路径也会一直保留。')} result={result} fortuneCalendar={fortuneCalendar} calSummary={calSummary} profile={profile} reviewMode={hideMembership} weeklyActions={weeklyActions} selectedDay={selectedCalendarDay} onSelectDay={(day, options) => { setSelectedCalendarDay(day); setCalendarQuickAddMode(!!options?.quickAdd); }} onCloseDayDetail={() => { setSelectedCalendarDay(null); setCalendarQuickAddMode(false); }} oneLineSummary={oneLineSummary} calendarEntries={calendarEntries} notificationPrefs={notificationPrefs} onSaveCalendarNote={handleSaveCalendarNote} onToggleCalendarReminder={handleToggleCalendarReminder} onUpdateCalendarReminderTime={handleUpdateCalendarReminderTime} onToggleCalendarNoteDone={handleToggleCalendarNoteDone} quickAddMode={calendarQuickAddMode} onClearQuickAddMode={() => setCalendarQuickAddMode(false)} />,
     !hideMembership ? <PremiumTab key="premium" pageNav={buildPageNav('会员中心', '权益、登记和会员专题入口，都会保留返回上一页的路径。')} memberTier={memberTier} onOpenPaywall={onOpenPaywall} result={result} profile={profile} calSummary={calSummary} fortuneCalendar={fortuneCalendar} weeklyActions={weeklyActions} memberRegistration={memberRegistration} /> : null,
-    <MeTab key="me" pageNav={buildPageNav('我的', '改资料、调提醒、看账号信息时，也不需要再自己找返回路径。')} profile={profile} accountProfile={accountProfile} locale={locale} supportedLocales={supportedLocales} onLocaleChange={onLocaleChange} onEditProfile={onEditProfile} onResetAIReading={onResetAIReading} onResetData={onResetData} notificationPrefs={notificationPrefs} onNotificationPrefsChange={onNotificationPrefsChange} memberRegistration={memberRegistration} onOpenPaywall={onOpenPaywall} memberTier={memberTier} familyProfiles={familyProfiles} activeFamilyProfileId={activeFamilyProfileId} onCreateFamilyProfile={onCreateFamilyProfile} onSaveCurrentToFamilyProfile={onSaveCurrentToFamilyProfile} onSwitchFamilyProfile={onSwitchFamilyProfile} onSwitchToPrimaryAccount={onSwitchToPrimaryAccount} onDeleteFamilyProfile={onDeleteFamilyProfile} hideMembership={hideMembership} />,
+    <MeTab key="me" pageNav={buildPageNav('我的', '改资料、调提醒、看账号信息时，也不需要再自己找返回路径。')} profile={profile} accountProfile={accountProfile} locale={locale} supportedLocales={supportedLocales} onLocaleChange={onLocaleChange} onEditProfile={onEditProfile} onResetAIReading={onResetAIReading} onResetData={onResetData} onDeleteAccount={onDeleteAccount} notificationPrefs={notificationPrefs} onNotificationPrefsChange={onNotificationPrefsChange} memberRegistration={memberRegistration} onOpenPaywall={onOpenPaywall} memberTier={memberTier} familyProfiles={familyProfiles} activeFamilyProfileId={activeFamilyProfileId} onCreateFamilyProfile={onCreateFamilyProfile} onSaveCurrentToFamilyProfile={onSaveCurrentToFamilyProfile} onSwitchFamilyProfile={onSwitchFamilyProfile} onSwitchToPrimaryAccount={onSwitchToPrimaryAccount} onDeleteFamilyProfile={onDeleteFamilyProfile} hideMembership={hideMembership} />,
   ].filter(Boolean);
   return (
     <View style={s.root}>

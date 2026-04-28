@@ -302,6 +302,21 @@ export async function requestLoginEventFromBackend({
   return requestWithRetry(endpoint, requestBody, { authToken, signingSecret, retryCount, retryDelayMs });
 }
 
+export async function requestDeleteAccountFromBackend({
+  chart,
+  profile,
+  userKey,
+}) {
+  const { baseUrl, authToken, signingSecret, retryCount, retryDelayMs } = getAIBackendConfig();
+  if (!baseUrl) {
+    throw new Error('Missing backend URL. Fill expo.extra.aiBackendUrl in app.json.');
+  }
+
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/api/ai/delete-account`;
+  const requestBody = JSON.stringify({ chart, profile, userKey });
+  return requestWithRetry(endpoint, requestBody, { authToken, signingSecret, retryCount, retryDelayMs });
+}
+
 export async function requestAITranscriptionFromBackend({
   uri,
   mimeType = 'audio/m4a',

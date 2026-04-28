@@ -40,6 +40,7 @@ import {
   getAIBackendConfig,
   requestAIMembershipStatusFromBackend,
   requestContactMingjiFromBackend,
+  requestDeleteAccountFromBackend,
   requestManualPaymentReviewFromBackend,
   requestPaywallLeadFromBackend,
   requestRegistrationTrialFromBackend,
@@ -108,14 +109,14 @@ const ROLE_OPTIONS = [
 
 const DEFAULT_PROFILE = {
   calendarType: 'solar',
-  year: '1990',
-  month: '6',
-  day: '15',
+  year: '',
+  month: '',
+  day: '',
   lunarIsLeapMonth: false,
-  hour: '10',
-  minute: '00',
+  hour: '',
+  minute: '',
   gender: 'male',
-  city: '北京',
+  city: '',
   focus: '自我认知',
   role: '上班族',
   nickname: '',
@@ -149,6 +150,28 @@ const DEFAULT_DECISION_DRAFT = {
 const MAX_FAMILY_PROFILES = 5;
 const FAMILY_PROFILES_DISABLED = true;
 const SHOW_SMART_SERVICE_AUTH = false;
+
+function hasFilledValue(value) {
+  return `${value ?? ''}`.trim() !== '';
+}
+
+function isBirthProfileComplete(profile = {}) {
+  return (
+    hasFilledValue(profile?.year)
+    && hasFilledValue(profile?.month)
+    && hasFilledValue(profile?.day)
+    && hasFilledValue(profile?.hour)
+    && hasFilledValue(profile?.minute)
+    && hasFilledValue(profile?.city)
+  );
+}
+
+function formatIntakeBirthSummary(profile = {}) {
+  if (!isBirthProfileComplete(profile)) {
+    return '未填写完整';
+  }
+  return `${profile.year}年${profile.month}月${profile.day}日 ${`${profile.hour}`.padStart(2, '0')}时${`${profile.minute}`.padStart(2, '0')}分`;
+}
 
 const PILLAR_LABELS = ['年', '月', '日', '时'];
 
@@ -853,6 +876,8 @@ function IntakeBirthScreen({ profile, patchProfile, onNext, onBack, reviewMode }
   const [permissionHint, setPermissionHint] = useState('');
   const year = parseInt(profile.year, 10) || 1990;
   const month = parseInt(profile.month, 10) || 1;
+  const hasBirthDate = hasFilledValue(profile.year) && hasFilledValue(profile.month) && hasFilledValue(profile.day);
+  const hasBirthTime = hasFilledValue(profile.hour) && hasFilledValue(profile.minute);
   const calendarType = profile.calendarType || 'solar';
   const lunarYearInfo = calendarType === 'lunar' ? getLunarYearInfo(year) : null;
   const hasLeapMonth = Boolean(lunarYearInfo?.leapMonth && lunarYearInfo.leapMonth === month);
@@ -860,15 +885,19 @@ function IntakeBirthScreen({ profile, patchProfile, onNext, onBack, reviewMode }
   const daysInMonth = calendarType === 'lunar'
     ? getLunarDaysInMonth(year, month, safeLeapMonth)
     : getSolarDaysInMonth(year, month);
-  const dateLabel = calendarType === 'lunar'
-    ? formatLunarDate({
-        year,
-        month,
-        day: parseInt(profile.day, 10) || 1,
-        isLeapMonth: safeLeapMonth,
-      })
-    : `${profile.year}年${profile.month}月${profile.day}日`;
-  const timeLabel = `${`${profile.hour || '0'}`.padStart(2, '0')}时${`${profile.minute || '00'}`.padStart(2, '0')}分`;
+  const dateLabel = !hasBirthDate
+    ? '请选择或输入出生日期'
+    : (calendarType === 'lunar'
+      ? formatLunarDate({
+          year,
+          month,
+          day: parseInt(profile.day, 10) || 1,
+          isLeapMonth: safeLeapMonth,
+        })
+      : `${profile.year}年${profile.month}月${profile.day}日`);
+  const timeLabel = hasBirthTime
+    ? `${`${profile.hour}`.padStart(2, '0')}时${`${profile.minute}`.padStart(2, '0')}分`
+    : '请选择或输入出生时间';
 
   const handleCalendarTypeChange = (nextCalendarType) => {
     if (nextCalendarType === calendarType) {
@@ -1172,7 +1201,7 @@ function IntakeBirthScreen({ profile, patchProfile, onNext, onBack, reviewMode }
         </V2Card>
       </ScrollView>
       <View style={s.bottomBar}>
-        <PrimaryButton label="下一步" onPress={onNext} disabled={!profile.city || !profile.year || !profile.month || !profile.day || profile.hour === undefined || profile.minute === undefined} />
+        <PrimaryButton label="下一步" onPress={onNext} disabled={!isBirthProfileComplete(profile)} />
       </View>
       <PickerSheet
         visible={datePickerVisible}
@@ -1200,7 +1229,7 @@ function IntakeBirthScreen({ profile, patchProfile, onNext, onBack, reviewMode }
           {
             key: 'year',
             label: '年',
-            value: profile.year,
+            value: profile.year || `${year}`,
             options: Array.from({ length: 91 }, (_, index) => {
               const value = `${1940 + index}`;
               return { value, label: value };
@@ -1209,7 +1238,7 @@ function IntakeBirthScreen({ profile, patchProfile, onNext, onBack, reviewMode }
           {
             key: 'month',
             label: '月',
-            value: profile.month,
+            value: profile.month || `${month}`,
             options: Array.from({ length: 12 }, (_, index) => {
               const value = `${index + 1}`;
               return { value, label: calendarType === 'lunar' ? `${value}月` : value };
@@ -1218,7 +1247,7 @@ function IntakeBirthScreen({ profile, patchProfile, onNext, onBack, reviewMode }
           {
             key: 'day',
             label: '日',
-            value: clampDay(profile.day, daysInMonth),
+            value: clampDay(profile.day || '1', daysInMonth),
             options: Array.from({ length: daysInMonth }, (_, index) => {
               const value = `${index + 1}`;
               return { value, label: calendarType === 'lunar' ? `${value}` : value };
@@ -1238,7 +1267,7 @@ function IntakeBirthScreen({ profile, patchProfile, onNext, onBack, reviewMode }
           {
             key: 'hour',
             label: '时',
-            value: profile.hour,
+            value: hasFilledValue(profile.hour) ? `${profile.hour}` : '0',
             options: Array.from({ length: 24 }, (_, index) => {
               const value = `${index}`;
               return { value, label: `${`${index}`.padStart(2, '0')}时` };
@@ -1247,7 +1276,7 @@ function IntakeBirthScreen({ profile, patchProfile, onNext, onBack, reviewMode }
           {
             key: 'minute',
             label: '分',
-            value: `${profile.minute || '00'}`,
+            value: hasFilledValue(profile.minute) ? `${profile.minute}` : '00',
             options: Array.from({ length: 60 }, (_, index) => {
               const value = `${index}`.padStart(2, '0');
               return { value, label: `${value}分` };
@@ -1326,9 +1355,41 @@ function IntakeRoleScreen({ profile, patchProfile, onGenerate, onBack, reviewMod
         </V2Card>
       </ScrollView>
       <View style={s.bottomBar}>
-        <PrimaryButton label={reviewMode ? "生成我的洞察" : "生成我的档案"} onPress={onGenerate} />
+        <PrimaryButton label="下一步" onPress={onGenerate} />
       </View>
     </KeyboardAvoidingView>
+  );
+}
+
+function IntakeConfirmScreen({ profile, onConfirm, onBack, reviewMode }) {
+  const summaryItems = [
+    { label: '出生日期', value: formatIntakeBirthSummary(profile) },
+    { label: '出生地', value: profile?.city || '未填写' },
+    { label: '性别', value: profile?.gender === 'female' ? '女' : '男' },
+    { label: '关注主题', value: profile?.focus || '未选择' },
+    { label: '当前状态', value: profile?.role || '未选择' },
+    { label: '昵称', value: profile?.nickname || '未填写' },
+  ];
+
+  return (
+    <View style={s.screen}>
+      <StepNav title={reviewMode ? '确认资料' : '确认注册资料'} stepText="确认" onBack={onBack} />
+      <ScrollView contentContainerStyle={s.screenPad}>
+        <V2Card>
+          <Text style={s.cardTitle}>提交前请再确认一次</Text>
+          <Text style={s.cardBody}>确认无误后，明己会按这份资料正式建立你的个人档案。提交后如需修改，仍可在“我的”里重新编辑。</Text>
+          {summaryItems.map((item) => (
+            <View key={item.label} style={s.infoRow}>
+              <Text style={s.infoRowLabel}>{item.label}</Text>
+              <Text style={s.infoRowValue}>{item.value}</Text>
+            </View>
+          ))}
+        </V2Card>
+      </ScrollView>
+      <View style={s.bottomBar}>
+        <PrimaryButton label={reviewMode ? '确认并生成' : '确认并提交'} onPress={onConfirm} />
+      </View>
+    </View>
   );
 }
 
@@ -2592,6 +2653,39 @@ export default function MingMeV2App() {
     ]);
   }, [activeFamilyProfileId, restorePrimaryAccountView]);
 
+  const clearLocalAppState = useCallback(async () => {
+    clearTimers();
+    await AsyncStorage.multiRemove([...new Set(Object.values(STORAGE_KEYS))]);
+    await AsyncStorage.multiRemove([
+      STORAGE_KEYS.primaryAccountArchive,
+      STORAGE_KEYS.familyProfiles,
+      STORAGE_KEYS.activeFamilyProfileId,
+    ]);
+    setIntakeOrigin('onboarding');
+    setProfile(DEFAULT_PROFILE);
+    setMemberTier('free');
+    setMemberRegistration(DEFAULT_MEMBER_REGISTRATION);
+    setPrimaryAccountArchive(null);
+    setFamilyProfiles([]);
+    setActiveFamilyProfileId(null);
+    setChartResult(null);
+    setFortuneCalendar([]);
+    setCalSummary(null);
+    setAiText(null);
+    setOneLineSummary('');
+    setWeeklyActions(null);
+    setFollowUpQuestions([]);
+    setFollowUpAnswers({});
+    setNotificationPrefs(DEFAULT_NOTIFICATION_PREFS);
+    setProfileReadyVisible(false);
+    setPaywallVisible(false);
+    setCampaignVisible(false);
+    campaignShownRef.current = false;
+    setLocale('zh-Hans');
+    setLocaleState('zh-Hans');
+    setFlow('onboarding');
+  }, [clearTimers]);
+
   const handleResetData = useCallback(() => {
     Alert.alert('清空本地数据', '这会清除已保存的档案、语言、会员状态和排盘结果。', [
       { text: '取消', style: 'cancel' },
@@ -2599,40 +2693,34 @@ export default function MingMeV2App() {
         text: '清空',
         style: 'destructive',
         onPress: async () => {
-          clearTimers();
-          await AsyncStorage.multiRemove([...new Set(Object.values(STORAGE_KEYS))]);
-          await AsyncStorage.multiRemove([
-            STORAGE_KEYS.primaryAccountArchive,
-            STORAGE_KEYS.familyProfiles,
-            STORAGE_KEYS.activeFamilyProfileId,
-          ]);
-          setIntakeOrigin('onboarding');
-          setProfile(DEFAULT_PROFILE);
-          setMemberTier('free');
-          setMemberRegistration(DEFAULT_MEMBER_REGISTRATION);
-          setPrimaryAccountArchive(null);
-          setFamilyProfiles([]);
-          setActiveFamilyProfileId(null);
-          setChartResult(null);
-          setFortuneCalendar([]);
-          setCalSummary(null);
-          setAiText(null);
-          setOneLineSummary('');
-          setWeeklyActions(null);
-          setFollowUpQuestions([]);
-          setFollowUpAnswers({});
-          setNotificationPrefs(DEFAULT_NOTIFICATION_PREFS);
-          setProfileReadyVisible(false);
-          setPaywallVisible(false);
-          setCampaignVisible(false);
-          campaignShownRef.current = false;
-          setLocale('zh-Hans');
-          setLocaleState('zh-Hans');
-          setFlow('onboarding');
+          await clearLocalAppState();
         },
       },
     ]);
-  }, [clearTimers]);
+  }, [clearLocalAppState]);
+
+  const handleDeleteAccount = useCallback(() => {
+    Alert.alert('确认注销', '确认注销，所有用户信息与权益将被清除，不能恢复。', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '确认注销',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await requestDeleteAccountFromBackend({
+              userKey: memberRegistration?.userKey || '',
+              chart: primaryChartResult || chartResult,
+              profile: primaryProfile,
+            });
+            await clearLocalAppState();
+            Alert.alert('已注销', '用户资料、会员权益与历史记录已清除，现在可以重新注册。');
+          } catch (error) {
+            Alert.alert('注销失败', error?.message || '暂时无法完成注销，请稍后再试。');
+          }
+        },
+      },
+    ]);
+  }, [chartResult, clearLocalAppState, memberRegistration?.userKey, primaryChartResult, primaryProfile]);
 
   if (booting) {
     return (
@@ -2695,8 +2783,16 @@ export default function MingMeV2App() {
         <IntakeRoleScreen
           profile={profile}
           patchProfile={patchProfile}
-          onGenerate={handleGenerate}
+          onGenerate={() => setFlow('intake-confirm')}
           onBack={() => setFlow('intake-focus')}
+          reviewMode={hideMembership}
+        />
+      ) : null}
+      {flow === 'intake-confirm' ? (
+        <IntakeConfirmScreen
+          profile={profile}
+          onConfirm={handleGenerate}
+          onBack={() => setFlow('intake-role')}
           reviewMode={hideMembership}
         />
       ) : null}
@@ -2715,6 +2811,7 @@ export default function MingMeV2App() {
             onRecalculate={openIntakeFromApp}
             onEditProfile={openPrimaryAccountIntakeFromApp}
             onResetData={handleResetData}
+            onDeleteAccount={handleDeleteAccount}
             onResetAIReading={handleResetAIReading}
             notificationPrefs={notificationPrefs}
             onNotificationPrefsChange={handleNotificationPrefsChange}
