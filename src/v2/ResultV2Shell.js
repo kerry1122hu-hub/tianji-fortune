@@ -1692,8 +1692,15 @@ function TongshengGlyph({ variant, accent, large = false }) {
   return (
     <View style={[s.tongshengGlyph, large && s.tongshengGlyphLarge]}>
       <View style={[s.tongshengGlyphRing, toneStyle]} />
-      <Text style={[s.tongshengGlyphText, large && s.tongshengGlyphTextLarge, { color: toneStyle.color }]}>{symbol}</Text>
-      {variant === 'wealth' ? <View style={[s.tongshengGlyphIngotBase, { backgroundColor: toneStyle.color }]} /> : null}
+      {variant === 'wealth' ? (
+        <View style={[s.tongshengGlyphIngotWrap, large && s.tongshengGlyphIngotWrapLarge]}>
+          <View style={[s.tongshengGlyphIngotCup, { borderColor: toneStyle.color }]} />
+          <View style={[s.tongshengGlyphIngotCap, { backgroundColor: toneStyle.color }]} />
+          <View style={[s.tongshengGlyphIngotBase, { backgroundColor: toneStyle.color }]} />
+        </View>
+      ) : (
+        <Text style={[s.tongshengGlyphText, large && s.tongshengGlyphTextLarge, { color: toneStyle.color }]}>{symbol}</Text>
+      )}
     </View>
   );
 }
@@ -1707,7 +1714,7 @@ function getTongshengGlyphSymbol(variant) {
     case 'boost':
       return '🔥';
     case 'wealth':
-      return '元';
+      return '';
     case 'peach':
       return '✿';
     default:
@@ -6356,6 +6363,10 @@ const s = StyleSheet.create({
   tongshengGlyphText: { fontSize: 18, lineHeight: 22, fontWeight: '900', zIndex: 2, textAlign: 'center', textShadowColor: 'rgba(255,255,255,0.42)', textShadowRadius: 6 },
   tongshengGlyphTextLarge: { fontSize: 22, lineHeight: 26 },
   tongshengGlyphRing: { position: 'absolute', width: 24, height: 24, borderRadius: 999, borderWidth: 1.2, opacity: 0.26 },
+  tongshengGlyphIngotWrap: { width: 18, height: 16, alignItems: 'center', justifyContent: 'center', position: 'relative', zIndex: 2 },
+  tongshengGlyphIngotWrapLarge: { transform: [{ scale: 1.16 }] },
+  tongshengGlyphIngotCup: { position: 'absolute', bottom: 2, width: 18, height: 10, borderWidth: 2, borderBottomWidth: 3, borderTopLeftRadius: 8, borderTopRightRadius: 8, borderBottomLeftRadius: 6, borderBottomRightRadius: 6, backgroundColor: 'transparent' },
+  tongshengGlyphIngotCap: { position: 'absolute', top: 1, width: 8, height: 8, borderRadius: 999, opacity: 0.88 },
   tongshengGlyphIngotBase: { position: 'absolute', bottom: 2, width: 14, height: 4, borderRadius: 999, opacity: 0.16 },
   tongshengAccentMint: { backgroundColor: 'rgba(185,221,201,0.72)', borderColor: 'rgba(98,141,116,0.20)' },
   tongshengAccentPearl: { backgroundColor: 'rgba(240,231,223,0.78)', borderColor: 'rgba(196,176,152,0.18)' },
