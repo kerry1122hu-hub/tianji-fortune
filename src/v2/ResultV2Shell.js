@@ -1692,44 +1692,8 @@ function TongshengGlyph({ variant, accent, large = false }) {
   return (
     <View style={[s.tongshengGlyph, large && s.tongshengGlyphLarge]}>
       <View style={[s.tongshengGlyphRing, toneStyle]} />
-      <Text style={[s.tongshengGlyphText, large && s.tongshengGlyphTextLarge, toneStyle]}>{symbol}</Text>
-      {variant === 'decision' ? (
-        <>
-          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphBalanceLeft]} />
-          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphBalanceRight]} />
-          <View style={[s.tongshengGlyphCore, toneStyle, s.tongshengGlyphBalancePole]} />
-        </>
-      ) : null}
-      {variant === 'travel' ? (
-        <>
-          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphTrail]} />
-          <View style={[s.tongshengGlyphCore, toneStyle, s.tongshengGlyphTrailDot]} />
-        </>
-      ) : null}
-      {variant === 'boost' ? (
-        <>
-          <View style={[s.tongshengGlyphCore, toneStyle, s.tongshengGlyphSparkCenter]} />
-          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphSparkNorth]} />
-          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphSparkEast]} />
-          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphSparkSouth]} />
-          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphSparkWest]} />
-        </>
-      ) : null}
-      {variant === 'wealth' ? (
-        <>
-          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphWealthArc]} />
-          <View style={[s.tongshengGlyphCore, toneStyle, s.tongshengGlyphWealthCore]} />
-        </>
-      ) : null}
-      {variant === 'peach' ? (
-        <>
-          <View style={[s.tongshengGlyphPetal, toneStyle, s.tongshengGlyphPetalTop]} />
-          <View style={[s.tongshengGlyphPetal, toneStyle, s.tongshengGlyphPetalRight]} />
-          <View style={[s.tongshengGlyphPetal, toneStyle, s.tongshengGlyphPetalBottom]} />
-          <View style={[s.tongshengGlyphPetal, toneStyle, s.tongshengGlyphPetalLeft]} />
-          <View style={[s.tongshengGlyphCore, toneStyle, s.tongshengGlyphPetalCenter]} />
-        </>
-      ) : null}
+      <Text style={[s.tongshengGlyphText, large && s.tongshengGlyphTextLarge, { color: toneStyle.color }]}>{symbol}</Text>
+      {variant === 'wealth' ? <View style={[s.tongshengGlyphIngotBase, { backgroundColor: toneStyle.color }]} /> : null}
     </View>
   );
 }
@@ -1737,13 +1701,13 @@ function TongshengGlyph({ variant, accent, large = false }) {
 function getTongshengGlyphSymbol(variant) {
   switch (variant) {
     case 'decision':
-      return '◈';
+      return '⚖';
     case 'travel':
-      return '➝';
+      return '🕊';
     case 'boost':
-      return '✦';
+      return '🔥';
     case 'wealth':
-      return '◎';
+      return '元';
     case 'peach':
       return '✿';
     default:
@@ -1770,16 +1734,16 @@ function getTongshengAccentStyle(accent) {
 function getTongshengGlyphToneStyle(accent) {
   switch (accent) {
     case 'mint':
-      return s.tongshengGlyphToneMint;
+      return { color: '#456A57', borderColor: 'rgba(69,106,87,0.28)' };
     case 'amber':
-      return s.tongshengGlyphToneAmber;
+      return { color: '#A5671E', borderColor: 'rgba(165,103,30,0.28)' };
     case 'gold':
-      return s.tongshengGlyphToneGold;
+      return { color: '#97702B', borderColor: 'rgba(151,112,43,0.28)' };
     case 'rose':
-      return s.tongshengGlyphToneRose;
+      return { color: '#A16467', borderColor: 'rgba(161,100,103,0.28)' };
     case 'pearl':
     default:
-      return s.tongshengGlyphTonePearl;
+      return { color: '#7F6D59', borderColor: 'rgba(127,109,89,0.28)' };
   }
 }
 
@@ -6389,34 +6353,10 @@ const s = StyleSheet.create({
   tongshengGridBody: { fontSize: 15, lineHeight: 24, fontWeight: '600', color: 'rgba(26,26,26,0.78)' },
   tongshengGlyph: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   tongshengGlyphLarge: { width: 28, height: 28 },
-  tongshengGlyphText: { fontSize: 15, lineHeight: 18, fontWeight: '900', zIndex: 2 },
-  tongshengGlyphTextLarge: { fontSize: 18, lineHeight: 22 },
-  tongshengGlyphRing: { position: 'absolute', width: 22, height: 22, borderRadius: 999, borderWidth: 1.4, opacity: 0.7 },
-  tongshengGlyphStroke: { position: 'absolute', borderRadius: 999 },
-  tongshengGlyphCore: { position: 'absolute', borderRadius: 999 },
-  tongshengGlyphToneMint: { borderColor: '#456A57', backgroundColor: '#456A57', color: '#456A57' },
-  tongshengGlyphTonePearl: { borderColor: '#7F6D59', backgroundColor: '#7F6D59', color: '#7F6D59' },
-  tongshengGlyphToneAmber: { borderColor: '#A5671E', backgroundColor: '#A5671E', color: '#A5671E' },
-  tongshengGlyphToneGold: { borderColor: '#97702B', backgroundColor: '#97702B', color: '#97702B' },
-  tongshengGlyphToneRose: { borderColor: '#A16467', backgroundColor: '#A16467', color: '#A16467' },
-  tongshengGlyphBalanceLeft: { width: 8, height: 1.6, top: 11, left: 3, transform: [{ rotate: '-18deg' }] },
-  tongshengGlyphBalanceRight: { width: 8, height: 1.6, top: 11, right: 3, transform: [{ rotate: '18deg' }] },
-  tongshengGlyphBalancePole: { width: 2.6, height: 11, top: 6 },
-  tongshengGlyphTrail: { width: 12, height: 1.8, top: 11, left: 4 },
-  tongshengGlyphTrailDot: { width: 5, height: 5, right: 3, top: 9.4 },
-  tongshengGlyphSparkCenter: { width: 5, height: 5 },
-  tongshengGlyphSparkNorth: { width: 1.8, height: 7, top: 2 },
-  tongshengGlyphSparkEast: { width: 7, height: 1.8, right: 2 },
-  tongshengGlyphSparkSouth: { width: 1.8, height: 7, bottom: 2 },
-  tongshengGlyphSparkWest: { width: 7, height: 1.8, left: 2 },
-  tongshengGlyphWealthArc: { width: 14, height: 8, borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, top: 6, backgroundColor: 'transparent', borderWidth: 1.5 },
-  tongshengGlyphWealthCore: { width: 6, height: 6, bottom: 4 },
-  tongshengGlyphPetal: { width: 7, height: 7, borderRadius: 5 },
-  tongshengGlyphPetalTop: { top: 2 },
-  tongshengGlyphPetalRight: { right: 2 },
-  tongshengGlyphPetalBottom: { bottom: 2 },
-  tongshengGlyphPetalLeft: { left: 2 },
-  tongshengGlyphPetalCenter: { width: 4, height: 4 },
+  tongshengGlyphText: { fontSize: 18, lineHeight: 22, fontWeight: '900', zIndex: 2, textAlign: 'center', textShadowColor: 'rgba(255,255,255,0.42)', textShadowRadius: 6 },
+  tongshengGlyphTextLarge: { fontSize: 22, lineHeight: 26 },
+  tongshengGlyphRing: { position: 'absolute', width: 24, height: 24, borderRadius: 999, borderWidth: 1.2, opacity: 0.26 },
+  tongshengGlyphIngotBase: { position: 'absolute', bottom: 2, width: 14, height: 4, borderRadius: 999, opacity: 0.16 },
   tongshengAccentMint: { backgroundColor: 'rgba(185,221,201,0.72)', borderColor: 'rgba(98,141,116,0.20)' },
   tongshengAccentPearl: { backgroundColor: 'rgba(240,231,223,0.78)', borderColor: 'rgba(196,176,152,0.18)' },
   tongshengAccentAmber: { backgroundColor: 'rgba(236,203,150,0.78)', borderColor: 'rgba(196,138,42,0.18)' },
