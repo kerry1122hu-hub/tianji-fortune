@@ -50,9 +50,9 @@ const BENEFIT_GROUPS = [
   },
   {
     key: 'wealth',
-    title: '事业财富类',
-    subtitle: '更适合想理清主线和节奏的人',
-    items: ['事业推进方向', '财富机会判断', '风险与消耗提醒', '阶段资源配置建议', '重点问题连续追问'],
+    title: '事业财气类',
+    subtitle: '更适合理清主线和节奏的人',
+    items: ['事业推进方向', '财气机会判断', '风险与消耗提醒', '阶段资源配置建议', '重点问题连续追问'],
   },
   {
     key: 'relationship',
@@ -82,11 +82,13 @@ const WEB_QR_FALLBACKS = {
 
 function buildInitialRegistration(profile, registrationDraft) {
   return {
-    nickname: registrationDraft?.nickname || profile?.nickname || '',
-    city: registrationDraft?.city || profile?.city || '',
-    focus: registrationDraft?.focus || profile?.focus || '',
+    nickname: registrationDraft?.nickname || '',
+    city: registrationDraft?.city || '',
+    focus: registrationDraft?.focus || '',
     email: registrationDraft?.email || '',
     phone: registrationDraft?.phone || '',
+    password: '',
+    confirmPassword: '',
   };
 }
 
@@ -103,7 +105,7 @@ function getQrSource(paymentMethod) {
 
 function pickScreenshotFile() {
   if (Platform.OS !== 'web' || typeof document === 'undefined') {
-    return Promise.reject(new Error('当前环境暂不支持上传截图，请先用 Web 或 PWA 版完成付款审核。'));
+    return Promise.reject(new Error('当前环境暂不支持上传截图，请先用 Web 或 PWA 版本完成付款审核。'));
   }
 
   return new Promise((resolve, reject) => {
@@ -192,45 +194,12 @@ function MembershipSummaryCard() {
     );
   };
 
-  const handleContactSubmit = async () => {
-    if (!`${contactMessage || ''}`.trim()) {
-      Alert.alert('请先输入内容', '把你想咨询的问题写下来，再提交给明己。');
-      return;
-    }
-
-    const saved = await onSubmitContact?.({
-      registration,
-      topic: contactTopic,
-      message: contactMessage,
-      source: Platform.OS === 'web' ? 'web_member_contact' : 'app_member_contact',
-    });
-    if (saved === false) return;
-    const savedContactId =
-      saved && typeof saved === 'object'
-        ? saved.id || saved.contactId || saved?.contact?.id || null
-        : null;
-    if (!savedContactId) {
-      Alert.alert('暂未确认入库', '这次留言还没有拿到后台记录编号，我先帮你保留输入内容，请稍后再试一次。');
-      return;
-    }
-
-    trackPwaEvent('contact_mingji_submit', {
-      hasTopic: Boolean(String(contactTopic || '').trim()),
-      hasEmail: Boolean(String(registration.email || '').trim()),
-      hasPhone: Boolean(String(registration.phone || '').trim()),
-    });
-
-    setContactTopic('');
-    setContactMessage('');
-    Alert.alert('已提交', `你的留言已经进入后台，记录编号 #${savedContactId}。`);
-    return;
-  };
-
   return (
     <View style={s.summaryCard}>
       <Text style={s.summaryTitle}>会员权益</Text>
       <Text style={s.summaryBody}>
-        这版会员以明己 AI 先生无限使用为主，更适合连续追问、长期陪伴和反复回看。新用户填写资料后，可先领取 30 天会员体验，再决定是否继续开通。
+        这版会员以明己 AI 先生无限使用为主，更适合连续追问、长期陪伴和反复回看。新用户填写资料后，可先领取 30
+        天会员体验，再决定是否继续开通。
       </Text>
       <View style={s.summaryList}>
         <Text style={s.summaryItem}>• 新用户填写资料可先领 30 天会员体验</Text>
@@ -333,6 +302,7 @@ export function PaywallScreen({
       source: Platform.OS === 'web' ? 'web_member_contact' : 'app_member_contact',
     });
     if (saved === false) return;
+
     const savedContactId =
       saved && typeof saved === 'object'
         ? saved.id || saved.contactId || saved?.contact?.id || null
@@ -389,6 +359,16 @@ export function PaywallScreen({
 
       if (!`${registration.email || ''}`.trim() && !`${registration.phone || ''}`.trim()) {
         Alert.alert('补一个联系方式', '邮箱或手机号填写任意一项，就能领取 30 天会员体验。');
+        return;
+      }
+
+      if (!`${registration.password || ''}`.trim()) {
+        Alert.alert('设置登录密码', '请先设置登录密码，后续注销和账号验证都会用到它。');
+        return;
+      }
+
+      if (`${registration.password || ''}` !== `${registration.confirmPassword || ''}`) {
+        Alert.alert('两次密码不一致', '请重新确认登录密码。');
         return;
       }
 
@@ -587,6 +567,30 @@ export function PaywallScreen({
                     placeholderTextColor={C.faint}
                     style={s.input}
                     keyboardType="phone-pad"
+                  />
+                </View>
+
+                <View style={s.formField}>
+                  <Text style={s.formLabel}>登录密码</Text>
+                  <TextInput
+                    value={registration.password}
+                    onChangeText={(value) => updateRegistration('password', value)}
+                    placeholder="至少填写一个你记得住的密码"
+                    placeholderTextColor={C.faint}
+                    style={s.input}
+                    secureTextEntry
+                  />
+                </View>
+
+                <View style={s.formField}>
+                  <Text style={s.formLabel}>确认密码</Text>
+                  <TextInput
+                    value={registration.confirmPassword}
+                    onChangeText={(value) => updateRegistration('confirmPassword', value)}
+                    placeholder="再次输入同一个密码"
+                    placeholderTextColor={C.faint}
+                    style={s.input}
+                    secureTextEntry
                   />
                 </View>
 

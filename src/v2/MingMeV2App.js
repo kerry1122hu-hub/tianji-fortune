@@ -1418,6 +1418,9 @@ export default function MingMeV2App() {
   const [notificationPrefs, setNotificationPrefs] = useState(DEFAULT_NOTIFICATION_PREFS);
   const [paywallVisible, setPaywallVisible] = useState(false);
   const [campaignVisible, setCampaignVisible] = useState(false);
+  const [deleteAccountVisible, setDeleteAccountVisible] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteAccountPending, setDeleteAccountPending] = useState(false);
   const [generatingStatus, setGeneratingStatus] = useState(hideMembership ? '正在生成你的个人洞察' : '正在为你生成专属档案');
   const [profileReadyVisible, setProfileReadyVisible] = useState(false);
   const timersRef = useRef([]);
@@ -1658,6 +1661,7 @@ export default function MingMeV2App() {
   }, []);
 
   const openIntakeFromOnboarding = useCallback(() => {
+    setProfile(DEFAULT_PROFILE);
     setIntakeOrigin('onboarding');
     setFlow('intake-birth');
   }, []);
@@ -2700,27 +2704,34 @@ export default function MingMeV2App() {
   }, [clearLocalAppState]);
 
   const handleDeleteAccount = useCallback(() => {
-    Alert.alert('确认注销', '确认注销，所有用户信息与权益将被清除，不能恢复。', [
-      { text: '取消', style: 'cancel' },
-      {
-        text: '确认注销',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await requestDeleteAccountFromBackend({
-              userKey: memberRegistration?.userKey || '',
-              chart: primaryChartResult || chartResult,
-              profile: primaryProfile,
-            });
-            await clearLocalAppState();
-            Alert.alert('已注销', '用户资料、会员权益与历史记录已清除，现在可以重新注册。');
-          } catch (error) {
-            Alert.alert('注销失败', error?.message || '暂时无法完成注销，请稍后再试。');
-          }
-        },
-      },
-    ]);
-  }, [chartResult, clearLocalAppState, memberRegistration?.userKey, primaryChartResult, primaryProfile]);
+    setDeletePassword('');
+    setDeleteAccountVisible(true);
+  }, []);
+
+  const handleDeleteAccountConfirm = useCallback(async () => {
+    if (!`${deletePassword || ''}`.trim()) {
+      Alert.alert('先输入密码', '请输入你的登录密码，验证通过后才能注销。');
+      return;
+    }
+
+    try {
+      setDeleteAccountPending(true);
+      await requestDeleteAccountFromBackend({
+        userKey: memberRegistration?.userKey || '',
+        chart: primaryChartResult || chartResult,
+        profile: primaryProfile,
+        password: deletePassword,
+      });
+      setDeleteAccountVisible(false);
+      setDeletePassword('');
+      await clearLocalAppState();
+      Alert.alert('已注销', '用户资料、会员权益与历史记录已清除，现在可以重新注册。');
+    } catch (error) {
+      Alert.alert('注销失败', error?.message || '暂时无法完成注销，请稍后再试。');
+    } finally {
+      setDeleteAccountPending(false);
+    }
+  }, [chartResult, clearLocalAppState, deletePassword, memberRegistration?.userKey, primaryChartResult, primaryProfile]);
 
   if (booting) {
     return (
@@ -2755,6 +2766,53 @@ export default function MingMeV2App() {
               </TouchableOpacity>
               <TouchableOpacity style={s.campaignSecondaryButton} activeOpacity={0.9} onPress={() => setCampaignVisible(false)}>
                 <Text style={s.campaignSecondaryButtonText}>{'稍后再看'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={deleteAccountVisible} transparent animationType="fade" onRequestClose={() => !deleteAccountPending && setDeleteAccountVisible(false)}>
+        <View style={s.campaignMask}>
+          <TouchableOpacity
+            style={s.campaignScrim}
+            activeOpacity={1}
+            onPress={() => {
+              if (!deleteAccountPending) {
+                setDeleteAccountVisible(false);
+              }
+            }}
+          />
+          <View style={s.campaignCard}>
+            <Text style={s.campaignEyebrow}>{'确认注销'}</Text>
+            <Text style={s.campaignTitle}>{'输入登录密码后才能注销'}</Text>
+            <Text style={s.campaignBody}>
+              {'确认注销，所有用户信息与权益将被清除，不能恢复。请输入你的登录密码，验证通过后才会继续。'}
+            </Text>
+            <TextInput
+              value={deletePassword}
+              onChangeText={setDeletePassword}
+              placeholder="输入登录密码"
+              placeholderTextColor={C.faint}
+              secureTextEntry
+              editable={!deleteAccountPending}
+              style={s.inlineInput}
+            />
+            <View style={s.campaignButtonRow}>
+              <TouchableOpacity
+                style={s.campaignPrimaryButton}
+                activeOpacity={0.9}
+                onPress={handleDeleteAccountConfirm}
+                disabled={deleteAccountPending}
+              >
+                <Text style={s.campaignPrimaryButtonText}>{deleteAccountPending ? '验证中…' : '验证并注销'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.campaignSecondaryButton}
+                activeOpacity={0.9}
+                onPress={() => !deleteAccountPending && setDeleteAccountVisible(false)}
+                disabled={deleteAccountPending}
+              >
+                <Text style={s.campaignSecondaryButtonText}>{'取消'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2942,6 +3000,17 @@ const s = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#42635E',
+  },
+  inlineInput: {
+    minHeight: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(51, 74, 69, 0.12)',
+    backgroundColor: '#F8FCFB',
+    paddingHorizontal: 16,
+    color: C.ink,
+    fontSize: 15,
+    marginTop: 10,
   },
   screen: {
     flex: 1,

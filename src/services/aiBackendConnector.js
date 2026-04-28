@@ -306,6 +306,7 @@ export async function requestDeleteAccountFromBackend({
   chart,
   profile,
   userKey,
+  password,
 }) {
   const { baseUrl, authToken, signingSecret, retryCount, retryDelayMs } = getAIBackendConfig();
   if (!baseUrl) {
@@ -313,7 +314,7 @@ export async function requestDeleteAccountFromBackend({
   }
 
   const endpoint = `${baseUrl.replace(/\/$/, '')}/api/ai/delete-account`;
-  const requestBody = JSON.stringify({ chart, profile, userKey });
+  const requestBody = JSON.stringify({ chart, profile, userKey, password });
   return requestWithRetry(endpoint, requestBody, { authToken, signingSecret, retryCount, retryDelayMs });
 }
 
