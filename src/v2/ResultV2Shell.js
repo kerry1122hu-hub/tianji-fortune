@@ -1535,12 +1535,16 @@ function TodayTongshengCard({ data, onOpenDetail, onOpenGuides, onOpenCalendar }
   const heroAnim = useRef(new Animated.Value(0)).current;
   const featureAnim = useRef(new Animated.Value(0)).current;
   const gridAnim = useRef(new Animated.Value(0)).current;
+  const lastMotionKey = useRef('');
+  const motionKey = `${data.subtitle}|${data.heroTitle}|${data.dateTag}`;
 
   useEffect(() => {
+    if (lastMotionKey.current === motionKey) return;
+    lastMotionKey.current = motionKey;
     heroAnim.setValue(0);
     featureAnim.setValue(0);
     gridAnim.setValue(0);
-    Animated.sequence([
+    Animated.stagger(90, [
       Animated.timing(heroAnim, {
         toValue: 1,
         duration: 360,
@@ -1548,16 +1552,16 @@ function TodayTongshengCard({ data, onOpenDetail, onOpenGuides, onOpenCalendar }
       }),
       Animated.timing(featureAnim, {
         toValue: 1,
-        duration: 320,
+        duration: 340,
         useNativeDriver: true,
       }),
       Animated.timing(gridAnim, {
         toValue: 1,
-        duration: 360,
+        duration: 380,
         useNativeDriver: true,
       }),
     ]).start();
-  }, [data, featureAnim, gridAnim, heroAnim]);
+  }, [motionKey, featureAnim, gridAnim, heroAnim]);
 
   const heroMotionStyle = {
     opacity: heroAnim,
@@ -1684,9 +1688,11 @@ function TodayTongshengCard({ data, onOpenDetail, onOpenGuides, onOpenCalendar }
 
 function TongshengGlyph({ variant, accent, large = false }) {
   const toneStyle = getTongshengGlyphToneStyle(accent);
+  const symbol = getTongshengGlyphSymbol(variant);
   return (
     <View style={[s.tongshengGlyph, large && s.tongshengGlyphLarge]}>
       <View style={[s.tongshengGlyphRing, toneStyle]} />
+      <Text style={[s.tongshengGlyphText, large && s.tongshengGlyphTextLarge, toneStyle]}>{symbol}</Text>
       {variant === 'decision' ? (
         <>
           <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphBalanceLeft]} />
@@ -1726,6 +1732,23 @@ function TongshengGlyph({ variant, accent, large = false }) {
       ) : null}
     </View>
   );
+}
+
+function getTongshengGlyphSymbol(variant) {
+  switch (variant) {
+    case 'decision':
+      return '◈';
+    case 'travel':
+      return '➝';
+    case 'boost':
+      return '✦';
+    case 'wealth':
+      return '◎';
+    case 'peach':
+      return '✿';
+    default:
+      return '•';
+  }
 }
 
 function getTongshengAccentStyle(accent) {
@@ -6366,14 +6389,16 @@ const s = StyleSheet.create({
   tongshengGridBody: { fontSize: 15, lineHeight: 24, fontWeight: '600', color: 'rgba(26,26,26,0.78)' },
   tongshengGlyph: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', position: 'relative' },
   tongshengGlyphLarge: { width: 28, height: 28 },
+  tongshengGlyphText: { fontSize: 15, lineHeight: 18, fontWeight: '900', zIndex: 2 },
+  tongshengGlyphTextLarge: { fontSize: 18, lineHeight: 22 },
   tongshengGlyphRing: { position: 'absolute', width: 22, height: 22, borderRadius: 999, borderWidth: 1.4, opacity: 0.7 },
   tongshengGlyphStroke: { position: 'absolute', borderRadius: 999 },
   tongshengGlyphCore: { position: 'absolute', borderRadius: 999 },
-  tongshengGlyphToneMint: { borderColor: '#456A57', backgroundColor: '#456A57' },
-  tongshengGlyphTonePearl: { borderColor: '#7F6D59', backgroundColor: '#7F6D59' },
-  tongshengGlyphToneAmber: { borderColor: '#A5671E', backgroundColor: '#A5671E' },
-  tongshengGlyphToneGold: { borderColor: '#97702B', backgroundColor: '#97702B' },
-  tongshengGlyphToneRose: { borderColor: '#A16467', backgroundColor: '#A16467' },
+  tongshengGlyphToneMint: { borderColor: '#456A57', backgroundColor: '#456A57', color: '#456A57' },
+  tongshengGlyphTonePearl: { borderColor: '#7F6D59', backgroundColor: '#7F6D59', color: '#7F6D59' },
+  tongshengGlyphToneAmber: { borderColor: '#A5671E', backgroundColor: '#A5671E', color: '#A5671E' },
+  tongshengGlyphToneGold: { borderColor: '#97702B', backgroundColor: '#97702B', color: '#97702B' },
+  tongshengGlyphToneRose: { borderColor: '#A16467', backgroundColor: '#A16467', color: '#A16467' },
   tongshengGlyphBalanceLeft: { width: 8, height: 1.6, top: 11, left: 3, transform: [{ rotate: '-18deg' }] },
   tongshengGlyphBalanceRight: { width: 8, height: 1.6, top: 11, right: 3, transform: [{ rotate: '18deg' }] },
   tongshengGlyphBalancePole: { width: 2.6, height: 11, top: 6 },
