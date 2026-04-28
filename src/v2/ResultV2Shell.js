@@ -1429,51 +1429,79 @@ function buildTodayTongshengData({ today, result, weekly, profile, calSummary })
     weekly?.work?.advice,
     `把 ${luckyColor || '更顺眼的配色'}、${luckyDirection || '更顺的方位'} 和 ${luckyElements || '更贴身的五行节奏'} 用在今天最重要的一件事上。`
   );
+  const coreMode = (() => {
+    const source = `${decisionAdvice} ${wealthAdvice} ${relationshipAdvice}`;
+    if (/[主动|推进|出击|成交|回款|见回音]/.test(source)) return '主动出击';
+    if (/[守|稳|收住|缓|节奏]/.test(source)) return '稳住主线';
+    if (/[关系|桃花|人际|沟通]/.test(source)) return '先调气场';
+    return '看清再动';
+  })();
+  const signalItems = [
+    luckyDirection ? { key: 'direction', label: '利方', value: luckyDirection, icon: '◌' } : null,
+    luckyColor ? { key: 'color', label: '利色', value: luckyColor, icon: '◐' } : null,
+    luckyNumber ? { key: 'number', label: '利数', value: luckyNumber, icon: '✕' } : null,
+    luckyElements ? { key: 'element', label: '五行', value: luckyElements, icon: '△' } : null,
+  ].filter(Boolean);
+  const sections = [
+    {
+      key: 'decision',
+      title: '决策',
+      kicker: '今日核心',
+      glyph: 'decision',
+      summary: decisionAdvice,
+      accent: 'mint',
+    },
+    {
+      key: 'travel',
+      title: '出行',
+      kicker: '行动动线',
+      glyph: 'travel',
+      summary: travelAdvice,
+      accent: 'pearl',
+    },
+    {
+      key: 'boost',
+      title: '增运',
+      kicker: '调频建议',
+      glyph: 'boost',
+      summary: `${boostAdvice}${luckyElements ? ` 今天更顺的五行落点偏向 ${luckyElements}。` : ''}`,
+      accent: 'amber',
+    },
+    {
+      key: 'wealth',
+      title: '财气',
+      kicker: '资源置换',
+      glyph: 'wealth',
+      summary: luckyDirection
+        ? `今天的财气更适合往 ${luckyDirection} 这一侧求稳。${wealthAdvice}`
+        : wealthAdvice,
+      accent: 'gold',
+    },
+    {
+      key: 'peach',
+      title: '桃花',
+      kicker: '关系感应',
+      glyph: 'peach',
+      summary: peachSignals.length
+        ? `命盘里的 ${peachSignals.slice(0, 2).join('、')} 会放大今天的人际感应。${relationshipAdvice}`
+        : relationshipAdvice,
+      accent: 'rose',
+    },
+  ];
 
   return {
-    title: todayLabel ? `今日通胜 · ${todayLabel}` : '今日通胜',
+    title: '今日通胜',
+    heroTitle: coreMode,
     subtitle: firstValid(
       today?.dateLabel,
       result?.lunarDateStr,
       '--'
     ),
+    dateTag: todayLabel ? `今日势能 · ${todayLabel}` : '今日势能',
+    heroLead: `${profileName}今天更适合先看总势，再决定往哪一条线加力。`,
     lead: `${profileName}今天的黄历节奏与命盘主线，更像是在提醒你：${decisionAdvice}`,
-    meta: [
-      luckyDirection ? `利方：${luckyDirection}` : '',
-      luckyColor ? `利色：${luckyColor}` : '',
-      luckyNumber ? `利数：${luckyNumber}` : '',
-    ].filter(Boolean),
-    sections: [
-      {
-        key: 'decision',
-        title: '决策',
-        summary: decisionAdvice,
-      },
-      {
-        key: 'travel',
-        title: '出行',
-        summary: travelAdvice,
-      },
-      {
-        key: 'boost',
-        title: '增运',
-        summary: `${boostAdvice}${luckyElements ? ` 今天更顺的五行落点偏向 ${luckyElements}。` : ''}`,
-      },
-      {
-        key: 'wealth',
-        title: '财气',
-        summary: luckyDirection
-          ? `今天的财气更适合往 ${luckyDirection} 这一侧求稳。${wealthAdvice}`
-          : wealthAdvice,
-      },
-      {
-        key: 'peach',
-        title: '桃花',
-        summary: peachSignals.length
-          ? `命盘里的 ${peachSignals.slice(0, 2).join('、')} 会放大今天的人际感应。${relationshipAdvice}`
-          : relationshipAdvice,
-      },
-    ],
+    signalItems,
+    sections,
     detailContent: {
       lead: `${profileName}今天先看黄历时气，再把你的命盘主线叠上去，重点不是神神叨叨地“求准”，而是知道今天什么更顺、什么更容易卡。`,
       sections: [
@@ -1502,48 +1530,234 @@ function buildTodayTongshengData({ today, result, weekly, profile, calSummary })
 
 function TodayTongshengCard({ data, onOpenDetail, onOpenGuides, onOpenCalendar }) {
   if (!data) return null;
+  const featured = data.sections?.[0];
+  const secondarySections = data.sections?.slice(1) || [];
+  const heroAnim = useRef(new Animated.Value(0)).current;
+  const featureAnim = useRef(new Animated.Value(0)).current;
+  const gridAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    heroAnim.setValue(0);
+    featureAnim.setValue(0);
+    gridAnim.setValue(0);
+    Animated.sequence([
+      Animated.timing(heroAnim, {
+        toValue: 1,
+        duration: 360,
+        useNativeDriver: true,
+      }),
+      Animated.timing(featureAnim, {
+        toValue: 1,
+        duration: 320,
+        useNativeDriver: true,
+      }),
+      Animated.timing(gridAnim, {
+        toValue: 1,
+        duration: 360,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [data, featureAnim, gridAnim, heroAnim]);
+
+  const heroMotionStyle = {
+    opacity: heroAnim,
+    transform: [
+      {
+        translateY: heroAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [22, 0],
+        }),
+      },
+    ],
+  };
+  const featureMotionStyle = {
+    opacity: featureAnim,
+    transform: [
+      {
+        translateY: featureAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [20, 0],
+        }),
+      },
+      {
+        scale: featureAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.98, 1],
+        }),
+      },
+    ],
+  };
+  const gridMotionStyle = {
+    opacity: gridAnim,
+    transform: [
+      {
+        translateY: gridAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [24, 0],
+        }),
+      },
+    ],
+  };
   return (
     <Card style={s.tongshengCard}>
       <View style={s.tongshengAura} />
-      <SectionHeader
-        eyebrow={'今日通胜'}
-        title={data.title}
-        body={'把当天黄历信息和你的八字节奏放在一起看，先看总势，再看今天最值得把握的五条线。'}
-      />
-      <View style={s.tongshengHead}>
-        <Text style={s.tongshengSubtitle}>{data.subtitle}</Text>
-        {!!data.meta?.length ? (
-          <View style={s.tongshengMetaRow}>
-            {data.meta.map((item) => (
-              <View key={item} style={s.tongshengMetaPill}>
-                <Text style={s.tongshengMetaText}>{item}</Text>
+      <View style={s.tongshengGlowLarge} />
+      <View style={s.tongshengGlowSmall} />
+      <Animated.View style={[s.tongshengHero, heroMotionStyle]}>
+        <View style={s.tongshengHeroTop}>
+          <View style={s.tongshengHeroCopy}>
+            <Text style={s.tongshengHeroEyebrow}>{data.title}</Text>
+            <Text style={s.tongshengHeroTitle}>{data.heroTitle}</Text>
+            <Text style={s.tongshengHeroBody}>{data.heroLead}</Text>
+          </View>
+          <View style={s.tongshengDateBadge}>
+            <Text style={s.tongshengDateBadgeLabel}>{data.dateTag}</Text>
+            <Text style={s.tongshengDateBadgeValue}>{data.subtitle}</Text>
+          </View>
+        </View>
+        {!!data.signalItems?.length ? (
+          <View style={s.tongshengSignalRow}>
+            {data.signalItems.map((item) => (
+              <View key={item.key} style={s.tongshengSignalPill}>
+                <Text style={s.tongshengSignalIcon}>{item.icon}</Text>
+                <Text style={s.tongshengSignalText}>{`${item.label} · ${item.value}`}</Text>
               </View>
             ))}
           </View>
         ) : null}
-      </View>
+      </Animated.View>
       <Text style={s.tongshengLead}>{data.lead}</Text>
-      <View style={s.tongshengGrid}>
-        {data.sections.map((item) => (
-          <View key={item.key} style={s.tongshengGridCard}>
-            <Text style={s.tongshengGridTitle}>{item.title}</Text>
+      {featured ? (
+        <Animated.View style={[s.tongshengFeatureCard, featureMotionStyle]}>
+          <View style={s.tongshengFeatureHeader}>
+            <View>
+              <Text style={s.tongshengFeatureEyebrow}>{featured.kicker}</Text>
+              <Text style={s.tongshengFeatureTitle}>{featured.title}</Text>
+            </View>
+            <View style={[s.tongshengFeatureIconWrap, s.tongshengAccentMint]}>
+              <TongshengGlyph variant={featured.glyph} accent={featured.accent} large />
+            </View>
+          </View>
+          <Text style={s.tongshengFeatureBody}>{featured.summary}</Text>
+        </Animated.View>
+      ) : null}
+      <Animated.View style={[s.tongshengGrid, gridMotionStyle]}>
+        {secondarySections.map((item, index) => (
+          <View
+            key={item.key}
+            style={[
+              s.tongshengGridCard,
+              index === secondarySections.length - 1 && secondarySections.length % 2 === 1
+                ? s.tongshengGridCardWide
+                : null,
+            ]}
+          >
+            <View style={s.tongshengGridHead}>
+              <View>
+                <Text style={s.tongshengGridKicker}>{item.kicker}</Text>
+                <Text style={s.tongshengGridTitle}>{item.title}</Text>
+              </View>
+              <View style={[s.tongshengGridIconWrap, getTongshengAccentStyle(item.accent)]}>
+                <TongshengGlyph variant={item.glyph} accent={item.accent} />
+              </View>
+            </View>
             <Text style={s.tongshengGridBody}>{item.summary}</Text>
           </View>
         ))}
-      </View>
+      </Animated.View>
       <View style={s.tongshengActionRow}>
         <TouchableOpacity style={s.tongshengPrimaryButton} activeOpacity={0.9} onPress={() => onOpenDetail?.({ type: 'custom', name: data.title, subtitle: '今日通胜 · 综合详解', content: data.detailContent })}>
-          <Text style={s.tongshengPrimaryButtonText}>{'查看今日详解'}</Text>
+          <Text style={s.tongshengPrimaryButtonText}>{'展开今日详解'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.tongshengGhostButton} activeOpacity={0.9} onPress={onOpenGuides}>
-          <Text style={s.tongshengGhostButtonText}>{'展开今日提醒'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.tongshengGhostButton} activeOpacity={0.9} onPress={onOpenCalendar}>
-          <Text style={s.tongshengGhostButtonText}>{'打开当日日历'}</Text>
-        </TouchableOpacity>
+        <View style={s.tongshengSecondaryActions}>
+          <TouchableOpacity style={s.tongshengGhostButton} activeOpacity={0.9} onPress={onOpenGuides}>
+            <Text style={s.tongshengGhostButtonText}>{'今日提醒'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.tongshengGhostButton} activeOpacity={0.9} onPress={onOpenCalendar}>
+            <Text style={s.tongshengGhostButtonText}>{'查看日历'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </Card>
   );
+}
+
+function TongshengGlyph({ variant, accent, large = false }) {
+  const toneStyle = getTongshengGlyphToneStyle(accent);
+  return (
+    <View style={[s.tongshengGlyph, large && s.tongshengGlyphLarge]}>
+      <View style={[s.tongshengGlyphRing, toneStyle]} />
+      {variant === 'decision' ? (
+        <>
+          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphBalanceLeft]} />
+          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphBalanceRight]} />
+          <View style={[s.tongshengGlyphCore, toneStyle, s.tongshengGlyphBalancePole]} />
+        </>
+      ) : null}
+      {variant === 'travel' ? (
+        <>
+          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphTrail]} />
+          <View style={[s.tongshengGlyphCore, toneStyle, s.tongshengGlyphTrailDot]} />
+        </>
+      ) : null}
+      {variant === 'boost' ? (
+        <>
+          <View style={[s.tongshengGlyphCore, toneStyle, s.tongshengGlyphSparkCenter]} />
+          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphSparkNorth]} />
+          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphSparkEast]} />
+          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphSparkSouth]} />
+          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphSparkWest]} />
+        </>
+      ) : null}
+      {variant === 'wealth' ? (
+        <>
+          <View style={[s.tongshengGlyphStroke, toneStyle, s.tongshengGlyphWealthArc]} />
+          <View style={[s.tongshengGlyphCore, toneStyle, s.tongshengGlyphWealthCore]} />
+        </>
+      ) : null}
+      {variant === 'peach' ? (
+        <>
+          <View style={[s.tongshengGlyphPetal, toneStyle, s.tongshengGlyphPetalTop]} />
+          <View style={[s.tongshengGlyphPetal, toneStyle, s.tongshengGlyphPetalRight]} />
+          <View style={[s.tongshengGlyphPetal, toneStyle, s.tongshengGlyphPetalBottom]} />
+          <View style={[s.tongshengGlyphPetal, toneStyle, s.tongshengGlyphPetalLeft]} />
+          <View style={[s.tongshengGlyphCore, toneStyle, s.tongshengGlyphPetalCenter]} />
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+function getTongshengAccentStyle(accent) {
+  switch (accent) {
+    case 'mint':
+      return s.tongshengAccentMint;
+    case 'amber':
+      return s.tongshengAccentAmber;
+    case 'gold':
+      return s.tongshengAccentGold;
+    case 'rose':
+      return s.tongshengAccentRose;
+    case 'pearl':
+    default:
+      return s.tongshengAccentPearl;
+  }
+}
+
+function getTongshengGlyphToneStyle(accent) {
+  switch (accent) {
+    case 'mint':
+      return s.tongshengGlyphToneMint;
+    case 'amber':
+      return s.tongshengGlyphToneAmber;
+    case 'gold':
+      return s.tongshengGlyphToneGold;
+    case 'rose':
+      return s.tongshengGlyphToneRose;
+    case 'pearl':
+    default:
+      return s.tongshengGlyphTonePearl;
+  }
 }
 
 function PageTopBackBar({ title, subtitle, canGoBack, onGoBack }) {
@@ -4444,11 +4658,11 @@ function TongshengTab(props) {
       <ScrollView contentContainerStyle={s.pageContent} showsVerticalScrollIndicator={false}>
         {pageNav}
         <Card style={s.tongshengPageCard}>
-          <SectionHeader
-            eyebrow={'今日通胜'}
-            title={'先完成会员资料，再看今日通胜'}
-            body={'今日通胜会把当天黄历和你的命盘节奏合在一起，所以要先有完整资料，才会更贴身。'}
-          />
+          <View style={s.tongshengPageHeader}>
+            <Text style={s.tongshengPageEyebrow}>{'今日通胜'}</Text>
+            <Text style={s.tongshengPageTitle}>{'先完成会员资料，再看今日通胜'}</Text>
+            <Text style={s.tongshengPageBody}>{'今日通胜会把当天黄历和你的命盘节奏合在一起，所以要先有完整资料，才会更贴身。'}</Text>
+          </View>
           <Text style={s.tongshengPageLead}>
             {'等资料完整后，你每天打开明己，都会先落到这里，先看当天适合怎么决策、怎么出行、怎么借势。'}
           </Text>
@@ -4467,11 +4681,11 @@ function TongshengTab(props) {
         onOpenCalendar={onOpenTodayDetail}
       />
       <Card style={s.tongshengPageCard}>
-        <SectionHeader
-          eyebrow={'今日总览'}
-          title={'今天先顺着这五条线走'}
-          body={'先把大方向看清，再去做选择，通胜页就会更像你每天打开明己的第一张行动地图。'}
-        />
+        <View style={s.tongshengPageHeader}>
+          <Text style={s.tongshengPageEyebrow}>{'今日总览'}</Text>
+          <Text style={s.tongshengPageTitle}>{'今天先顺着这五条线走'}</Text>
+          <Text style={s.tongshengPageBody}>{'先把大方向看清，再去做选择，通胜页会更像你每天打开明己的第一张行动地图。'}</Text>
+        </View>
         <View style={s.tongshengPageChecklist}>
           {todayTongsheng.sections.map((item, index) => (
             <View key={item.key} style={s.tongshengPageChecklistItem}>
@@ -6118,23 +6332,77 @@ const s = StyleSheet.create({
   dreamEntryActionPill: { backgroundColor: 'rgba(205,188,255,0.14)', borderColor: 'rgba(205,188,255,0.28)' },
   aiEntryAction: { fontSize: 14, fontWeight: '700', color: C.logoMint },
   aiEntryArrow: { fontSize: 18, fontWeight: '800', color: C.logoMint },
-  tongshengCard: { position: 'relative', overflow: 'hidden', borderRadius: 28, borderWidth: 1, borderColor: 'rgba(169,222,208,0.22)', backgroundColor: '#F7FCFA', shadowColor: '#12343A', shadowOpacity: 0.10, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 3 },
-  tongshengAura: { position: 'absolute', width: 280, height: 280, borderRadius: 999, top: -160, right: -90, backgroundColor: 'rgba(120, 212, 188, 0.14)' },
-  tongshengHead: { gap: 10, marginBottom: 8 },
-  tongshengSubtitle: { fontSize: 13, lineHeight: 18, fontWeight: '700', color: 'rgba(20,51,58,0.58)' },
-  tongshengMetaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  tongshengMetaPill: { minHeight: 30, borderRadius: 999, paddingHorizontal: 12, backgroundColor: 'rgba(18,52,58,0.06)', borderWidth: 1, borderColor: 'rgba(18,52,58,0.08)', alignItems: 'center', justifyContent: 'center' },
-  tongshengMetaText: { fontSize: 12, fontWeight: '800', color: C.logoDeep },
-  tongshengLead: { fontSize: 16, lineHeight: 25, fontWeight: '700', color: '#234A4E' },
-  tongshengGrid: { marginTop: 16, gap: 10 },
-  tongshengGridCard: { borderRadius: 20, paddingHorizontal: 15, paddingVertical: 14, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(18,52,58,0.08)', gap: 6 },
-  tongshengGridTitle: { fontSize: 13, lineHeight: 18, fontWeight: '900', color: '#1E4F4A' },
-  tongshengGridBody: { fontSize: 14, lineHeight: 22, fontWeight: '600', color: 'rgba(20,51,58,0.78)' },
-  tongshengActionRow: { marginTop: 16, gap: 10 },
-  tongshengPrimaryButton: { minHeight: 50, borderRadius: 999, backgroundColor: '#12343A', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  tongshengPrimaryButtonText: { fontSize: 14, fontWeight: '900', color: '#F6FFFC' },
-  tongshengGhostButton: { minHeight: 46, borderRadius: 999, backgroundColor: 'rgba(18,52,58,0.05)', borderWidth: 1, borderColor: 'rgba(18,52,58,0.08)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
-  tongshengGhostButtonText: { fontSize: 13, fontWeight: '800', color: '#315D58' },
+  tongshengCard: { position: 'relative', overflow: 'hidden', borderRadius: 34, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: '#17181E', shadowColor: '#05070A', shadowOpacity: 0.24, shadowRadius: 24, shadowOffset: { width: 0, height: 14 }, elevation: 6 },
+  tongshengAura: { position: 'absolute', width: 320, height: 320, borderRadius: 999, top: -190, right: -126, backgroundColor: 'rgba(197,160,89,0.08)' },
+  tongshengGlowLarge: { position: 'absolute', width: 220, height: 220, borderRadius: 999, top: 18, right: -34, backgroundColor: 'rgba(111,152,128,0.20)' },
+  tongshengGlowSmall: { position: 'absolute', width: 124, height: 124, borderRadius: 999, top: 182, left: -42, backgroundColor: 'rgba(230,191,125,0.10)' },
+  tongshengHero: { gap: 14 },
+  tongshengHeroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
+  tongshengHeroCopy: { flex: 1, gap: 8, paddingRight: 4 },
+  tongshengHeroEyebrow: { fontSize: 12, fontWeight: '700', letterSpacing: 2.2, textTransform: 'uppercase', color: 'rgba(229,214,184,0.78)' },
+  tongshengHeroTitle: { fontSize: 34, lineHeight: 40, fontWeight: '800', color: '#F5EFE4', letterSpacing: -0.8 },
+  tongshengHeroBody: { fontSize: 14, lineHeight: 22, color: 'rgba(242,243,244,0.72)', fontWeight: '500' },
+  tongshengDateBadge: { minWidth: 122, borderRadius: 22, paddingHorizontal: 14, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: 'rgba(255,255,255,0.05)', gap: 6 },
+  tongshengDateBadgeLabel: { fontSize: 11, lineHeight: 15, fontWeight: '700', color: 'rgba(226,210,177,0.72)' },
+  tongshengDateBadgeValue: { fontSize: 18, lineHeight: 24, fontWeight: '800', color: '#F5EFE4' },
+  tongshengSignalRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tongshengSignalPill: { minHeight: 34, borderRadius: 999, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', flexDirection: 'row', alignItems: 'center', gap: 7 },
+  tongshengSignalIcon: { fontSize: 12, lineHeight: 16, color: '#D6B679', fontWeight: '900' },
+  tongshengSignalText: { fontSize: 12, lineHeight: 17, fontWeight: '700', color: 'rgba(243,245,246,0.80)' },
+  tongshengLead: { fontSize: 17, lineHeight: 28, fontWeight: '600', color: 'rgba(244,246,247,0.92)', marginTop: 18 },
+  tongshengFeatureCard: { marginTop: 18, borderRadius: 28, paddingHorizontal: 18, paddingVertical: 18, backgroundColor: 'rgba(255,255,255,0.92)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 3 },
+  tongshengFeatureHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: 10 },
+  tongshengFeatureEyebrow: { fontSize: 11, lineHeight: 16, letterSpacing: 1.6, fontWeight: '800', color: 'rgba(26,26,26,0.52)', textTransform: 'uppercase' },
+  tongshengFeatureTitle: { fontSize: 28, lineHeight: 34, fontWeight: '800', color: '#13161D', marginTop: 3 },
+  tongshengFeatureIconWrap: { width: 54, height: 54, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  tongshengFeatureBody: { fontSize: 18, lineHeight: 29, fontWeight: '600', color: 'rgba(26,26,26,0.88)' },
+  tongshengGrid: { marginTop: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  tongshengGridCard: { width: '48.2%', borderRadius: 24, paddingHorizontal: 16, paddingVertical: 16, backgroundColor: 'rgba(255,255,255,0.90)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', gap: 10, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 2 },
+  tongshengGridCardWide: { width: '100%' },
+  tongshengGridHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  tongshengGridKicker: { fontSize: 10, lineHeight: 14, fontWeight: '800', color: 'rgba(26,26,26,0.48)', letterSpacing: 1.4, textTransform: 'uppercase' },
+  tongshengGridTitle: { fontSize: 24, lineHeight: 29, fontWeight: '800', color: '#181B20', marginTop: 4 },
+  tongshengGridIconWrap: { width: 42, height: 42, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  tongshengGridBody: { fontSize: 15, lineHeight: 24, fontWeight: '600', color: 'rgba(26,26,26,0.78)' },
+  tongshengGlyph: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  tongshengGlyphLarge: { width: 28, height: 28 },
+  tongshengGlyphRing: { position: 'absolute', width: 22, height: 22, borderRadius: 999, borderWidth: 1.4, opacity: 0.7 },
+  tongshengGlyphStroke: { position: 'absolute', borderRadius: 999 },
+  tongshengGlyphCore: { position: 'absolute', borderRadius: 999 },
+  tongshengGlyphToneMint: { borderColor: '#456A57', backgroundColor: '#456A57' },
+  tongshengGlyphTonePearl: { borderColor: '#7F6D59', backgroundColor: '#7F6D59' },
+  tongshengGlyphToneAmber: { borderColor: '#A5671E', backgroundColor: '#A5671E' },
+  tongshengGlyphToneGold: { borderColor: '#97702B', backgroundColor: '#97702B' },
+  tongshengGlyphToneRose: { borderColor: '#A16467', backgroundColor: '#A16467' },
+  tongshengGlyphBalanceLeft: { width: 8, height: 1.6, top: 11, left: 3, transform: [{ rotate: '-18deg' }] },
+  tongshengGlyphBalanceRight: { width: 8, height: 1.6, top: 11, right: 3, transform: [{ rotate: '18deg' }] },
+  tongshengGlyphBalancePole: { width: 2.6, height: 11, top: 6 },
+  tongshengGlyphTrail: { width: 12, height: 1.8, top: 11, left: 4 },
+  tongshengGlyphTrailDot: { width: 5, height: 5, right: 3, top: 9.4 },
+  tongshengGlyphSparkCenter: { width: 5, height: 5 },
+  tongshengGlyphSparkNorth: { width: 1.8, height: 7, top: 2 },
+  tongshengGlyphSparkEast: { width: 7, height: 1.8, right: 2 },
+  tongshengGlyphSparkSouth: { width: 1.8, height: 7, bottom: 2 },
+  tongshengGlyphSparkWest: { width: 7, height: 1.8, left: 2 },
+  tongshengGlyphWealthArc: { width: 14, height: 8, borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 4, borderBottomRightRadius: 4, top: 6, backgroundColor: 'transparent', borderWidth: 1.5 },
+  tongshengGlyphWealthCore: { width: 6, height: 6, bottom: 4 },
+  tongshengGlyphPetal: { width: 7, height: 7, borderRadius: 5 },
+  tongshengGlyphPetalTop: { top: 2 },
+  tongshengGlyphPetalRight: { right: 2 },
+  tongshengGlyphPetalBottom: { bottom: 2 },
+  tongshengGlyphPetalLeft: { left: 2 },
+  tongshengGlyphPetalCenter: { width: 4, height: 4 },
+  tongshengAccentMint: { backgroundColor: 'rgba(185,221,201,0.72)', borderColor: 'rgba(98,141,116,0.20)' },
+  tongshengAccentPearl: { backgroundColor: 'rgba(240,231,223,0.78)', borderColor: 'rgba(196,176,152,0.18)' },
+  tongshengAccentAmber: { backgroundColor: 'rgba(236,203,150,0.78)', borderColor: 'rgba(196,138,42,0.18)' },
+  tongshengAccentGold: { backgroundColor: 'rgba(238,214,150,0.82)', borderColor: 'rgba(190,151,70,0.18)' },
+  tongshengAccentRose: { backgroundColor: 'rgba(240,205,204,0.84)', borderColor: 'rgba(191,133,132,0.18)' },
+  tongshengActionRow: { marginTop: 18, gap: 10 },
+  tongshengPrimaryButton: { minHeight: 54, borderRadius: 999, backgroundColor: '#C5A059', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18, shadowColor: '#C5A059', shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 3 },
+  tongshengPrimaryButtonText: { fontSize: 14, fontWeight: '900', color: '#15171E', letterSpacing: 0.2 },
+  tongshengSecondaryActions: { flexDirection: 'row', gap: 10 },
+  tongshengGhostButton: { flex: 1, minHeight: 46, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 14 },
+  tongshengGhostButtonText: { fontSize: 13, fontWeight: '800', color: 'rgba(243,245,246,0.82)' },
   pageTopBackBar: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 4, paddingVertical: 2, marginBottom: 2 },
   pageTopBackButton: { minHeight: 38, borderRadius: 999, paddingHorizontal: 14, backgroundColor: 'rgba(18,52,58,0.06)', borderWidth: 1, borderColor: 'rgba(18,52,58,0.10)', alignItems: 'center', justifyContent: 'center' },
   pageTopBackButtonDisabled: { opacity: 0.58 },
@@ -6143,15 +6411,19 @@ const s = StyleSheet.create({
   pageTopBackCopy: { flex: 1, gap: 3, paddingTop: 2 },
   pageTopBackTitle: { fontSize: 16, lineHeight: 21, fontWeight: '800', color: C.logoDeep },
   pageTopBackSubtitle: { fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.56)' },
-  tongshengPageCard: { borderRadius: 26, borderWidth: 1, borderColor: 'rgba(196,138,42,0.16)', backgroundColor: '#FFFCF4' },
-  tongshengPageLead: { fontSize: 15, lineHeight: 24, color: 'rgba(20,51,58,0.76)', fontWeight: '600' },
+  tongshengPageCard: { borderRadius: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', backgroundColor: '#1B1D23', shadowColor: '#040507', shadowOpacity: 0.16, shadowRadius: 20, shadowOffset: { width: 0, height: 12 }, elevation: 3 },
+  tongshengPageHeader: { gap: 6, marginBottom: 6 },
+  tongshengPageEyebrow: { fontSize: 11, fontWeight: '700', color: 'rgba(226,210,177,0.72)', textTransform: 'uppercase', letterSpacing: 2 },
+  tongshengPageTitle: { fontSize: 24, lineHeight: 31, fontWeight: '800', color: '#F5EFE4' },
+  tongshengPageBody: { fontSize: 14, lineHeight: 22, color: 'rgba(243,245,246,0.68)', fontWeight: '500' },
+  tongshengPageLead: { fontSize: 15, lineHeight: 24, color: 'rgba(243,245,246,0.76)', fontWeight: '600' },
   tongshengPageChecklist: { marginTop: 4, gap: 12 },
   tongshengPageChecklistItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 2 },
-  tongshengPageChecklistBadge: { width: 26, height: 26, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(196,138,42,0.14)', borderWidth: 1, borderColor: 'rgba(196,138,42,0.22)', marginTop: 2 },
-  tongshengPageChecklistBadgeText: { fontSize: 12, fontWeight: '900', color: '#8C6421' },
+  tongshengPageChecklistBadge: { width: 28, height: 28, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(197,160,89,0.14)', borderWidth: 1, borderColor: 'rgba(197,160,89,0.26)', marginTop: 2 },
+  tongshengPageChecklistBadgeText: { fontSize: 12, fontWeight: '900', color: '#D1B276' },
   tongshengPageChecklistCopy: { flex: 1, gap: 4 },
-  tongshengPageChecklistTitle: { fontSize: 13, lineHeight: 18, fontWeight: '900', color: '#1F4A47' },
-  tongshengPageChecklistBody: { fontSize: 14, lineHeight: 22, color: 'rgba(20,51,58,0.76)', fontWeight: '600' },
+  tongshengPageChecklistTitle: { fontSize: 13, lineHeight: 18, fontWeight: '900', color: '#F3E8CF' },
+  tongshengPageChecklistBody: { fontSize: 14, lineHeight: 22, color: 'rgba(243,245,246,0.76)', fontWeight: '600' },
   pwaInstallCard: { borderRadius: 24, backgroundColor: 'rgba(11,16,32,0.94)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.14)', paddingHorizontal: 18, paddingVertical: 18, marginTop: -2, marginBottom: 12, shadowColor: '#08111D', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 4, gap: 14 },
   pwaInstallCopy: { gap: 6 },
   pwaInstallEyebrow: { fontSize: 11, fontWeight: '700', letterSpacing: 1.1, textTransform: 'uppercase', color: 'rgba(234,245,241,0.58)' },
