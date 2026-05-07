@@ -30,7 +30,9 @@ const { width: PAGE_WIDTH } = Dimensions.get('window');
 const CALENDAR_ENTRIES_STORAGE_KEY = 'mingme.v2.calendarEntries';
 const AI_INSTALL_REMINDER_SEEN_KEY = 'mingme.v2.aiInstallReminderSeen';
 const SMART_TOOL_HISTORY_KEY_PREFIX = 'mingme.v2.smartToolHistory';
+const AI_CHAT_HISTORY_KEY_PREFIX = 'mingme.v2.aiChatRecent';
 const SMART_TOOL_HISTORY_LIMIT = 5;
+const AI_CHAT_HISTORY_LIMIT = 5;
 const MINGJI_DIVINATION_LOADING_VIDEO = '/mingji-divination-loading.mp4';
 
 function padUserKeyPart(value) {
@@ -65,6 +67,14 @@ function normalizeChatMessageContent(value, fallback = '') {
 
 function buildSmartToolHistoryStorageKey(userKey = 'guest', toolKey = 'tool') {
   return `${SMART_TOOL_HISTORY_KEY_PREFIX}:${userKey}:${toolKey}`;
+}
+
+function buildAiChatHistoryStorageKey(userKey = 'guest') {
+  return `${AI_CHAT_HISTORY_KEY_PREFIX}:${userKey}`;
+}
+
+function createRecentSessionId() {
+  return `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function summarizeHistoryText(value = '', maxLength = 72) {
@@ -2589,6 +2599,8 @@ function AICompanionModal({
   voiceLoading,
   voiceRecording,
   onVoiceInput,
+  recentSessions = [],
+  onRestoreSession,
 }) {
   const scrollRef = useRef(null);
   const chatInputRef = useRef(null);
@@ -2740,6 +2752,32 @@ function AICompanionModal({
     </View>
   );
 
+  const renderRecentSessions = () => {
+    if (!recentSessions.length) return null;
+    return (
+      <View style={s.aiRecentCard}>
+        <View style={s.aiRecentHeader}>
+          <View style={s.aiRecentDot} />
+          <Text style={s.aiRecentLabel}>{'最近几次会话'}</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.aiRecentList}>
+          {recentSessions.slice(0, 5).map((item) => (
+            <TouchableOpacity
+              key={item.id || item.updatedAt || item.createdAt}
+              activeOpacity={0.92}
+              onPress={() => onRestoreSession?.(item)}
+              style={s.aiRecentItem}
+            >
+              <Text numberOfLines={1} style={s.aiRecentItemTitle}>{item.title || '继续这次对话'}</Text>
+              <Text numberOfLines={3} style={s.aiRecentItemPreview}>{item.preview || '点开继续查看上一次的对话内容。'}</Text>
+              <Text style={s.aiRecentItemMeta}>{formatHistoryTime(item.updatedAt || item.createdAt) || '刚刚'}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+
   const renderComposer = (extraStyle = null) => (
     <View style={[s.aiComposerPanel, extraStyle]}>
       <View style={s.aiComposerTopline}>
@@ -2839,6 +2877,7 @@ function AICompanionModal({
             <Text style={s.aiHeaderMeta}>{isPremium ? '无限制' : `剩余 ${aiRemaining} 次`}</Text>
           </View>
         </View>
+        {renderRecentSessions()}
 
         {hasConversation ? (
           <View style={s.aiConversationShell}>
@@ -4414,6 +4453,7 @@ function HomeTab(props) {
       aiAllowed,
       onRefreshAIQuota,
       onOpenPaywall,
+      onLogout,
     } = props;
   const today = findTodayCalendarCell(fortuneCalendar, result);
   const [activeToolPage, setActiveToolPage] = useState(null);
@@ -4846,6 +4886,12 @@ function HomeTab(props) {
           setActiveToolPage(key);
         }}
       />
+      <Card>
+        <SectionHeader eyebrow={'账号切换'} title={'退出当前登录'} body={'退出后会清理本机缓存与最近记录，方便你重新注册新账号。'} />
+        <TouchableOpacity onPress={onLogout} style={[s.secondaryButton, s.dangerButton]}>
+          <Text style={[s.secondaryButtonText, { color: C.danger }]}>{'退出登录'}</Text>
+        </TouchableOpacity>
+      </Card>
     </ScrollView>
   );
 }
@@ -5602,7 +5648,7 @@ function formatProfileBirthText(profile) {
   return `${year}年${month}月${day}日 ${hour}时${minute}分`;
 }
 
-function MeTab({ pageNav, profile, accountProfile, locale, supportedLocales, onLocaleChange, onEditProfile, onResetAIReading, onResetData, onDeleteAccount, notificationPrefs, onNotificationPrefsChange, memberRegistration, onOpenPaywall, memberTier, familyProfiles, activeFamilyProfileId, onCreateFamilyProfile, onSaveCurrentToFamilyProfile, onSwitchFamilyProfile, onSwitchToPrimaryAccount, onDeleteFamilyProfile, hideMembership }) {
+function MeTab({ pageNav, profile, accountProfile, locale, supportedLocales, onLocaleChange, onEditProfile, onResetAIReading, onResetData, onDeleteAccount, onLogout, notificationPrefs, onNotificationPrefsChange, memberRegistration, onOpenPaywall, memberTier, familyProfiles, activeFamilyProfileId, onCreateFamilyProfile, onSaveCurrentToFamilyProfile, onSwitchFamilyProfile, onSwitchToPrimaryAccount, onDeleteFamilyProfile, hideMembership }) {
   const displayProfile = accountProfile || profile;
   const profileTitle = hideMembership ? '个人资料概览' : (displayProfile?.nickname || '\u672a\u547d\u540d\u6863\u6848');
   const profileBody = hideMembership
@@ -5679,6 +5725,7 @@ function MeTab({ pageNav, profile, accountProfile, locale, supportedLocales, onL
         <SectionHeader eyebrow={S.dataOps} title={S.exportReset} />
         <TouchableOpacity onPress={onResetAIReading} style={s.secondaryButton}><Text style={s.secondaryButtonText}>{'\u91cd\u7f6e AI \u89e3\u8bfb'}</Text></TouchableOpacity>
         <TouchableOpacity onPress={onResetData} style={[s.secondaryButton, s.dangerButton]}><Text style={[s.secondaryButtonText, { color: C.danger }]}>{'\u6e05\u7a7a\u672c\u5730\u6570\u636e'}</Text></TouchableOpacity>
+        <TouchableOpacity onPress={onLogout} style={[s.secondaryButton, s.dangerButton]}><Text style={[s.secondaryButtonText, { color: C.danger }]}>{'退出登录'}</Text></TouchableOpacity>
         <TouchableOpacity onPress={onDeleteAccount} style={[s.secondaryButton, s.dangerButton]}><Text style={[s.secondaryButtonText, { color: C.danger }]}>{'注销账户'}</Text></TouchableOpacity>
       </Card>
     </ScrollView>
@@ -5741,7 +5788,9 @@ export function ResultV2Shell(props) {
   const [selectedTodayGuides, setSelectedTodayGuides] = useState(null);
   const [aiPage, setAiPage] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
+  const [aiRecentSessions, setAiRecentSessions] = useState([]);
   const [chatInput, setChatInput] = useState('');
+  const [chatSessionId, setChatSessionId] = useState(() => createRecentSessionId());
   const [chatLoading, setChatLoading] = useState(false);
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [voiceRecording, setVoiceRecording] = useState(false);
@@ -5829,6 +5878,118 @@ export function ResultV2Shell(props) {
     }, 0);
     return () => clearTimeout(timer);
   }, [preferredEntryTab, visibleTabs]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(buildAiChatHistoryStorageKey(stableUserKey));
+        if (!active) return;
+        const parsed = raw ? JSON.parse(raw) : [];
+        setAiRecentSessions(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        if (active) setAiRecentSessions([]);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [stableUserKey]);
+
+  const persistAiRecentSession = useCallback(async ({ sessionId, messages, question, answer }) => {
+    if (!stableUserKey) return;
+    const safeMessages = Array.isArray(messages)
+      ? messages
+          .filter((item) => item?.role && normalizeChatMessageContent(item?.content).trim())
+          .slice(-12)
+          .map((item) => ({ role: item.role, content: normalizeChatMessageContent(item.content) }))
+      : [];
+    if (!safeMessages.length) return;
+    const title = summarizeHistoryText(
+      question
+        || safeMessages.find((item) => item.role === 'user')?.content
+        || '继续这次对话',
+      28
+    );
+    const preview = summarizeHistoryText(
+      answer
+        || [...safeMessages].reverse().find((item) => item.role === 'assistant')?.content
+        || '点开继续查看明己AI先生刚才怎么说。',
+      84
+    );
+    const entry = {
+      id: sessionId || createRecentSessionId(),
+      title,
+      preview,
+      messages: safeMessages,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    try {
+      const storageKey = buildAiChatHistoryStorageKey(stableUserKey);
+      const raw = await AsyncStorage.getItem(storageKey);
+      const existing = raw ? JSON.parse(raw) : [];
+      const next = [entry, ...(Array.isArray(existing) ? existing : []).filter((item) => item?.id !== entry.id)]
+        .slice(0, AI_CHAT_HISTORY_LIMIT);
+      await AsyncStorage.setItem(storageKey, JSON.stringify(next));
+      setAiRecentSessions(next);
+    } catch {}
+  }, [stableUserKey]);
+
+  const handleRestoreAiSession = useCallback((item) => {
+    if (!item?.messages?.length) return;
+    setChatSessionId(item.id || createRecentSessionId());
+    setChatHistory(
+      item.messages.map((message) => ({
+        role: message.role,
+        content: normalizeChatMessageContent(message.content),
+      }))
+    );
+    setChatInput('');
+    setAiPage(true);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    Alert.alert(
+      '退出登录',
+      '确认退出登录？本机会清除当前账号的资料缓存、会员信息与最近记录，之后可以重新注册新账号。',
+      [
+        { text: '先不退出', style: 'cancel' },
+        {
+          text: '确认退出',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const allKeys = await AsyncStorage.getAllKeys();
+              const removableKeys = allKeys.filter((key) => (
+                key === CALENDAR_ENTRIES_STORAGE_KEY
+                || key === AI_INSTALL_REMINDER_SEEN_KEY
+                || key.startsWith(SMART_TOOL_HISTORY_KEY_PREFIX)
+                || key.startsWith(AI_CHAT_HISTORY_KEY_PREFIX)
+                || key.startsWith('mingme.')
+                || key.startsWith('mingji.')
+              ));
+              if (removableKeys.length) {
+                await AsyncStorage.multiRemove(removableKeys);
+              }
+            } catch {}
+            setChatHistory([]);
+            setAiRecentSessions([]);
+            setChatInput('');
+            setChatSessionId(createRecentSessionId());
+            setCalendarEntries({});
+            setSelectedDetail(null);
+            setSelectedShenShaList(null);
+            setSelectedCalendarDay(null);
+            setSelectedTodayGuides(null);
+            setAiPage(false);
+            setTabHistory([]);
+            onResetData?.();
+          },
+        },
+      ]
+    );
+  }, [onResetData]);
 
   const refreshAIQuota = async () => {
     const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: identityChart, profile: identityProfile, userKey: stableUserKey };
@@ -6242,11 +6403,11 @@ export function ResultV2Shell(props) {
 
   const pages = [
     <TongshengTab key="tongsheng" pageNav={buildPageNav('今日通胜', '会员默认先落到这里，先看当天节奏，再决定今天怎么走。')} result={result} profile={profile} fortuneCalendar={fortuneCalendar} calSummary={calSummary} weeklyActions={weeklyActions} onOpenTodayDetail={openTodayDetail} onOpenCustomDetail={setSelectedDetail} onOpenTodayGuides={setSelectedTodayGuides} isPremium={effectivePremium} />,
-    <HomeTab key="home" pageNav={buildPageNav('明己首页', '这里放长期工具和常用入口，需要时也能随时退回上一页。')} result={result} profile={profile} accountProfile={accountProfile} accountResult={accountResult} fortuneCalendar={fortuneCalendar} calSummary={calSummary} weeklyActions={weeklyActions} oneLineSummary={oneLineSummary} followUpQuestions={followUpQuestions} followUpAnswers={followUpAnswers} onFollowUpAnswerChange={onFollowUpAnswerChange} onGenerateCompanion={onGenerateCompanion} companionLoading={companionLoading} onRecalculate={onRecalculate} reviewMode={hideMembership} onOpenAI={() => setAiPage(true)} onOpenTodayDetail={openTodayDetail} onOpenCustomDetail={setSelectedDetail} onOpenTodayGuides={setSelectedTodayGuides} isPremium={effectivePremium} aiRemaining={aiRemaining} aiAllowed={aiAllowed} onRefreshAIQuota={refreshAIQuota} onOpenPaywall={onOpenPaywall} />,
+    <HomeTab key="home" pageNav={buildPageNav('明己首页', '这里放长期工具和常用入口，需要时也能随时退回上一页。')} result={result} profile={profile} accountProfile={accountProfile} accountResult={accountResult} fortuneCalendar={fortuneCalendar} calSummary={calSummary} weeklyActions={weeklyActions} oneLineSummary={oneLineSummary} followUpQuestions={followUpQuestions} followUpAnswers={followUpAnswers} onFollowUpAnswerChange={onFollowUpAnswerChange} onGenerateCompanion={onGenerateCompanion} companionLoading={companionLoading} onRecalculate={onRecalculate} reviewMode={hideMembership} onOpenAI={() => setAiPage(true)} onOpenTodayDetail={openTodayDetail} onOpenCustomDetail={setSelectedDetail} onOpenTodayGuides={setSelectedTodayGuides} isPremium={effectivePremium} aiRemaining={aiRemaining} aiAllowed={aiAllowed} onRefreshAIQuota={refreshAIQuota} onOpenPaywall={onOpenPaywall} onLogout={handleLogout} />,
     !hideMembership ? <ProfileTab key="profile" pageNav={buildPageNav('命盘总览', '回看四柱、结构和 AI 深读时，也能一键退回刚才那一页。')} profile={profile} result={result} aiText={aiText} aiLoading={aiLoading} onGenerateAI={onGenerateAI} onPressTenGod={(name) => setSelectedDetail(name ? { type: 'tenGod', name } : null)} onPressShenShaItem={(name) => setSelectedDetail(name ? { type: 'shenSha', name } : null)} onPressShenShaList={(pillar, items) => setSelectedShenShaList({ pillar, items })} /> : null,
     <StageTab key="stage" pageNav={buildPageNav('阶段日历', '看黄历、阶段安排和当天提醒时，退回路径也会一直保留。')} result={result} fortuneCalendar={fortuneCalendar} calSummary={calSummary} profile={profile} reviewMode={hideMembership} weeklyActions={weeklyActions} selectedDay={selectedCalendarDay} onSelectDay={(day, options) => { setSelectedCalendarDay(day); setCalendarQuickAddMode(!!options?.quickAdd); }} onCloseDayDetail={() => { setSelectedCalendarDay(null); setCalendarQuickAddMode(false); }} oneLineSummary={oneLineSummary} calendarEntries={calendarEntries} notificationPrefs={notificationPrefs} onSaveCalendarNote={handleSaveCalendarNote} onToggleCalendarReminder={handleToggleCalendarReminder} onUpdateCalendarReminderTime={handleUpdateCalendarReminderTime} onToggleCalendarNoteDone={handleToggleCalendarNoteDone} quickAddMode={calendarQuickAddMode} onClearQuickAddMode={() => setCalendarQuickAddMode(false)} />,
     !hideMembership ? <PremiumTab key="premium" pageNav={buildPageNav('会员中心', '权益、登记和会员专题入口，都会保留返回上一页的路径。')} memberTier={memberTier} onOpenPaywall={onOpenPaywall} result={result} profile={profile} calSummary={calSummary} fortuneCalendar={fortuneCalendar} weeklyActions={weeklyActions} memberRegistration={memberRegistration} /> : null,
-    <MeTab key="me" pageNav={buildPageNav('我的', '改资料、调提醒、看账号信息时，也不需要再自己找返回路径。')} profile={profile} accountProfile={accountProfile} locale={locale} supportedLocales={supportedLocales} onLocaleChange={onLocaleChange} onEditProfile={onEditProfile} onResetAIReading={onResetAIReading} onResetData={onResetData} onDeleteAccount={onDeleteAccount} notificationPrefs={notificationPrefs} onNotificationPrefsChange={onNotificationPrefsChange} memberRegistration={memberRegistration} onOpenPaywall={onOpenPaywall} memberTier={memberTier} familyProfiles={familyProfiles} activeFamilyProfileId={activeFamilyProfileId} onCreateFamilyProfile={onCreateFamilyProfile} onSaveCurrentToFamilyProfile={onSaveCurrentToFamilyProfile} onSwitchFamilyProfile={onSwitchFamilyProfile} onSwitchToPrimaryAccount={onSwitchToPrimaryAccount} onDeleteFamilyProfile={onDeleteFamilyProfile} hideMembership={hideMembership} />,
+    <MeTab key="me" pageNav={buildPageNav('我的', '改资料、调提醒、看账号信息时，也不需要再自己找返回路径。')} profile={profile} accountProfile={accountProfile} locale={locale} supportedLocales={supportedLocales} onLocaleChange={onLocaleChange} onEditProfile={onEditProfile} onResetAIReading={onResetAIReading} onResetData={onResetData} onDeleteAccount={onDeleteAccount} onLogout={handleLogout} notificationPrefs={notificationPrefs} onNotificationPrefsChange={onNotificationPrefsChange} memberRegistration={memberRegistration} onOpenPaywall={onOpenPaywall} memberTier={memberTier} familyProfiles={familyProfiles} activeFamilyProfileId={activeFamilyProfileId} onCreateFamilyProfile={onCreateFamilyProfile} onSaveCurrentToFamilyProfile={onSaveCurrentToFamilyProfile} onSwitchFamilyProfile={onSwitchFamilyProfile} onSwitchToPrimaryAccount={onSwitchToPrimaryAccount} onDeleteFamilyProfile={onDeleteFamilyProfile} hideMembership={hideMembership} />,
   ].filter(Boolean);
   return (
     <View style={s.root}>
@@ -6359,6 +6520,8 @@ export function ResultV2Shell(props) {
           voiceLoading={voiceLoading}
         voiceRecording={voiceRecording}
         onVoiceInput={handleVoiceInput}
+        recentSessions={aiRecentSessions}
+        onRestoreSession={handleRestoreAiSession}
         onSend={async () => {
           const userMsg = `${chatInput || ''}`.trim();
           if (!userMsg || chatLoading) return;
@@ -6380,6 +6543,10 @@ export function ResultV2Shell(props) {
               console.warn('AI companion quota precheck warning:', error?.message || error);
             }
 
+            const activeSessionId = chatHistory.length ? chatSessionId : createRecentSessionId();
+            if (!chatHistory.length) {
+              setChatSessionId(activeSessionId);
+            }
             const nextHistory = [...chatHistory, { role: 'user', content: normalizeChatMessageContent(userMsg) }];
             const userTurnCount = nextHistory.filter((item) => item.role === 'user').length;
             setChatInput('');
@@ -6404,7 +6571,15 @@ export function ResultV2Shell(props) {
 
             try {
               const reply = await aiChat(userMsg, result, chatHistory, quotaArgs);
-              setChatHistory([...nextHistory, { role: 'assistant', content: normalizeChatMessageContent(reply, '我在这里，会继续陪你一起梳理。') || '我在这里，会继续陪你一起梳理。' }]);
+              const assistantMessage = normalizeChatMessageContent(reply, '我在这里，会继续陪你一起梳理。') || '我在这里，会继续陪你一起梳理。';
+              const finalHistory = [...nextHistory, { role: 'assistant', content: assistantMessage }];
+              setChatHistory(finalHistory);
+              persistAiRecentSession({
+                sessionId: activeSessionId,
+                messages: finalHistory,
+                question: userMsg,
+                answer: assistantMessage,
+              });
               if (Platform.OS === 'web' && userTurnCount === 1) {
                 try {
                   trackPwaEvent('chat_first_reply_received', { route: 'companion', mode: 'chat' });
@@ -7304,6 +7479,15 @@ const s = StyleSheet.create({
   aiHeaderSub: { fontSize: 11, color: 'rgba(20,51,58,0.50)', marginTop: 2 },
   aiHeaderMetaPill: { minHeight: 30, borderRadius: 999, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,222,208,0.12)', borderWidth: 1, borderColor: 'rgba(169,222,208,0.18)' },
   aiHeaderMeta: { fontSize: 12, color: C.logoDeep, fontWeight: '700' },
+  aiRecentCard: { marginHorizontal: 12, marginTop: 10, marginBottom: 4, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(214,222,228,0.92)', backgroundColor: 'rgba(249,251,252,0.96)', paddingHorizontal: 14, paddingVertical: 12, shadowColor: '#0E2230', shadowOpacity: 0.06, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
+  aiRecentHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 10 },
+  aiRecentDot: { width: 7, height: 7, borderRadius: 999, backgroundColor: 'rgba(109,184,160,0.88)' },
+  aiRecentLabel: { fontSize: 11, fontWeight: '800', color: 'rgba(20,51,58,0.54)', textTransform: 'uppercase', letterSpacing: 0.4 },
+  aiRecentList: { gap: 10, paddingRight: 6 },
+  aiRecentItem: { width: 196, minHeight: 112, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(220,227,232,0.94)', backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 12, justifyContent: 'space-between' },
+  aiRecentItemTitle: { fontSize: 13, lineHeight: 18, color: C.logoDeep, fontWeight: '800', marginBottom: 6 },
+  aiRecentItemPreview: { fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.72)', flex: 1 },
+  aiRecentItemMeta: { marginTop: 8, fontSize: 11, color: 'rgba(20,51,58,0.42)', fontWeight: '700' },
   aiConversationShell: { flex: 1 },
   aiStartShell: { flex: 1, paddingTop: 14, paddingBottom: 14, justifyContent: 'flex-start' },
   aiScroll: { flex: 1 },
