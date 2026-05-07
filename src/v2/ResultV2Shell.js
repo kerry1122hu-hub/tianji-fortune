@@ -29,6 +29,8 @@ import { detectPwaPlatform, getPwaDisplayMode, isSafariBrowser, isStandalonePwa,
 const { width: PAGE_WIDTH } = Dimensions.get('window');
 const CALENDAR_ENTRIES_STORAGE_KEY = 'mingme.v2.calendarEntries';
 const AI_INSTALL_REMINDER_SEEN_KEY = 'mingme.v2.aiInstallReminderSeen';
+const SMART_TOOL_HISTORY_KEY_PREFIX = 'mingme.v2.smartToolHistory';
+const SMART_TOOL_HISTORY_LIMIT = 5;
 const MINGJI_DIVINATION_LOADING_VIDEO = '/mingji-divination-loading.mp4';
 
 function padUserKeyPart(value) {
@@ -59,6 +61,27 @@ function normalizeChatMessageContent(value, fallback = '') {
   } catch {
     return fallback;
   }
+}
+
+function buildSmartToolHistoryStorageKey(userKey = 'guest', toolKey = 'tool') {
+  return `${SMART_TOOL_HISTORY_KEY_PREFIX}:${userKey}:${toolKey}`;
+}
+
+function summarizeHistoryText(value = '', maxLength = 72) {
+  const text = `${value || ''}`.replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+}
+
+function formatHistoryTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  const hour = `${date.getHours()}`.padStart(2, '0');
+  const minute = `${date.getMinutes()}`.padStart(2, '0');
+  return `${month}-${day} ${hour}:${minute}`;
 }
 
 function getDivinationSceneLabel(sceneType) {
@@ -3131,6 +3154,7 @@ function SmartToolPage(props) {
   const toolIdentityChart = accountResult || result;
   const toolIdentityProfile = accountProfile || profile;
   const stableToolUserKey = useMemo(() => buildStableUserKey(toolIdentityChart, toolIdentityProfile, {}), [toolIdentityChart, toolIdentityProfile]);
+  const [recentToolHistory, setRecentToolHistory] = useState([]);
   const currentDivinationCooldownUntil = useMemo(() => getDivinationCooldownUntil(divinationInsight), [divinationInsight]);
   const feedbackToneColor = toolFeedback.tone === 'success' ? C.success : toolFeedback.tone === 'loading' ? meta.accent : toolFeedback.tone === 'warning' ? C.warn : C.soft;
   const feedbackIsWarning = toolFeedback.tone === 'warning';
@@ -3144,6 +3168,92 @@ function SmartToolPage(props) {
     setDivinationVideoLoaded(false);
     setShowDivinationRitualModal(toolKey === 'divination');
     divinationReadyOpacity.setValue(0);
+  }, [toolKey]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(buildSmartToolHistoryStorageKey(stableToolUserKey, toolKey));
+        if (!active || !raw) {
+          if (active) setRecentToolHistory([]);
+          return;
+        }
+        const parsed = JSON.parse(raw);
+        setRecentToolHistory(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        if (active) setRecentToolHistory([]);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [stableToolUserKey, toolKey]);
+
+  const persistToolHistoryItem = useCallback(async (entry) => {
+    const nextEntry = entry && typeof entry === 'object'
+      ? {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          createdAt: new Date().toISOString(),
+          ...entry,
+        }
+      : null;
+    if (!nextEntry) return;
+
+    const storageKey = buildSmartToolHistoryStorageKey(stableToolUserKey, toolKey);
+    try {
+      const raw = await AsyncStorage.getItem(storageKey);
+      const existing = raw ? JSON.parse(raw) : [];
+      const next = [nextEntry, ...(Array.isArray(existing) ? existing : [])].slice(0, SMART_TOOL_HISTORY_LIMIT);
+      await AsyncStorage.setItem(storageKey, JSON.stringify(next));
+      setRecentToolHistory(next);
+    } catch {}
+  }, [stableToolUserKey, toolKey]);
+
+  const handleRestoreHistory = useCallback((item) => {
+    if (!item) return;
+    setToolFeedback({ tone: 'success', text: '已替你调回这条最近记录。' });
+
+    if (toolKey === 'divination') {
+      setDivinationDraft({
+        sceneType: item.sceneType || 'wealth',
+        question: item.question || '',
+      });
+      setDivinationInsight(item.payload || null);
+      return;
+    }
+
+    if (toolKey === 'dream') {
+      setDreamDraft(item.dreamText || '');
+      setDreamInsight(item.output || '');
+      return;
+    }
+
+    if (toolKey === 'emotion') {
+      setSelectedMood(item.moodKey || MOOD_OPTIONS[0].key);
+      setEmotionNote(item.note || '');
+      setEmotionInsight(item.output || '');
+      return;
+    }
+
+    if (toolKey === 'decision') {
+      setDecisionDraft({
+        situation: item.situation || '',
+        options: item.options || '',
+        nextStep: item.nextStep || '',
+      });
+      setDecisionInsight(item.output || '');
+      return;
+    }
+
+    if (toolKey === 'growth') {
+      setGrowthInsight(item.output || '');
+      return;
+    }
+
+    if (toolKey === 'reflection') {
+      setReflectionInsight(item.output || '');
+    }
   }, [toolKey]);
 
   useEffect(() => {
@@ -3310,6 +3420,13 @@ function SmartToolPage(props) {
       );
       if (payload) {
         setDivinationInsight(payload);
+        persistToolHistoryItem({
+          title: `${getDivinationSceneLabel(divinationDraft.sceneType)} · 明己一卦`,
+          preview: question,
+          sceneType: divinationDraft.sceneType,
+          question,
+          payload,
+        });
         setToolFeedback({ tone: 'success', text: '卦象已成，明己已经把这一断落下来了。' });
       } else {
         setToolFeedback({ tone: 'warning', text: '这次起卦没有成功，请稍后再试。' });
@@ -3328,6 +3445,7 @@ function SmartToolPage(props) {
     divinationDraft.sceneType,
     divinationReadyOpacity,
     isPremium,
+      persistToolHistoryItem,
       profile,
       result,
       currentDivinationCooldownUntil,
@@ -3450,6 +3568,50 @@ function SmartToolPage(props) {
     );
   };
 
+  const renderRecentToolHistory = () => {
+    if (!recentToolHistory.length) return null;
+    return (
+      <Card style={s.toolHistoryCard}>
+        <SectionHeader
+          eyebrow={'最近查阅'}
+          title={'这几次你看过的内容'}
+          body={'只保留最近几次，点一条就能回看，不会把空间撑得太满。'}
+        />
+        <View style={s.toolHistoryList}>
+          {recentToolHistory.slice(0, 4).map((item, index) => {
+            const preview = summarizeHistoryText(
+              item?.preview ||
+              item?.question ||
+              item?.dreamText ||
+              item?.note ||
+              item?.situation ||
+              item?.output ||
+              '',
+              66
+            );
+            return (
+              <TouchableOpacity
+                key={item?.id || `${toolKey}-history-${index}`}
+                activeOpacity={0.92}
+                onPress={() => handleRestoreHistory(item)}
+                style={s.toolHistoryItem}
+              >
+                <View style={s.toolHistoryMain}>
+                  <Text style={s.toolHistoryItemTitle}>{item?.title || meta.label}</Text>
+                  <Text style={s.toolHistoryItemPreview}>{preview || '点开继续查看这条记录。'}</Text>
+                </View>
+                <View style={s.toolHistoryMeta}>
+                  <Text style={s.toolHistoryTime}>{formatHistoryTime(item?.createdAt)}</Text>
+                  <Text style={s.toolHistoryAction}>{'查看 ›'}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </Card>
+    );
+  };
+
   if (!hasRegisteredProfile && toolKey !== 'bridge') {
     return (
       <View style={s.toolPageRoot} {...swipeResponder.panHandlers}>
@@ -3516,6 +3678,8 @@ function SmartToolPage(props) {
             <Text style={s.toolPageBody}>{meta.hint}{!isPremium ? ` 当前剩余 ${aiRemaining} 次。` : ''}</Text>
           </Card>
         ) : null}
+
+        {renderRecentToolHistory()}
 
         {toolKey === 'weekly' ? (
           <Card>
@@ -3835,7 +3999,16 @@ function SmartToolPage(props) {
             <TextInput value={emotionNote} onChangeText={setEmotionNote} style={s.answerInput} multiline placeholder={'写下今天最明显的一种情绪，以及它是被什么事情触发的'} />
             {renderToolActionButton('生成 AI 情绪分析', async () => {
                 const output = await runAITool(() => aiAnalyzeEmotion(`情绪：${activeMood.label}\n记录：${emotionNote || '今天先做一条简短记录。'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile: toolIdentityProfile, userKey: stableToolUserKey }));
-              if (output) setEmotionInsight(output);
+              if (output) {
+                setEmotionInsight(output);
+                persistToolHistoryItem({
+                  title: `情绪洞察 · ${activeMood.label}`,
+                  preview: emotionNote || activeMood.label,
+                  moodKey: activeMood.key,
+                  note: emotionNote,
+                  output,
+                });
+              }
             }, '分析中…')}
             {emotionInsight ? <Text style={s.toolResultText}>{emotionInsight}</Text> : null}
           </Card>
@@ -3891,6 +4064,12 @@ function SmartToolPage(props) {
                   nickname: toolIdentityProfile?.nickname || '',
                 });
                 setDreamInsight(output);
+                persistToolHistoryItem({
+                  title: '明己解梦',
+                  preview: normalizedDreamText,
+                  dreamText: normalizedDreamText,
+                  output,
+                });
               }
             }, '解梦中…')}
             {dreamInsight ? (
@@ -3925,7 +4104,17 @@ function SmartToolPage(props) {
           </View>
           {renderToolActionButton('生成 AI 决策建议', async () => {
               const output = await runAITool(() => aiDecisionSupport(decisionDraft.situation || '我需要理清一个重要决定。', `${decisionDraft.options || '尚未列出选项'}\n最小下一步：${decisionDraft.nextStep || '还没想清楚'}`, result, { isPremium, memberTier: isPremium ? 'premium' : 'free', profile: toolIdentityProfile, userKey: stableToolUserKey }));
-            if (output) setDecisionInsight(output);
+            if (output) {
+              setDecisionInsight(output);
+              persistToolHistoryItem({
+                title: 'AI 决策建议',
+                preview: decisionDraft.situation || decisionDraft.options || '一条重要选择',
+                situation: decisionDraft.situation,
+                options: decisionDraft.options,
+                nextStep: decisionDraft.nextStep,
+                output,
+              });
+            }
           }, '分析中…')}
           {decisionInsight ? <Text style={s.toolResultText}>{decisionInsight}</Text> : null}
         </Card>
@@ -3946,7 +4135,14 @@ function SmartToolPage(props) {
           {renderToolActionButton('生成 AI 成长总结', async () => {
             const mergedAnswers = Object.entries(followUpAnswers || {}).map(([key, value]) => `${key}：${value}`).join('\n');
               const output = await runAITool(() => aiChat(`请根据我的当前摘要和已完成观察，给我一段成长追踪建议。\n当前摘要：${oneLineSummary || '暂未生成'}\n已完成观察：${mergedAnswers || '暂未填写'}\n请聚焦：我最近正在形成什么稳定模式，下一步该如何调整。`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile: toolIdentityProfile, userKey: stableToolUserKey }));
-            if (output) setGrowthInsight(output);
+            if (output) {
+              setGrowthInsight(output);
+              persistToolHistoryItem({
+                title: 'AI 成长总结',
+                preview: oneLineSummary || '成长追踪',
+                output,
+              });
+            }
           }, '生成中…')}
           {growthInsight ? <Text style={s.toolResultText}>{growthInsight}</Text> : null}
         </Card>
@@ -3964,7 +4160,14 @@ function SmartToolPage(props) {
             await onGenerateCompanion?.();
             const mergedAnswers = Object.values(followUpAnswers || {}).filter(Boolean).join('\n');
               const output = await runAITool(() => aiChat(`请根据我的这些反思回答，给我一段简洁但具体的自我反思反馈，并指出接下来最值得继续观察的一点。\n${mergedAnswers || '我还没有写下太多内容。'}`, result, [], { isPremium, memberTier: isPremium ? 'premium' : 'free', profile: toolIdentityProfile, userKey: stableToolUserKey }));
-            if (output) setReflectionInsight(output);
+            if (output) {
+              setReflectionInsight(output);
+              persistToolHistoryItem({
+                title: 'AI 反思反馈',
+                preview: mergedAnswers || '这次反思记录',
+                output,
+              });
+            }
           }, companionLoading ? '更新中…' : '生成中…')}
           {reflectionInsight ? <Text style={s.toolResultText}>{reflectionInsight}</Text> : null}
         </Card>
@@ -6525,6 +6728,15 @@ const s = StyleSheet.create({
   toolDetailPanel: { marginTop: 14, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: C.line },
   toolDetailTitle: { fontSize: 16, fontWeight: '800', color: C.ink, marginBottom: 12 },
   toolResultText: { fontSize: 14, lineHeight: 22, color: C.ink, marginTop: 12, padding: 14, borderRadius: 16, backgroundColor: 'rgba(118,118,128,0.08)' },
+  toolHistoryCard: { marginTop: 2, backgroundColor: '#FCFEFD', borderColor: 'rgba(18,52,58,0.06)' },
+  toolHistoryList: { gap: 10, marginTop: 2 },
+  toolHistoryItem: { borderRadius: 18, borderWidth: 1, borderColor: 'rgba(18,52,58,0.08)', backgroundColor: 'rgba(18,52,58,0.035)', paddingHorizontal: 14, paddingVertical: 12, flexDirection: 'row', gap: 12, alignItems: 'center' },
+  toolHistoryMain: { flex: 1, gap: 4 },
+  toolHistoryItemTitle: { fontSize: 14, lineHeight: 20, fontWeight: '800', color: C.ink },
+  toolHistoryItemPreview: { fontSize: 12, lineHeight: 18, color: C.soft, fontWeight: '600' },
+  toolHistoryMeta: { alignItems: 'flex-end', justifyContent: 'center', gap: 4 },
+  toolHistoryTime: { fontSize: 11, lineHeight: 16, color: 'rgba(20,51,58,0.46)', fontWeight: '700' },
+  toolHistoryAction: { fontSize: 12, lineHeight: 18, color: C.logoDeep, fontWeight: '800' },
   divinationSummaryCard: { marginTop: 12, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(127,180,255,0.24)', backgroundColor: 'rgba(127,180,255,0.08)', padding: 14 },
   divinationSummaryTitle: { fontSize: 15, fontWeight: '800', color: C.ink },
   divinationPreviewCard: { marginBottom: 12, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(127,180,255,0.20)', backgroundColor: 'rgba(127,180,255,0.08)', padding: 14 },
