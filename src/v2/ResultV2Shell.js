@@ -259,6 +259,33 @@ function buildDivinationFormalLead(sceneType, text = '') {
   return normalized;
 }
 
+function getDivinationOracleTitle(sceneType) {
+  if (sceneType === 'wealth') return '这一卦本身怎么断财与交易';
+  if (sceneType === 'career') return '这一卦本身怎么断事业与职业';
+  if (sceneType === 'relationship') return '这一卦本身怎么断关系推进';
+  if (sceneType === 'travel') return '这一卦本身怎么断出行与状态';
+  if (sceneType === 'communication') return '这一卦本身怎么断线索与回音';
+  return '这一卦本身怎么断';
+}
+
+function buildDivinationOracleLines(insight) {
+  const normalized = insight?.normalizedPayload || {};
+  const result = normalized?.result || {};
+  const doubleResult = normalized?.double_palace_result || {};
+  const engineResult = insight?.engineResult || {};
+  const lines = [];
+
+  const sceneShort = `${result?.short_output || engineResult?.sceneMapping?.short_output || engineResult?.summary || ''}`.trim();
+  const oneLine = `${result?.one_line_summary || engineResult?.mainPalace?.summary || ''}`.trim();
+  const comboShort = `${doubleResult?.short_output || engineResult?.comboMapping?.short_output || ''}`.trim();
+
+  if (sceneShort) lines.push(sceneShort);
+  if (oneLine && oneLine !== sceneShort) lines.push(oneLine);
+  if (comboShort && comboShort !== sceneShort && comboShort !== oneLine) lines.push(comboShort);
+
+  return lines.filter(Boolean);
+}
+
 function formatDivinationTimeNote(engineResult) {
   const ctx = engineResult?.eventContext || {};
   if (!ctx.localMonth || !ctx.localDay || !ctx.timeBranch) {
@@ -3750,6 +3777,16 @@ function SmartToolPage(props) {
                     ) : null}
                     {normalizedDivinationInsight.text ? <Text style={s.toolResultText}>{buildDivinationFormalLead(divinationDraft.sceneType, normalizedDivinationInsight.text)}</Text> : <Text style={s.toolResultText}>{'这次起卦已完成，但明己的完整断语还没有返回。'}</Text>}
                   </Card>
+                  {buildDivinationOracleLines(normalizedDivinationInsight).length ? (
+                    <Card>
+                      <SectionHeader eyebrow={'这一卦的卦辞'} title={getDivinationOracleTitle(divinationDraft.sceneType)} />
+                      {buildDivinationOracleLines(normalizedDivinationInsight).map((line, index) => (
+                        <Text key={`${line}-${index}`} style={s.toolResultText}>
+                          {index === 0 ? line : `其二：${line}`}
+                        </Text>
+                      ))}
+                    </Card>
+                  ) : null}
                   <Card>
                     <SectionHeader eyebrow={'起卦时点'} title={'这一卦是按什么时间断的'} />
                     <Text style={s.toolResultText}>{formatDivinationTimeNote(normalizedDivinationInsight.engineResult)}</Text>
