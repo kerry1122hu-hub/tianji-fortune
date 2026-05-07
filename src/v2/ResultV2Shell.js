@@ -5949,47 +5949,58 @@ export function ResultV2Shell(props) {
     setAiPage(true);
   }, []);
 
+  const performLogout = useCallback(async () => {
+    try {
+      const allKeys = await AsyncStorage.getAllKeys();
+      const removableKeys = allKeys.filter((key) => (
+        key === CALENDAR_ENTRIES_STORAGE_KEY
+        || key === AI_INSTALL_REMINDER_SEEN_KEY
+        || key.startsWith(SMART_TOOL_HISTORY_KEY_PREFIX)
+        || key.startsWith(AI_CHAT_HISTORY_KEY_PREFIX)
+        || key.startsWith('mingme.')
+        || key.startsWith('mingji.')
+      ));
+      if (removableKeys.length) {
+        await AsyncStorage.multiRemove(removableKeys);
+      }
+    } catch {}
+    setChatHistory([]);
+    setAiRecentSessions([]);
+    setChatInput('');
+    setChatSessionId(createRecentSessionId());
+    setCalendarEntries({});
+    setSelectedDetail(null);
+    setSelectedShenShaList(null);
+    setSelectedCalendarDay(null);
+    setSelectedTodayGuides(null);
+    setAiPage(false);
+    setTabHistory([]);
+    onResetData?.();
+  }, [onResetData]);
+
   const handleLogout = useCallback(() => {
+    const message = '确认退出登录？本机会清除当前账号的资料缓存、会员信息与最近记录，之后可以重新注册新账号。';
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      if (window.confirm(message)) {
+        performLogout();
+      }
+      return;
+    }
     Alert.alert(
       '退出登录',
-      '确认退出登录？本机会清除当前账号的资料缓存、会员信息与最近记录，之后可以重新注册新账号。',
+      message,
       [
         { text: '先不退出', style: 'cancel' },
         {
           text: '确认退出',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              const allKeys = await AsyncStorage.getAllKeys();
-              const removableKeys = allKeys.filter((key) => (
-                key === CALENDAR_ENTRIES_STORAGE_KEY
-                || key === AI_INSTALL_REMINDER_SEEN_KEY
-                || key.startsWith(SMART_TOOL_HISTORY_KEY_PREFIX)
-                || key.startsWith(AI_CHAT_HISTORY_KEY_PREFIX)
-                || key.startsWith('mingme.')
-                || key.startsWith('mingji.')
-              ));
-              if (removableKeys.length) {
-                await AsyncStorage.multiRemove(removableKeys);
-              }
-            } catch {}
-            setChatHistory([]);
-            setAiRecentSessions([]);
-            setChatInput('');
-            setChatSessionId(createRecentSessionId());
-            setCalendarEntries({});
-            setSelectedDetail(null);
-            setSelectedShenShaList(null);
-            setSelectedCalendarDay(null);
-            setSelectedTodayGuides(null);
-            setAiPage(false);
-            setTabHistory([]);
-            onResetData?.();
+          onPress: () => {
+            performLogout();
           },
         },
       ]
     );
-  }, [onResetData]);
+  }, [performLogout]);
 
   const refreshAIQuota = async () => {
     const quotaArgs = { isPremium, memberTier: isPremium ? 'premium' : 'free', chart: identityChart, profile: identityProfile, userKey: stableUserKey };
