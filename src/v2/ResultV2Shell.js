@@ -2760,6 +2760,7 @@ function AICompanionModal({
           <View style={s.aiRecentDot} />
           <Text style={s.aiRecentLabel}>{'最近几次会话'}</Text>
         </View>
+        <Text style={s.aiRecentBody}>{'只保留最近 5 次，新会话会自动顶替最早的一条，不会把记录越堆越多。'}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.aiRecentList}>
           {recentSessions.slice(0, 5).map((item) => (
             <TouchableOpacity
@@ -5792,6 +5793,7 @@ export function ResultV2Shell(props) {
   const [chatInput, setChatInput] = useState('');
   const [chatSessionId, setChatSessionId] = useState(() => createRecentSessionId());
   const [chatLoading, setChatLoading] = useState(false);
+  const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [voiceLoading, setVoiceLoading] = useState(false);
   const [voiceRecording, setVoiceRecording] = useState(false);
   const [activeRecording, setActiveRecording] = useState(null);
@@ -5979,27 +5981,7 @@ export function ResultV2Shell(props) {
   }, [onResetData]);
 
   const handleLogout = useCallback(() => {
-    const message = '确认退出登录？本机会清除当前账号的资料缓存、会员信息与最近记录，之后可以重新注册新账号。';
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && typeof window.confirm === 'function') {
-      if (window.confirm(message)) {
-        performLogout();
-      }
-      return;
-    }
-    Alert.alert(
-      '退出登录',
-      message,
-      [
-        { text: '先不退出', style: 'cancel' },
-        {
-          text: '确认退出',
-          style: 'destructive',
-          onPress: () => {
-            performLogout();
-          },
-        },
-      ]
-    );
+    setLogoutConfirmVisible(true);
   }, [performLogout]);
 
   const refreshAIQuota = async () => {
@@ -6628,6 +6610,30 @@ export function ResultV2Shell(props) {
             <TouchableOpacity style={s.readyButton} onPress={onDismissProfileReady}>
               <Text style={s.readyButtonText}>{'开始体验'}</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={logoutConfirmVisible} transparent animationType="fade" onRequestClose={() => setLogoutConfirmVisible(false)}>
+        <View style={s.logoutMask}>
+          <TouchableOpacity style={s.logoutScrim} activeOpacity={1} onPress={() => setLogoutConfirmVisible(false)} />
+          <View style={s.logoutCard}>
+            <View style={s.logoutAura} />
+            <Text style={s.logoutTitle}>{'退出当前登录'}</Text>
+            <Text style={s.logoutBody}>{'退出后会清除当前账号的本机资料缓存、会员信息与最近记录。这样你就可以重新注册新账号。'}</Text>
+            <View style={s.logoutActionRow}>
+              <TouchableOpacity style={s.logoutGhostButton} onPress={() => setLogoutConfirmVisible(false)}>
+                <Text style={s.logoutGhostButtonText}>{'先不退出'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={s.logoutPrimaryButton}
+                onPress={() => {
+                  setLogoutConfirmVisible(false);
+                  performLogout();
+                }}
+              >
+                <Text style={s.logoutPrimaryButtonText}>{'确认退出'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -7494,11 +7500,23 @@ const s = StyleSheet.create({
   aiRecentHeader: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 10 },
   aiRecentDot: { width: 7, height: 7, borderRadius: 999, backgroundColor: 'rgba(109,184,160,0.88)' },
   aiRecentLabel: { fontSize: 11, fontWeight: '800', color: 'rgba(20,51,58,0.54)', textTransform: 'uppercase', letterSpacing: 0.4 },
+  aiRecentBody: { fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.60)', marginBottom: 10 },
   aiRecentList: { gap: 10, paddingRight: 6 },
   aiRecentItem: { width: 196, minHeight: 112, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(220,227,232,0.94)', backgroundColor: '#FFFFFF', paddingHorizontal: 12, paddingVertical: 12, justifyContent: 'space-between' },
   aiRecentItemTitle: { fontSize: 13, lineHeight: 18, color: C.logoDeep, fontWeight: '800', marginBottom: 6 },
   aiRecentItemPreview: { fontSize: 12, lineHeight: 18, color: 'rgba(20,51,58,0.72)', flex: 1 },
   aiRecentItemMeta: { marginTop: 8, fontSize: 11, color: 'rgba(20,51,58,0.42)', fontWeight: '700' },
+  logoutMask: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 18, zIndex: 120 },
+  logoutScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(8,13,17,0.42)' },
+  logoutCard: { width: '100%', maxWidth: 380, borderRadius: 28, backgroundColor: 'rgba(248,250,251,0.98)', borderWidth: 1, borderColor: 'rgba(214,222,228,0.96)', paddingHorizontal: 20, paddingTop: 22, paddingBottom: 18, shadowColor: '#0E2230', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 14 }, elevation: 6, overflow: 'hidden' },
+  logoutAura: { position: 'absolute', width: 180, height: 180, borderRadius: 999, top: -72, right: -36, backgroundColor: 'rgba(169,222,208,0.16)' },
+  logoutTitle: { fontSize: 22, lineHeight: 28, color: C.logoDeep, fontWeight: '800', marginBottom: 10 },
+  logoutBody: { fontSize: 14, lineHeight: 22, color: 'rgba(20,51,58,0.74)' },
+  logoutActionRow: { marginTop: 18, flexDirection: 'row', gap: 10 },
+  logoutGhostButton: { flex: 1, minHeight: 48, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(214,222,228,0.96)', backgroundColor: 'rgba(255,255,255,0.92)', alignItems: 'center', justifyContent: 'center' },
+  logoutGhostButtonText: { fontSize: 14, fontWeight: '700', color: 'rgba(20,51,58,0.70)' },
+  logoutPrimaryButton: { flex: 1, minHeight: 48, borderRadius: 999, backgroundColor: C.danger, alignItems: 'center', justifyContent: 'center', shadowColor: C.danger, shadowOpacity: 0.22, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 4 },
+  logoutPrimaryButtonText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
   aiConversationShell: { flex: 1 },
   aiStartShell: { flex: 1, paddingTop: 14, paddingBottom: 14, justifyContent: 'flex-start' },
   aiScroll: { flex: 1 },
